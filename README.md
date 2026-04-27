@@ -22,7 +22,7 @@
 
 ## Overview
 
-The Teensy 4.1 is a microcontroller development board based on the NXP i.MX RT1062, an ARM Cortex-M7 running at up to 600 MHz. With hardware floating-point, a dedicated SPI bus, and a built-in SDIO SD card slot, it provides a capable foundation for a 2D gaming engine driving an Adafruit ILI9341 TFT display.
+The Teensy 4.1 is a microcontroller development board based on the NXP i.MX RT1062, an ARM Cortex-M7 running at up to 600 MHz. It has hardware floating-point, a dedicated SPI bus, and a built-in SDIO SD card slot - enough for a 2D game platform along side an Adafruit ILI9341 TFT for display.
 
 <table border="0">
   <tr>
@@ -41,20 +41,20 @@ The engine is structured around three components:
 
 | Component | Class | Library |
 |-----------|-------|---------|
-| Display | `luya::display::Display` | ILI9341_t3 / SDL2 |
+| Display | `luya::display::Display` | ILI9341_t3, SDL2 |
 | Audio | `luya::Audio` | Teensy Audio Library |
-| Storage | `luya::Storage` | SdFat / stb_image |
+| Storage | `luya::Storage` | SdFat, stb_image |
 
-`Engine::init()` is called from Teensy `setup()` and `Engine::tick(world)` from `loop()`. On the host the SDL2 game loop drives both.
+`Engine::init()` is called from Teensy `setup()` and `Engine::tick(world)` from `loop()`. On the host the SDL2 game loop runs both.
 
 ### Display drivers
 
-The display component is polymorphic and defaults to `SDL2`, the drivers live in `luya/display/`:
+The display component is compile-time polymorphic and defaults to `SDL2`
 
 | Driver | Class | Target |
 |--------|-------|--------|
 | Adafruit 2.8" TFT | `Adafruit_Display` | Teensy 4.1 hardware  |
-| SDL2 | `SDL_Display` | Local development |
+| SDL2 | `SDL_Display` | Host development |
 
 The SDL2 driver opens a desktop window at the ILI9341 native resolution (320×240) scaled up by `config::scale` (3×, 960×720). `SDL_RenderSetLogicalSize` ensures all draw calls use the same coordinate space as the Adafruit.
 
@@ -65,7 +65,7 @@ The SDL2 driver opens a desktop window at the ILI9341 native resolution (320×24
 Link against `luya::engine` in your `CMakeLists.txt`:
 
 ```cmake
-add_subdirectory(luya)          # or use CPM / FetchContent
+add_subdirectory(luya)          # or use CPM, FetchContent
 target_link_libraries(my_game PRIVATE luya::engine)
 ```
 
@@ -90,7 +90,7 @@ while (running) {
 
 ### Physics
 
-The physics module is a heavily edited port of box2d-lite using sequential impulse constraint solving over a fixed timestep. Dynamic allocation has been replaced with ETL fixed-size containers.
+The physics module is a heavily-edited port of box2d-lite that uses sequential impulse constraint solving over a fixed timestep. Dynamic allocation has been replaced with ETL fixed-size containers.
 
 #### Bodies
 
@@ -109,7 +109,7 @@ box.add_force({ 1.0f, 0.0f });       // nudge right
 
 #### World
 
-`World` holds the body and joint lists and runs the solver:
+`World` holds ~~the universe~~ the body and joint lists and runs the solver:
 
 ```cpp
 physics::World world({ 0.0f, -10.0f }, 10);  // gravity, solver iterations
@@ -142,7 +142,7 @@ world.add(&hinge);
 
 ### Renderer and sprites
 
-The `Renderer` owns a full-screen RGB565 framebuffer. Each frame does clear, draw, render:
+The `Renderer` holds the full-screen RGB565 framebuffer. Each frame runs clear, draw, render:
 
 ```cpp
 auto& renderer = engine.renderer();
@@ -265,13 +265,13 @@ If Teensyduino is not installed at the default Arduino.app path, override with:
 Teensy libraries
 
 - `teensy4_core` — Teensy 4.1 hardware abstraction and startup
-- `ILI9341_t3` / `ILI9341_t3n` — ILI9341 TFT display drivers
+- `ILI9341_t3`, `ILI9341_t3n` — ILI9341 TFT display drivers
 - `SdFat` — SD card filesystem via built-in SDIO
 - `Teensy Audio Library` — I2S audio pipeline and SGTL5000 codec
 
 Host-only dependencies
 
-- `SDL2` — Default display driver for local development
+- `SDL2` — Default display driver for host development
 
 ## Licensing
 
