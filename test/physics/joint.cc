@@ -173,7 +173,7 @@ TEST_CASE("physics/joint.cc: Joint constraint keeps anchor points close after "
 {
     // Give both bodies velocities pulling them apart from the joint anchor.
     // After running the simulation for many steps the constraint should have
-    // corrected most of the drift — the two world-space anchor points should
+    // corrected most of the drift - the two world-space anchor points should
     // still be close to each other.
 
     World world({ 0.0f, 0.0f }, 20);
@@ -207,7 +207,7 @@ TEST_CASE("physics/joint.cc: Joint constraint keeps anchor points close after "
     Vec2 p2 = b.position + rot_b * pin.local_anchor2;
 
     float error = (p2 - p1).length();
-    CHECK(error < 1.0f); // constraint pulled them back — error is bounded
+    CHECK(error < 1.0f); // constraint pulled them back - error is bounded
 }
 
 TEST_CASE(

@@ -12,9 +12,10 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Sample — fire spell collision
+ * Sample - fire spell collision
  *
- * A fire spell body falls under gravity and strikes a static ground body.
+ * A fire spell body shoots and strikes a static planet body.
+ *
  * On contact, i.e. when World::arbiters becomes non-empty, the spell sprite
  * is replaced by an explosion sprite at the same world position.
  *
@@ -36,24 +37,24 @@ int main()
     luya::Engine engine{};
     engine.init();
 
-    luya::physics::World world({ 0.0f, -10.0f }, 10);
+    luya::physics::World world({ 0.0f, 0.0f }, 10);
 
-    // static ground platform — default Body has inv_mass = 0
-    luya::physics::Body ground;
-    ground.position = { 3.5f, -0.5f };
-    ground.width = { 0.5f, 0.5f };
+    // static planet - default Body has inv_mass = 0
+    luya::physics::Body planet;
+    planet.position = { 3.5f, 0.0f };
+    planet.width = { 1.0f, 1.0f };
 
-    // dynamic spell body — set() assigns mass and inertia
+    // dynamic spell body - set() assigns mass and inertia
     luya::physics::Body spell;
-    spell.set({ 0.3f, 0.3f }, 1.0f);
-    spell.position = { -4.2f, -1.0f };
-    spell.velocity = { -0.0f, 10.0f };
+    spell.set({ 1.0f, 0.5f }, 1.0f);
+    spell.position = { -5.0f, -0.1111f };
+    spell.velocity = { 0.5f, 0.0f };
 
-    world.add(&ground);
+    world.add(&planet);
     world.add(&spell);
 
-    luya::Sprite world_sprite = engine.storage().load_sprite(
-        "sample/images/Fire_World_Frame.png", 320, 80);
+    luya::Sprite planet_sprite = engine.storage().load_sprite(
+        "sample/images/Water_Ball_Frame_07.png", 96, 96);
     luya::Sprite spell_sprite = engine.storage().load_sprite(
         "sample/images/Fire_Spell_Frame_07.png", 64, 36);
     luya::Sprite explode_sprite = engine.storage().load_sprite(
@@ -83,20 +84,23 @@ int main()
 
         {
             auto [sx, sy] =
-                renderer.world_to_screen(ground.position.x, ground.position.y);
-            renderer.add_sprite(&world_sprite,
-                static_cast<int16_t>(sx - world_sprite.width / 2),
-                static_cast<int16_t>(sx - world_sprite.height / 2));
-        }
-
-        {
-            auto [sx, sy] =
-                renderer.world_to_screen(spell.position.x, spell.position.y);
+                renderer.world_to_screen(planet.position.x, planet.position.y);
             const luya::Sprite& active =
-                exploded ? explode_sprite : spell_sprite;
+                exploded ? explode_sprite : planet_sprite;
             renderer.add_sprite(&active,
                 static_cast<int16_t>(sx - active.width / 2),
                 static_cast<int16_t>(sy - active.height / 2));
+        }
+
+        // cppcheck-suppress[knownConditionTrueFalse]
+        if (!exploded) {
+            auto [sx, sy] =
+                renderer.world_to_screen(spell.position.x, spell.position.y);
+            const luya::Sprite& active = spell_sprite;
+            renderer.add_sprite(&active,
+                static_cast<int16_t>(sx - active.width / 2),
+                static_cast<int16_t>(sy - active.height / 2),
+                3.111f);
         }
 
         engine.tick(world);

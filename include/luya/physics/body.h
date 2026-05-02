@@ -20,19 +20,38 @@
 /****************************************************************************
  * Body
  *
- * A body is a box that the physics engine can push around. It has a
- * position in world space, a speed (velocity), and a spin (angular
- * velocity). Each frame the engine applies gravity and any forces you
- * have added, then moves the body accordingly.
+ * A Body is a rectangular rigid object. It holds two kinds of state:
  *
- * Call set() to give the body a size and mass. The two values in set()
- * are the full dimensions of the box: a value of { 1.0, 1.0 } makes a 1x1
- * unit box, { 2.0, 0.5 } makes a 2x0.5 unit platform, and so on.
- * After set(), assign position to place it in the world, then pass a
- * pointer to World::add().
+ *   Kinematic - where it is and how fast it is moving:
+ *     position, rotation, velocity, angular_velocity
  *
- * A body constructed without calling set() has infinite mass and will
- * never move — use this for static walls and floors.
+ *   Dynamic - accumulated pushes waiting to be applied this frame:
+ *     force, torque
+ *
+ * Every frame World::step() integrates the dynamic state into the kinematic
+ * state in this order:
+ *
+ *   1. gravity and force are added to velocity:
+ *        velocity += dt * (gravity + inv_mass * force)
+ *
+ *   2. torque is added to angular_velocity:
+ *        angular_velocity += dt * inv_i * torque
+ *
+ *   3. velocity is integrated into position:
+ *        position += dt * velocity
+ *
+ *   4. angular_velocity is integrated into rotation:
+ *        rotation += dt * angular_velocity
+ *
+ *   5. force and torque are cleared to zero.
+ *
+ * This means gravity affects velocity first, then velocity moves the body.
+ * Setting velocity directly (e.g. for a jump) bypasses step 1 - gravity
+ * will still accumulate from the next frame onward. Setting force via
+ * add_force() lets gravity and the push combine naturally each frame.
+ *
+ * A body created without calling set() has inv_mass = 0 and never moves
+ * regardless of gravity or forces. Use this for static floors and walls.
  *
  *  Example:
  *
@@ -41,7 +60,10 @@
  *   box.position = { 0.0f, 3.0f };  // start 3 units above origin
  *   world.add(&box);
  *
- *   // nudge it to the right before the first step
+ *   // give it a horizontal speed; gravity will arc it downward
+ *   box.velocity = { 3.0f, 0.0f };
+ *
+ *   // or push it for one frame; add_force() can be called repeatedly
  *   box.add_force({ 5.0f, 0.0f });
  *
  ****************************************************************************/
@@ -50,7 +72,7 @@ namespace luya::physics {
 
 /**
  * @brief
- * A rigid box body — the fundamental unit of simulation. Every collidable
+ * A rigid box body - the fundamental unit of simulation. Every collidable
  * object in the scene is a Body.
  *
  * A Body carries two kinds of state. Kinematic state (position, rotation,
@@ -68,7 +90,7 @@ namespace luya::physics {
  *
  * clang-format on
  *
- * The solver never divides by mass directly — it multiplies by inv_mass.
+ * The solver never divides by mass directly - it multiplies by inv_mass.
  * This means a static body (inv_mass = 0) requires no special case: any
  * force multiplied by zero produces no velocity change. A default-constructed
  * Body is already static; call set() to make it dynamic.
@@ -85,25 +107,182 @@ class Body
 
     void add_force(const Vec2& f) { force += f; }
 
-    Vec2 position; // where the center of the box is in world space
-    float
-        rotation; // angle in radians; 0 = upright, positive = counter-clockwise
+    /**
+     * @brief
+     * Center of the box in world space, in world units.
+     *
+     * The origin is wherever you decide - a common convention is to put
+     * the floor at a large negative y so positive y is "up". Position is
+     * updated by step() each frame:
+     *
+     *   position += dt * velocity
+     *
+     * Assign directly to teleport the body:
+     *
+     *   body.position = { 0.0f, 5.0f }; // place it 5 units above origin
+     */
+    Vec2 position;
 
-    Vec2 velocity;          // how fast the body is moving (units per second)
-    float angular_velocity; // how fast it is spinning (radians per second)
+    /**
+     * @brief
+     * Orientation in radians, counter-clockwise from the x-axis.
+     *
+     * 0.0 means the box is axis-aligned (upright). Positive values rotate
+     * counter-clockwise; negative values rotate clockwise. Updated by
+     * step() each frame:
+     *
+     *   rotation += dt * angular_velocity
+     *
+     * IMPORTANT: rotation only affects the physics collision shape. The
+     * renderer does not read this field when drawing sprites - sprites are
+     * always blitted axis-aligned unless you pass an explicit angle to
+     * Renderer::add_sprite(). To keep a sprite visually in sync with its
+     * body, pass body.rotation as the angle_rad argument:
+     *
+     *   renderer.add_sprite(&sprite, sx, sy, body.rotation);
+     */
+    float rotation;
 
-    Vec2 force;   // total force to apply this step; cleared each frame
-    float torque; // rotational force to apply this step; cleared each frame
+    /**
+     * @brief
+     * How fast the body is translating, in world units per second.
+     *
+     * velocity is a 2D vector: x is horizontal speed, y is vertical speed.
+     * Positive y moves up; positive x moves right (standard math axes).
+     * Each frame step() integrates forces into velocity, then integrates
+     * velocity into position:
+     *
+     *   velocity  += dt * (gravity + inv_mass * force)
+     *   position  += dt * velocity
+     *
+     * You can read velocity to check how fast a body is moving, or write
+     * it to give a body an instant speed without going through forces:
+     *
+     *   body.velocity = { 3.0f, 0.0f }; // 3 units/second to the right
+     *   body.velocity.y = 0.0f;         // kill vertical speed (e.g. on floor)
+     *
+     * For a push that builds up over many frames, prefer add_force() so
+     * the physics integrator handles the acceleration naturally. Writing
+     * velocity directly is best for one-shot effects like jumps.
+     */
+    Vec2 velocity;
 
-    Vec2 width; // full width and height of the box
+    /**
+     * @brief
+     * How fast the body is spinning, in radians per second.
+     *
+     * Positive values spin counter-clockwise. Updated each frame:
+     *
+     *   angular_velocity += dt * inv_i * torque
+     *   rotation         += dt * angular_velocity
+     *
+     * A static body (inv_i = 0) ignores all torque, so angular_velocity
+     * stays zero regardless of collisions. Assign directly to pre-spin:
+     *
+     *   body.angular_velocity = k_pi; // half a turn per second
+     */
+    float angular_velocity;
+
+    /**
+     * @brief
+     * Accumulated force to apply this step, in world-unit kg·m/s².
+     *
+     * Never write to force directly - use add_force() so multiple callers
+     * can contribute without overwriting each other. step() consumes force
+     * via the integrator and then zeroes it, so it is automatically cleared
+     * every frame:
+     *
+     *   velocity += dt * (gravity + inv_mass * force)
+     *   force     = { 0, 0 }   // cleared by step()
+     */
+    Vec2 force;
+
+    /**
+     * @brief Accumulated rotational force to apply this step, in N·m.
+     *
+     * Torque spins the body the same way force translates it. step() adds
+     * it to angular_velocity and then zeroes it:
+     *
+     *   angular_velocity += dt * inv_i * torque
+     *   torque            = 0   // cleared by step()
+     *
+     * Assign directly when you want a one-frame spin kick:
+     *
+     *   body.torque = 2.0f; // spin counter-clockwise for one step
+     */
+    float torque;
+
+    /**
+     * @brief Full width and height of the box, in world units.
+     *
+     * A value of { 2.0, 0.5 } is a box that is 2 units wide and 0.5 units
+     * tall. Internally collide.cc computes half-extents as h = 0.5 * width
+     * for the SAT overlap test - you never need to halve this yourself.
+     *
+     * For static bodies you can assign width directly. For dynamic bodies
+     * always go through set(), which also recomputes mass and inertia:
+     *
+     *   body.set({ 2.0f, 0.5f }, 3.0f); // 2×0.5 box, 3 kg
+     */
+    Vec2 width;
 
   public:
-    float friction; // how much the surface resists sliding (0 = ice, 1 = rough)
-    float mass;     // total mass in kg; FLT_MAX means the body never moves
-    float inv_mass; // 1/mass; 0 when the body is static (avoids dividing by
-                    // FLT_MAX)
-    float I;        // resistance to spinning, derived from mass and size
-    float inv_i;    // 1/I; 0 when the body is static
+    /**
+     * @brief
+     * Surface friction coefficient. Range [0, 1].
+     *
+     * 0.0 is frictionless (ice); 1.0 is maximally rough. When two bodies
+     * collide the engine uses the geometric mean of their friction values
+     * so neither body alone controls the result:
+     *
+     *   contact_friction = sqrt(a.friction * b.friction)
+     *
+     * Defaults to 0.2 (light wood-on-wood).
+     */
+    float friction;
+
+    /**
+     * @brief
+     * Total mass in kg.
+     *
+     * Set by set(). FLT_MAX means the body is static - it never moves
+     * regardless of forces applied. Read-only after set().
+     */
+    float mass;
+
+    /**
+     * @brief
+     * Reciprocal of mass (1/mass). 0 for static bodies.
+     *
+     * The solver always multiplies by inv_mass rather than dividing by mass.
+     * This avoids a division every frame and naturally handles static bodies:
+     * inv_mass = 0 means any force scaled by it produces zero acceleration.
+     * Read-only after set().
+     */
+    float inv_mass;
+
+    /**
+     * @brief
+     * Moment of inertia - resistance to spinning, in kg·m².
+     *
+     * Derived from mass and full box dimensions by set():
+     *
+     *   I = mass * (width.x^2 + width.y^2) / 12
+     *
+     * A wide, heavy box has a larger I and is harder to spin than a small,
+     * light one. FLT_MAX for static bodies. Read-only after set().
+     */
+    float I;
+
+    /**
+     * @brief
+     * Reciprocal of moment of inertia (1/I). 0 for static bodies.
+     *
+     * Used the same way as inv_mass - multiplied against torque to get
+     * angular acceleration. 0 means the body never rotates.
+     * Read-only after set().
+     */
+    float inv_i;
 };
 
 } // namespace physics

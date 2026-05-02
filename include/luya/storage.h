@@ -17,6 +17,10 @@
 #include <etl/array.h>   // for array
 #include <luya/sprite.h> // for Sprite
 
+#ifndef MAX_LOADED_SPRITES
+#define MAX_LOADED_SPRITES 16
+#endif
+
 #if defined(__IMXRT1062__)
 #include <SdFat.h> // for SdFs, SdioConfig, FIFO_SDIO, BUILTIN_SDCARD
 #endif
@@ -36,7 +40,7 @@ namespace luya {
 
 /**
  * @brief
- *   Storage component — sprite loader
+ *   Storage component - sprite loader
  *
  *   Manages a fixed pool of RGB565 pixel buffers. Sprites are loaded from
  *   disk on host or from the built-in SDIO SD card slot via SdFat on
@@ -53,8 +57,8 @@ class Storage
 {
   public:
     // Maximum number of sprites that can be resident at once
-    static constexpr size_t k_max_loaded_sprites = 16;
-    // Maximum pixels per sprite — sized for the host display; Teensy games
+    static constexpr size_t k_max_loaded_sprites = MAX_LOADED_SPRITES;
+    // Maximum pixels per sprite - sized for the host display; Teensy games
     // should use smaller sprites and tune this for available SRAM.
 #if defined(__IMXRT1062__)
     static constexpr size_t k_max_sprite_pixels = 64 * 64;

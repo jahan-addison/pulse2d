@@ -21,6 +21,10 @@
 #include <etl/map.h>    // for map
 #include <etl/vector.h> // for vector
 
+#ifndef MAX_PHYSICS_BODIES
+#define MAX_PHYSICS_BODIES 256
+#endif
+
 /****************************************************************************
  * World
  *
@@ -58,8 +62,6 @@
 
 namespace luya::physics {
 
-constexpr std::size_t MAX_PHYSICS_BODIES = 256;
-
 class Body;
 class Joint;
 
@@ -89,7 +91,7 @@ class Joint;
  * After broad_phase() the arbiters map holds exactly one Arbiter per
  * touching body pair. Checking arbiters.empty() is the correct way to
  * detect whether any collision is active this frame. The three static flags
- * control solver optimizations — disable them individually to isolate bugs.
+ * control solver optimizations - disable them individually to isolate bugs.
  */
 class World
 {
@@ -108,18 +110,98 @@ class World
     void broad_phase();
 
   public:
-    etl::vector<Body*, MAX_PHYSICS_BODIES> bodies;  // all registered bodies
-    etl::vector<Joint*, MAX_PHYSICS_BODIES> joints; // all registered joints
-    etl::map<Arbiter_Key, Arbiter, MAX_PHYSICS_BODIES>
-        arbiters;   // active contacts this step
-    Vec2 gravity;   // acceleration applied to every dynamic body each step
-    int iterations; // solver passes per step; more = stiffer collisions
-    static bool
-        accumulate_impulses; // reuse impulses from previous step (default true)
-    static bool
-        warm_starting; // seed solver with last frame's impulses (default true)
-    static bool position_correction; // push bodies apart when they overlap
-                                     // (default true)
+    /**
+     * @brief
+     * All bodies registered with add(Body*).
+     *
+     * step() iterates this vector every frame. Order does not matter.
+     * Do not remove entries manually - use clear() to reset the world.
+     */
+    etl::vector<Body*, MAX_PHYSICS_BODIES> bodies;
+
+    /**
+     * @brief
+     * All joints registered with add(Joint*).
+     *
+     * step() runs pre_step() and apply_impulse() on every joint each frame,
+     * after contacts. Do not remove entries manually - use clear().
+     */
+    etl::vector<Joint*, MAX_PHYSICS_BODIES> joints;
+
+    /**
+     * @brief
+     * Active contact arbiters for this step, keyed by body pair.
+     *
+     * broad_phase() (called from step()) populates this map: one Arbiter
+     * per touching pair, removed when the pair separates. Check emptiness
+     * to detect any collision this frame:
+     *
+     *   if (!world.arbiters.empty()) { ... }
+     *
+     * Iterate to inspect individual contacts:
+     *
+     *   for (auto& [key, arb] : world.arbiters)
+     *       // key.body1, key.body2 - the two bodies
+     *       // arb.num_contacts     - 1 or 2
+     *       // arb.contacts[i].normal - push direction
+     */
+    etl::map<Arbiter_Key, Arbiter, MAX_PHYSICS_BODIES> arbiters;
+
+    /**
+     * @brief
+     * Gravitational acceleration applied to every dynamic body per
+     * step.
+     *
+     * Integrated into velocity once per step before the constraint solver:
+     *
+     *   velocity += dt * gravity
+     *
+     * Standard Earth gravity pointing down: { 0.0f, -10.0f }.
+     * Set to { 0.0f, 0.0f } for top-down or zero-gravity scenes.
+     */
+    Vec2 gravity;
+
+    /**
+     * @brief
+     * Number of constraint solver passes per step.
+     *
+     * Each pass visits every contact and joint once, applying a small
+     * corrective velocity. More passes reduce residual penetration and
+     * make stacked objects more stable, at proportionally higher CPU cost.
+     * 10 is a practical default on both the Teensy 4.1 and the host.
+     */
+    int iterations;
+
+    /**
+     * @brief
+     * Accumulate impulses across solver passes within a step.
+     *
+     * When true (default) each pass adds to the impulse accumulated so far
+     * rather than recomputing from scratch. This significantly improves
+     * stability for stacked objects. Disable to isolate solver bugs.
+     */
+    static bool accumulate_impulses;
+
+    /**
+     * @brief
+     * Seed the solver with impulses carried over from the last step.
+     *
+     * When true (default) the solver starts each step with the contact
+     * impulses computed last frame. This reduces the number of passes needed
+     * to reach a stable solution (warm-starting). Disable to observe cold
+     * convergence behaviour.
+     */
+    static bool warm_starting;
+
+    /**
+     * @brief
+     * Apply a position correction to push overlapping bodies apart.
+     *
+     * When true (default) a small fraction of penetration depth is removed
+     * directly from position each step (Baumgarte stabilization). Disable
+     * if you want to observe purely velocity-based resolution.
+     */
+    static bool position_correction;
 };
 
 } // namespace physics

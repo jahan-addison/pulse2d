@@ -39,25 +39,14 @@ The Teensy 4.1 is a microcontroller development board based on the NXP i.MX RT10
 
 The engine is structured around four components:
 
-| Component | Class | Library |
-|-----------|-------|---------|
-| Display | `luya::display::Display` | ILI9341_t3, SDL2 |
-| Audio | `luya::Audio` | Teensy Audio Library |
-| Storage | `luya::Storage` | SdFat, stb_image |
-| Physics | `luya::physics::World` | box2d-lite (modified) |
+| Component | Class |
+|-----------|-------|
+| [Display](#display) | `luya::display::Display` |
+| [Audio](#audio) | `luya::Audio` |
+| [Storage](#storage) | `luya::Storage` |
+| [Physics](#physics) | `luya::physics::World` |
 
 `Engine::init()` is called from Teensy `setup()` and `Engine::tick(world)` from `loop()`. On the host the SDL2 game loop runs both.
-
-### Display drivers
-
-The display component is compile-time polymorphic and defaults to `SDL2`
-
-| Driver | Class | Target |
-|--------|-------|--------|
-| Adafruit 2.8" TFT | `Adafruit_Display` | Teensy 4.1 hardware  |
-| SDL2 | `SDL_Display` | Host development |
-
-The SDL2 driver opens a desktop window at the ILI9341 native resolution (320×240) scaled up by `config::scale` (3×, 960×720). `SDL_RenderSetLogicalSize` ensures all draw calls use the same coordinate space as the Adafruit.
 
 ## Usage
 
@@ -87,27 +76,45 @@ while (running) {
 }
 ```
 
-## Overview
-
-### Physics
-
-The physics module is a port of [box2d-lite](https://github.com/erincatto/box2d-lite) modified for embedded use, such as dynamic allocation replaced with ETL fixed-size containers, all math in single-precision float, and the solver tuned for the Teensy 4.1's Cortex-M7.
-
-For details, see the [physics readme](luya/physics/readme.md).
-
 ---
 
-### Renderer and sprites
-
-The `Renderer` holds the full-screen RGB565 framebuffer. Each frame runs clear, draw, render:
+The `Renderer` holds the full-screen RGB565 framebuffer. Each frame runs clear, draw, and render:
 
 ```cpp
 auto& renderer = engine.renderer();
 
+luya::Sprite my_sprite = engine.storage().load_sprite("hero.png", 32, 32);
+
 renderer.clear();
-renderer.add_sprite(&my_sprite, x, y);   // queue sprites before draw
-// engine.tick() calls draw() + render() internally
+renderer.add_sprite(&my_sprite, x, y); // queue sprites before draw
+// engine.tick() will call draw() + render()
 ```
+
+Use `Renderer::world_to_screen()` to convert a physics body position to a pixel coordinate:
+
+```cpp
+auto [sx, sy] = renderer.world_to_screen(body.position.x, body.position.y);
+renderer.add_sprite(&my_sprite,
+    static_cast<int16_t>(sx - my_sprite.width  / 2),
+    static_cast<int16_t>(sy - my_sprite.height / 2));
+```
+
+Check out the [sample game](/sample/main.cc) for a complete example!
+
+## Components
+
+## Display
+
+The display component is compile-time polymorphic and defaults to `SDL2`
+
+| Driver | Class |
+|--------|-------|
+| Adafruit 2.8" TFT | `Adafruit_Display` |
+| SDL2 | `SDL_Display` |
+
+The SDL2 driver opens a desktop window at the ILI9341 native resolution (320x240) scaled up by `config::scale` (3×, 960x720). `SDL_RenderSetLogicalSize` ensures all draw calls use the same coordinate space as the Adafruit.
+
+## Storage
 
 Load sprites via `Storage::load_sprite()`. On the host any image format supported by stb_image works; the image is nearest-neighbour scaled to the requested dimensions and converted to RGB565:
 
@@ -115,20 +122,21 @@ Load sprites via `Storage::load_sprite()`. On the host any image format supporte
 luya::Sprite s = engine.storage().load_sprite("hero.png", 32, 32);
 ```
 
-On Teensy, `load_sprite` reads the raw binary format (uint16_t width, uint16_t height, then width×height RGB565 pixels) from the SD card.
+On Teensy, `load_sprite` reads the raw binary format (`uint16_t` width, `uint16_t` height, then `width x height` RGB565 pixels) from the SD card.
 
-Use `Renderer::world_to_screen()` to convert a physics body position to a pixel coordinate:
+## Audio
 
-```cpp
-auto [sx, sy] = renderer.world_to_screen(body.position.x, body.position.y);
-renderer.add_sprite(&sprite,
-    static_cast<int16_t>(sx - sprite.width  / 2),
-    static_cast<int16_t>(sy - sprite.height / 2));
-```
+* TODO
+
+## Physics
+
+The physics component is a port of [box2d-lite](https://github.com/erincatto/box2d-lite) modified for embedded use, such as dynamic allocation replaced with ETL fixed-size containers, all math in single-precision float, and the solver tuned for the Teensy 4.1's Cortex-M7.
+
+For details, see the [physics readme](luya/physics/readme.md).
 
 ## Build
 
-### macOS — SDL2
+### macOS - SDL2
 
 SDL2 is required for all host builds:
 
@@ -152,7 +160,7 @@ Run the test suite:
 ./build/test_suite
 ```
 
-### Debian Based — SDL2
+### Debian Based - SDL2
 
 Install dependencies:
 
@@ -175,7 +183,7 @@ Run the test suite:
 ./build/test_suite
 ```
 
-### Windows — MinGW + SDL2
+### Windows - MinGW + SDL2
 
 Install [MSYS2](https://www.msys2.org/), then from an **MSYS2 MinGW64** shell install dependencies:
 
@@ -197,7 +205,7 @@ Run the test suite:
 
 > **Note:** The MSVC toolchain is not supported. Use the MinGW64 shell from MSYS2, not a Visual Studio developer prompt.
 
-### Teensy 4.1 — cross-compile
+### Teensy 4.1 - cross-compile
 
 Install [Teensyduino](https://www.pjrc.com/teensy/teensyduino.html) to get `arm-none-eabi-gcc` and the Teensy libraries, then:
 
@@ -221,14 +229,14 @@ If Teensyduino is not installed at the default Arduino.app path, override with:
 
 Teensy libraries
 
-- `teensy4_core` — Teensy 4.1 hardware abstraction and startup
-- `ILI9341_t3`, `ILI9341_t3n` — ILI9341 TFT display drivers
-- `SdFat` — SD card filesystem via built-in SDIO
-- `Teensy Audio Library` — I2S audio pipeline and SGTL5000 codec
+- `teensy4_core` - Teensy 4.1 hardware abstraction and startup
+- `ILI9341_t3`, `ILI9341_t3n` - ILI9341 TFT display drivers
+- `SdFat` - SD card filesystem via built-in SDIO
+- `Teensy Audio Library` - I2S audio pipeline and SGTL5000 codec
 
 Host-only dependencies
 
-- `SDL2` — Default display driver for host development
+- `SDL2` - Default display driver for host development
 
 ## Licensing
 

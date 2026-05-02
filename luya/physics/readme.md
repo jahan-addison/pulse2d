@@ -10,7 +10,7 @@ Dynamic memory allocation has been removed in favor of fixed-size ETL storage, f
 
 ### Bodies
 
-A `Body` is a solid rectangle — the only shape the engine supports. You describe its size with `width`, which is the **full** width and height of the box.
+A `Body` is a solid rectangle, the only shape the engine supports. You describe its size with `width`, which is the full width and height of the box.
 
 ```
 width = { 1.0, 1.0 }      width = { 4.0, 0.5 }
@@ -21,7 +21,7 @@ width = { 1.0, 1.0 }      width = { 4.0, 0.5 }
 +----------+
 ```
 
-A `Body` that is **default-constructed** (no call to `set()`) has infinite mass and will never move. Use this for walls, floors, and any fixed platform — there is nothing else you need to do:
+A `Body` that is constructed with no call to `set()` has infinite mass and will never move. Use this for walls, floors, and any fixed platform:
 
 ```cpp
 physics::Body floor;
@@ -29,7 +29,7 @@ floor.position = { 0.0f, -4.0f };  // place it, then add to the world
 floor.width    = { 5.0f, 0.5f };   // 5 × 0.5 unit platform
 ```
 
-To make a body **dynamic** (affected by gravity and collisions), call `set()` with full dimensions and a mass in kg. `set()` also zeroes all motion state, so calling it again is safe and fully reinitializes the body:
+To make a body dynamic (i.e. affected by gravity and collisions), call `set()` with full dimensions and a mass in kg. `set()` also zeroes all motion state, so calling it again is safe and reinitializes the body:
 
 ```cpp
 physics::Body box;
@@ -62,14 +62,14 @@ box.friction = 0.8f;  // sticky surface
 
 `World` is the simulation context. It holds every body and joint, runs the solver each frame, and records every active contact in `arbiters`.
 
-Construct it with a gravity vector and an iteration count. Gravity is in world units per second squared — use a negative y value to pull things downward. The iteration count is how many passes the solver makes per step: more passes make stacked objects more stable, at higher CPU cost. **10 is a practical default** on both the Teensy and the host.
+Construct it with a gravity vector and an iteration count. Gravity is in world units per second squared - use a negative y value to pull things downward. The iteration count is how many passes the solver makes per step: more passes make stacked objects more stable, at higher CPU cost. **10 is a practical default** on both the Teensy and the host.
 
 ```cpp
 physics::World world({ 0.0f, -10.0f }, 10);
 //                         ^gravity       ^iterations
 ```
 
-Register every body and joint with `add()`, then call `step()` once per frame with a fixed timestep. A fixed timestep (e.g. `1/60`) is important — a variable `dt` can cause objects to tunnel through thin walls at low frame rates:
+Register every body and joint with `add()`, then call `step()` once per frame with a fixed timestep. A fixed timestep (e.g. `1/60`) is important - a variable `dt` can cause objects to tunnel through thin walls at low frame rates:
 
 ```cpp
 world.add(&floor);
@@ -114,9 +114,9 @@ world.clear();
 
 ### Joints
 
-A `Joint` pins two bodies together at a point in the world so they cannot drift apart. Think of it as a bolt through both bodies at a shared position. The engine enforces the constraint by applying a small corrective push each iteration.
+A `Joint` pins two bodies together at a point in the world so they cannot drift apart. The engine enforces the constraint by applying a small corrective push each iteration.
 
-Call `set()` with both bodies and the anchor point in world space, then add the joint to the world. The joint does not need any per-frame calls — `step()` handles it automatically:
+Call `set()` with both bodies and the anchor point in world space, then add the joint to the world. The joint does not need any per-frame calls - `step()` handles it automatically:
 
 ```cpp
 physics::Joint hinge;

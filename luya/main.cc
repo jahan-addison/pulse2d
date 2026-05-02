@@ -26,7 +26,7 @@
  *          on Teensy 4.1
  *****************************************************/
 
-// Teensy entry point — game logic goes here.
+// Teensy entry point - game logic goes here.
 // For the SDL2 host sample see sample/main.cc.
 
 static luya::Engine engine;

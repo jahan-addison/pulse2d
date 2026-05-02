@@ -31,7 +31,7 @@ struct World_Fixture
         : world({ 0.0f, -10.0f }, 10)
     {
         floor.width = { 10.0f, 0.5f };
-        floor.position = { 0.0f, -5.0f }; // static — default-constructed
+        floor.position = { 0.0f, -5.0f }; // static - default-constructed
 
         box.set({ 0.5f, 0.5f }, 1.0f);
         box.position = { 0.0f, 3.0f }; // well above the floor
@@ -75,7 +75,7 @@ TEST_CASE("physics/world.cc: World::clear empties bodies, joints, and arbiters")
     a.set({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
     b.set({ 0.5f, 0.5f }, 1.0f);
-    b.position = { 0.0f, 0.0f }; // overlapping — forces a contact
+    b.position = { 0.0f, 0.0f }; // overlapping - forces a contact
 
     world.add(&a);
     world.add(&b);
@@ -120,7 +120,7 @@ TEST_CASE_FIXTURE(World_Fixture,
 {
     // With no other forces or contacts, a horizontal push should
     // change velocity.x by F * inv_mass * dt
-    box.position = { 0.0f, 100.0f }; // far from the floor — no contacts
+    box.position = { 0.0f, 100.0f }; // far from the floor - no contacts
     box.add_force({ 10.0f, 0.0f });
 
     float expected_dvx = 10.0f * box.inv_mass * (1.0f / 60.0f);
@@ -135,7 +135,7 @@ TEST_CASE_FIXTURE(World_Fixture,
     "physics/world.cc: World::step updates position by velocity * dt")
 {
     // Give the box a known horizontal velocity; check position shifts
-    box.position = { 0.0f, 100.0f }; // far from floor — no contacts
+    box.position = { 0.0f, 100.0f }; // far from floor - no contacts
     box.velocity = { 6.0f, 0.0f };
     float x_before = box.position.x;
     world.step(1.0f / 60.0f);
@@ -178,7 +178,7 @@ TEST_CASE("physics/world.cc: World::broad_phase skips two static bodies")
 {
     World world({ 0.0f, -10.0f }, 10);
 
-    // both bodies are default-constructed (static — inv_mass = 0)
+    // both bodies are default-constructed (static - inv_mass = 0)
     Body wall, floor;
     wall.width = { 0.5f, 5.0f };
     wall.position = { 0.0f, 0.0f };
@@ -237,7 +237,7 @@ TEST_CASE("physics/world.cc: World::step produces arbiters when bodies collide")
     CHECK(!world.arbiters.empty());
 }
 
-TEST_CASE("physics/world.cc: World::step — dynamic box does not sink through "
+TEST_CASE("physics/world.cc: World::step - dynamic box does not sink through "
           "static floor")
 {
     // Run the simulation long enough for a falling box to land and settle.

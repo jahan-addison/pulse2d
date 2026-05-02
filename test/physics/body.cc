@@ -139,7 +139,7 @@ TEST_CASE("physics/body.cc: Body::add_force on static body accumulates but has "
     b.add_force({ 100.0f, 0.0f });
     CHECK(b.force.x == 100.0f);
     CHECK(b.inv_mass == 0.0f);
-    // velocity unchanged — step() will multiply by inv_mass = 0
+    // velocity unchanged - step() will multiply by inv_mass = 0
     CHECK(b.velocity.x == 0.0f);
 }
 
@@ -155,7 +155,7 @@ TEST_CASE("physics/body.cc: Body::set moment of inertia scales with mass")
     Body b1, b2;
     b1.set({ 1.0f, 1.0f }, 1.0f);
     b2.set({ 1.0f, 1.0f }, 2.0f);
-    // I = mass * (w.x^2 + w.y^2) / 12 — doubling mass doubles I
+    // I = mass * (w.x^2 + w.y^2) / 12 - doubling mass doubles I
     CHECK(b2.I == doctest::Approx(b1.I * 2.0f));
 }
 

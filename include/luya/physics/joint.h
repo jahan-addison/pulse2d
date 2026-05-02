@@ -27,7 +27,7 @@
  *
  * Call set() with both bodies and the anchor point in world space, then
  * pass a pointer to World::add(). The joint does not need any per-frame
- * calls — the world handles it automatically inside step().
+ * calls - the world handles it automatically inside step().
  *
  * bias_factor controls how hard the engine pushes them back together each
  * step (default 0.2, range 0–1). softness adds a small give to the

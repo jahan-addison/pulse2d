@@ -24,7 +24,7 @@
  * Arbiter
  *
  * When two bodies overlap, the engine creates an Arbiter to track the
- * contact between them. It stores up to two contact points — each with
+ * contact between them. It stores up to two contact points - each with
  * a position, a direction (normal) pointing from one body to the other,
  * and the impulses needed to push them apart.
  *
@@ -85,7 +85,7 @@ Arbiter::Arbiter(Body* b1, Body* b2)
  * Merge a fresh set of contact points with the previous frame's, carrying
  * over accumulated impulses so the solver can warm-start from a good guess.
  *
- * Each contact point carries a "feature" — a compact label that describes
+ * Each contact point carries a "feature" - a compact label that describes
  * which pair of edges or vertices produced it. If a new contact has the same
  * feature as an old one, the engine treats them as the same contact and
  * copies the old impulses (pn, pt, pnb) onto the new point. This is
@@ -108,7 +108,7 @@ Arbiter::Arbiter(Body* b1, Body* b2)
  * clang-format on
  *
  * If World::warm_starting is false all impulses are zeroed and the solver
- * restarts cold every frame — useful for debugging but noticeably less
+ * restarts cold every frame - useful for debugging but noticeably less
  * stable on resting contacts.
  */
 void Arbiter::update(const Contacts& new_contacts, int num_new_contacts)
@@ -159,10 +159,10 @@ void Arbiter::update(const Contacts& new_contacts, int num_new_contacts)
  * For each contact, two effective masses are precomputed so apply_impulse()
  * only needs a multiply rather than a full solve on every iteration:
  *
- *   mass_normal  — resistance to being pushed apart along the contact normal.
+ *   mass_normal  - resistance to being pushed apart along the contact normal.
  *                  It is 1 / (1/m1 + 1/m2 + rotational contributions).
  *
- *   mass_tangent — same idea but along the tangent (friction) direction.
+ *   mass_tangent - same idea but along the tangent (friction) direction.
  *
  * The rotational contribution captures the lever-arm effect: a force applied
  * far from a body's center creates more angular acceleration than one applied
@@ -172,7 +172,7 @@ void Arbiter::update(const Contacts& new_contacts, int num_new_contacts)
  *
  * The bias is the target separation velocity that gently pushes overlapping
  * bodies apart each step. A small allowed penetration (0.01 units) is
- * subtracted first to prevent jitter on resting contacts — without it,
+ * subtracted first to prevent jitter on resting contacts - without it,
  * objects sitting on a surface would vibrate as the solver alternately
  * pushes and releases them:
  *
@@ -231,7 +231,7 @@ void Arbiter::pre_step(float inv_dt)
  * active contact point, preventing them from sinking into each other.
  *
  * Each call is one iteration of the sequential impulse solver. For each
- * contact point the method runs two passes — first the normal direction,
+ * contact point the method runs two passes - first the normal direction,
  * then the tangent (friction) direction.
  *
  * Normal impulse pass:
@@ -248,7 +248,7 @@ void Arbiter::pre_step(float inv_dt)
  *   4. If accumulate_impulses is on, clamp the total accumulated normal
  *      impulse pn to >= 0. Otherwise clamp just d_pn. The clamp is what
  *      prevents the solver from pulling bodies toward each other on
- *      separating contacts — bodies can only push, never pull.
+ *      separating contacts - bodies can only push, never pull.
  *
  * Friction impulse pass:
  *

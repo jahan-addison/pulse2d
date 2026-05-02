@@ -104,14 +104,19 @@ Sprite Storage::load_sprite(const char* path,
 
     auto& buf = pool_[next_slot_];
 
-    // Nearest-neighbour scale + RGBA8 → RGB565 conversion
+    // nearest-neighbour scale + RGBA8 → RGB565 conversion
+    // pixels with alpha < 128 are written as 0xF81F (magenta chroma-key)
     for (uint16_t row = 0; row < h; ++row) {
         int const sy = row * src_h / h;
         for (uint16_t col = 0; col < w; ++col) {
             int const sx = col * src_w / w;
             const uint8_t* px = img + (sy * src_w + sx) * 4;
-            buf[row * w + col] = static_cast<uint16_t>(
-                ((px[0] >> 3) << 11) | ((px[1] >> 2) << 5) | (px[2] >> 3));
+            if (px[3] < 16) {
+                buf[row * w + col] = 0xF81F; // transparent sentinel
+            } else {
+                buf[row * w + col] = static_cast<uint16_t>(
+                    ((px[0] >> 3) << 11) | ((px[1] >> 2) << 5) | (px[2] >> 3));
+            }
         }
     }
 
@@ -122,7 +127,7 @@ Sprite Storage::load_sprite(const char* path,
 }
 
 /**
- * @brief Reclaim all pool slots — invalidates all previously returned Sprites
+ * @brief Reclaim all pool slots - invalidates all previously returned Sprites
  */
 void Storage::reset()
 {

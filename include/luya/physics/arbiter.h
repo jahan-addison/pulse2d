@@ -22,7 +22,7 @@
  * Arbiter
  *
  * When two bodies overlap, the engine creates an Arbiter to track the
- * contact between them. It stores up to two contact points — each with
+ * contact between them. It stores up to two contact points - each with
  * a position, a direction (normal) pointing from one body to the other,
  * and the impulses needed to push them apart.
  *
@@ -68,8 +68,8 @@ union Feature_Pair
  * @brief
  * One contact point between two overlapping bodies.
  *
- * Carries both geometric data — position, normal, r1, r2, separation —
- * and solver data — mass_normal, mass_tangent, bias, pn, pt, pnb.
+ * Carries both geometric data - position, normal, r1, r2, separation -
+ * and solver data - mass_normal, mass_tangent, bias, pn, pt, pnb.
  *
  * pn, pt, and pnb are the accumulated impulses across solver iterations
  * within a frame. Arbiter::update() preserves them across frames so that
@@ -160,7 +160,7 @@ struct Arbiter_Key
  * clang-format on
  *
  * You never construct an Arbiter directly. World::broad_phase() manages the
- * full lifetime — creation, update, and removal when bodies separate.
+ * full lifetime - creation, update, and removal when bodies separate.
  */
 struct Arbiter
 {

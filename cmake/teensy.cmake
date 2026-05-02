@@ -1,17 +1,17 @@
 # ##############################################################################
-# Teensy 4.1 — Library Paths and Target Configuration
+# Teensy 4.1 - Library Paths and Target Configuration
 # ##############################################################################
 #
 # Resolves paths to teensy4_core, ILI9341_t3, ILI9341_t3n, SdFat, and the Teensy
 # Audio Library from a Teensyduino installation.
 #
 # Cache variables (override with -D on the cmake command line): TEENSYDUINO_PATH
-# — root of the Teensyduino hardware directory TEENSY41_CORE_PATH     —
-# teensy4_core source tree TEENSY41_LIB_PATH      — Teensyduino bundled
+# - root of the Teensyduino hardware directory TEENSY41_CORE_PATH     -
+# teensy4_core source tree TEENSY41_LIB_PATH      - Teensyduino bundled
 # libraries directory TEENSY41_ILI9341_T3_PATH TEENSY41_ILI9341_T3N_PATH
 # TEENSY41_SDFAT_PATH TEENSY41_AUDIO_PATH
 #
-# Provides: luya_add_teensy_target(<target>) — configure a CMake target for
+# Provides: luya_add_teensy_target(<target>) - configure a CMake target for
 # Teensy 4.1
 
 # ##############################################################################

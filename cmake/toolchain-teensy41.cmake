@@ -53,7 +53,7 @@ find_program(
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
 # ##############################################################################
-# Processor flags — Cortex-M7, FPv5-D16, hardware float ABI
+# Processor flags - Cortex-M7, FPv5-D16, hardware float ABI
 # ##############################################################################
 
 set(TEENSY41_MCU_FLAGS

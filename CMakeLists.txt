@@ -149,7 +149,7 @@ file(GLOB_RECURSE test_sources CONFIGURE_DEPENDS
 # main.cc is the Teensy entry point, and excluded from the engine library
 list(REMOVE_ITEM sources "${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}/main.cc")
 
-# Engine as a static library — games link against luya::engine
+# Engine as a static library - games link against luya::engine
 add_library(luya_engine STATIC ${sources} ${headers})
 add_library(luya::engine ALIAS luya_engine)
 
@@ -179,13 +179,19 @@ else()
     message(STATUS "luya: SDL2 display backend enabled")
   endif()
 
-  # Sample executable — demonstrates the engine with sprites + physics
+  # Sample executable - demonstrates the engine with sprites + physics
   add_executable(sample "${CMAKE_CURRENT_SOURCE_DIR}/sample/main.cc")
   target_link_libraries(sample PRIVATE luya_engine)
   set_target_properties(sample PROPERTIES OUTPUT_NAME "sample_game")
 
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/sample/images"
-       DESTINATION "${CMAKE_BINARY_DIR}/sample")
+  add_custom_command(
+    TARGET sample
+    POST_BUILD
+    COMMAND
+      ${CMAKE_COMMAND} -E copy_directory
+      "${CMAKE_CURRENT_SOURCE_DIR}/sample/images"
+      "${CMAKE_BINARY_DIR}/sample/images"
+    COMMENT "Syncing sample/images to build directory")
 
   include(cmake/doctest.cmake)
 endif()

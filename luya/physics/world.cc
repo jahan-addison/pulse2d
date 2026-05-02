@@ -77,7 +77,7 @@ bool World::position_correction = true;
  * the very next call to step().
  *
  * A body must be added before step() is called for it to be seen by the
- * broad-phase. Adding a body mid-simulation is safe — it simply begins
+ * broad-phase. Adding a body mid-simulation is safe - it simply begins
  * participating from that frame onward.
  */
 void World::add(Body* body)
@@ -94,7 +94,7 @@ void World::add(Body* body)
  * because set() converts the world-space anchor into per-body local offsets
  * that pre_step() reads every frame.
  *
- * Joints are solved in the same iteration loop as contact arbiters — their
+ * Joints are solved in the same iteration loop as contact arbiters - their
  * impulses interleave with collision impulses, so a joint attached to a
  * body that is also in a contact will behave correctly.
  */
@@ -109,7 +109,7 @@ void World::add(Joint* joint)
  *
  * This is the correct way to transition between scenes or levels. Simply
  * calling clear() and then re-adding new bodies and joints is safe and
- * cheap — ETL containers keep their backing storage, so no allocations
+ * cheap - ETL containers keep their backing storage, so no allocations
  * occur. The static solver flags (accumulate_impulses, warm_starting,
  * position_correction) are left unchanged.
  *
@@ -127,7 +127,7 @@ void World::clear()
 /**
  * @brief
  * Check every pair of bodies for overlap and rebuild the contact list.
- * Called automatically at the start of step() — you should not call this
+ * Called automatically at the start of step() - you should not call this
  * manually.
  *
  * This is an O(n^2) broad-phase: every body is tested against every other
@@ -144,7 +144,7 @@ void World::clear()
  *      accumulated impulses from the previous frame (warm-starting).
  *
  *   4. If no contacts were found this frame but an Arbiter existed from
- *      the previous frame, erase it — the bodies have separated.
+ *      the previous frame, erase it - the bodies have separated.
  *
  * clang-format off
  *
@@ -215,7 +215,7 @@ void World::broad_phase()
  *  3. pre_step()  (arbiters + joints)
  *       Compute effective masses and position-correction biases. If
  *       warm_starting is true, seed each constraint with the impulse
- *       accumulated in the previous frame — this makes the solver
+ *       accumulated in the previous frame - this makes the solver
  *       converge faster and keeps stacked objects stable.
  *
  *  4. apply_impulse()  x iterations

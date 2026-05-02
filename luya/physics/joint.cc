@@ -29,7 +29,7 @@
  *
  * Call set() with both bodies and the anchor point in world space, then
  * pass a pointer to World::add(). The joint does not need any per-frame
- * calls — the world handles it automatically inside step().
+ * calls - the world handles it automatically inside step().
  *
  * bias_factor controls how hard the engine pushes them back together each
  * step (default 0.2, range 0–1). softness adds a small give to the
@@ -95,7 +95,7 @@ void Joint::set(Body* b1, Body* b2, const Vec2& anchor)
  * optionally warm-start by re-applying the previous frame's impulse.
  *
  * The effective mass matrix M = K^{-1} is the key precomputation. K is the
- * "generalized mass" of the constraint — how hard it is to move both bodies
+ * "generalized mass" of the constraint - how hard it is to move both bodies
  * at the anchor. It accounts for both linear and rotational inertia:
  *
  * clang-format off
@@ -193,7 +193,7 @@ void Joint::pre_step(float inv_dt)
  * points toward each other.
  *
  * Each call is one pass of the sequential impulse solver. The goal is to
- * zero out the relative velocity at the pin point — the difference in speed
+ * zero out the relative velocity at the pin point - the difference in speed
  * between the two anchors. The impulse that achieves this is:
  *
  *   impulse = M * (bias - relative_velocity - softness * P)

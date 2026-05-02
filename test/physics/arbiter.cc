@@ -22,7 +22,7 @@
 
 using namespace luya::physics;
 
-// Two dynamic boxes fully overlapping — guarantees contacts.
+// Two dynamic boxes fully overlapping - guarantees contacts.
 struct Arbiter_Fixture
 {
     Body a;
@@ -33,7 +33,7 @@ struct Arbiter_Fixture
         a.set({ 0.5f, 0.5f }, 1.0f);
         a.position = { 0.0f, 0.0f };
         b.set({ 0.5f, 0.5f }, 1.0f);
-        b.position = { 0.0f, 0.0f }; // fully overlapping — always has contacts
+        b.position = { 0.0f, 0.0f }; // fully overlapping - always has contacts
     }
 
     ~Arbiter_Fixture() = default;
@@ -104,7 +104,7 @@ TEST_CASE_FIXTURE(Arbiter_Fixture,
     }
 
     // update with a fresh set of contacts at the same geometry
-    // — features will match, so impulses must be carried forward
+    // - features will match, so impulses must be carried forward
     Arbiter fresh(&a, &b);
     arb.update(fresh.contacts, fresh.num_contacts);
 

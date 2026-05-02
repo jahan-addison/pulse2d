@@ -31,9 +31,9 @@ class Body;
  * Renderer
  *
  * Maintains a full-screen RGB565 framebuffer. Each frame:
- *   1. clear()  — fill the framebuffer with a background color
- *   2. draw()   — rasterize active physics bodies and queued sprites
- *   3. render() — blit the finished framebuffer to the display driver
+ *   1. clear()  - fill the framebuffer with a background color
+ *   2. draw()   - rasterize active physics bodies and queued sprites
+ *   3. render() - blit the finished framebuffer to the display driver
  *
  *  Example:
  *
@@ -66,9 +66,20 @@ class Renderer
 
   public:
     void clear(uint16_t color = 0x0000);
-    void add_sprite(Sprite const* sprite, int16_t x, int16_t y);
+    void add_sprite(Sprite const* sprite,
+        int16_t x,
+        int16_t y,
+        float angle_rad = 0.0f);
     void draw(physics::World const& world);
     void render();
+
+    /** @brief When true, draw() overlays a white bounding-box rectangle for
+     *         every body in the world. Off by default; flip on during
+     *         development to visualize collision shapes:
+     *
+     *   engine.renderer().show_debug_rects = true;
+     */
+    bool show_debug_rects{ false };
 
     struct Screen
     {
@@ -80,7 +91,10 @@ class Renderer
 
   private:
     void draw_body(physics::Body const* body);
-    void draw_sprite(Sprite const* sprite, int16_t x, int16_t y);
+    void draw_sprite(Sprite const* sprite,
+        int16_t x,
+        int16_t y,
+        float angle_rad);
     void fill_rect(int x, int y, int w, int h, uint16_t color);
 
   private:
@@ -97,6 +111,7 @@ class Renderer
         const Sprite* sprite;
         int16_t x;
         int16_t y;
+        float angle_rad;
     };
 
   private:

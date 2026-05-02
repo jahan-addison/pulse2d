@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16...3.29)
 option(ENABLE_TEST_COVERAGE "Enable test coverage" OFF)
 option(TEST_INSTALLED_VERSION "Test the version found by find_package" ON)
 
-# Test suite links against the engine library — no need to recompile sources
+# Test suite links against the engine library - no need to recompile sources
 add_executable(Test_Suite ${test_sources})
 
 target_link_libraries(Test_Suite PUBLIC luya_engine doctest::doctest)

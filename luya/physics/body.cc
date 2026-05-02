@@ -21,19 +21,38 @@
 /****************************************************************************
  * Body
  *
- * A body is a box that the physics engine can push around. It has a
- * position in world space, a speed (velocity), and a spin (angular
- * velocity). Each frame the engine applies gravity and any forces you
- * have added, then moves the body accordingly.
+ * A Body is a rectangular rigid object. It holds two kinds of state:
  *
- * Call set() to give the body a size and mass. The two values in set()
- * are the full dimensions of the box: a value of { 1.0, 1.0 } makes a 1x1
- * unit box, { 2.0, 0.5 } makes a 2x0.5 unit platform, and so on.
- * After set(), assign position to place it in the world, then pass a
- * pointer to World::add().
+ *   Kinematic - where it is and how fast it is moving:
+ *     position, rotation, velocity, angular_velocity
  *
- * A body constructed without calling set() has infinite mass and will
- * never move — use this for static walls and floors.
+ *   Dynamic - accumulated pushes waiting to be applied this frame:
+ *     force, torque
+ *
+ * Every frame World::step() integrates the dynamic state into the kinematic
+ * state in this order:
+ *
+ *   1. gravity and force are added to velocity:
+ *        velocity += dt * (gravity + inv_mass * force)
+ *
+ *   2. torque is added to angular_velocity:
+ *        angular_velocity += dt * inv_i * torque
+ *
+ *   3. velocity is integrated into position:
+ *        position += dt * velocity
+ *
+ *   4. angular_velocity is integrated into rotation:
+ *        rotation += dt * angular_velocity
+ *
+ *   5. force and torque are cleared to zero.
+ *
+ * This means gravity affects velocity first, then velocity moves the body.
+ * Setting velocity directly (e.g. for a jump) bypasses step 1 - gravity
+ * will still accumulate from the next frame onward. Setting force via
+ * add_force() lets gravity and the push combine naturally each frame.
+ *
+ * A body created without calling set() has inv_mass = 0 and never moves
+ * regardless of gravity or forces. Use this for static floors and walls.
  *
  *  Example:
  *
@@ -42,7 +61,10 @@
  *   box.position = { 0.0f, 3.0f };  // start 3 units above origin
  *   world.add(&box);
  *
- *   // nudge it to the right before the first step
+ *   // give it a horizontal speed; gravity will arc it downward
+ *   box.velocity = { 3.0f, 0.0f };
+ *
+ *   // or push it for one frame; add_force() can be called repeatedly
  *   box.add_force({ 5.0f, 0.0f });
  *
  ****************************************************************************/
@@ -54,16 +76,16 @@ namespace luya::physics {
  * Zero-initialize every field and start the body in a static state
  * (infinite mass, inv_mass = 0, inv_i = 0).
  *
- * A body that has only been constructed — without calling set() — has
+ * A body that has only been constructed - without calling set() - has
  * inv_mass = 0, which means the constraint solver treats it as immovable.
- * This is useful: you can create a static floor or wall simply by
+ * This is useful because you can create a static floor or wall simply by
  * constructing a Body, setting its position, and adding it to the world:
  *
  *   physics::Body floor;
  *   floor.position = { 0.0f, -5.0f }; // placed at y = -5, never moves
  *   world.add(&floor);
  *
- * Friction is initialized to 0.2 — a light surface grip, close to
+ * Friction is initialized to 0.2 - a light surface grip, close to
  * wood-on-wood. Width defaults to { 1.0, 1.0 } as a placeholder; it
  * is overwritten the moment you call set().
  */
@@ -87,8 +109,8 @@ Body::Body()
 /**
  * @brief
  * Configure this body with a box size and mass, then derive all the
- * internal values the solver needs. Also resets all motion state —
- * position, velocity, forces — back to zero, so it is safe to call
+ * internal values the solver needs. Also resets all motion state -
+ * position, velocity, forces - back to zero, so it is safe to call
  * set() more than once to reinitialize the body between levels.
  *
  * The parameter `w` is the full dimensions of the box. A value of
@@ -107,7 +129,7 @@ Body::Body()
  *
  * clang-format on
  *
- * The solver never divides by mass or I during each step — it multiplies
+ * The solver never divides by mass or I during each step - it multiplies
  * by their inverses instead (inv_mass, inv_i). This avoids a division
  * every frame and, more importantly, lets static bodies be expressed as
  * inv_mass = 0. A body with zero inverse mass ignores every force:
@@ -126,10 +148,10 @@ Body::Body()
  *   I = mass * (w.x^2 + w.y^2) / 12
  *
  * Then inv_i = 1.0 / I (or 0 if static), used the same way as
- * inv_mass — multiplied against torque to get angular acceleration.
+ * inv_mass - multiplied against torque to get angular acceleration.
  *
  * Pass FLT_MAX for mass to make the body static. It will not move,
- * rotate, or respond to forces — use this for walls, floors, and
+ * rotate, or respond to forces - use this for walls, floors, and
  * any fixed platform.
  */
 void Body::set(const Vec2& w, float m)

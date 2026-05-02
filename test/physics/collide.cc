@@ -129,7 +129,7 @@ TEST_CASE(
 
 TEST_CASE("physics/collide.cc: collide normal points from A toward B (x axis)")
 {
-    // B is to the right of A — normal should point in +x
+    // B is to the right of A - normal should point in +x
     Body a, b;
     a.set({ 0.5f, 0.5f }, 1.0f);
     b.set({ 0.5f, 0.5f }, 1.0f);
@@ -146,7 +146,7 @@ TEST_CASE("physics/collide.cc: collide normal points from A toward B (x axis)")
 
 TEST_CASE("physics/collide.cc: collide normal points from A toward B (y axis)")
 {
-    // B is above A — normal should point in +y
+    // B is above A - normal should point in +y
     Body a, b;
     a.set({ 0.5f, 0.5f }, 1.0f);
     b.set({ 0.5f, 0.5f }, 1.0f);
@@ -181,7 +181,7 @@ TEST_CASE("physics/collide.cc: collide contact normal is a unit vector")
 TEST_CASE("physics/collide.cc: collide produces two contacts for wide "
           "face-on-face overlap")
 {
-    // Two wide boxes overlapping along the y axis — both corners of the
+    // Two wide boxes overlapping along the y axis - both corners of the
     // incident edge are within the reference face, so both contact points
     // should survive the clip.
     Body a, b;
@@ -208,7 +208,7 @@ TEST_CASE("physics/collide.cc: collide works when one box is rotated")
 
     Arbiter::Contacts contacts;
     int n = collide(contacts, &a, &b);
-    // may or may not overlap at this distance — just must not crash
+    // may or may not overlap at this distance - just must not crash
     CHECK(n >= 0);
     CHECK(n <= 2);
 }
