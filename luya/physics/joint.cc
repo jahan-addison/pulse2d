@@ -22,23 +22,53 @@
 /****************************************************************************
  * Joint
  *
- * A position-level distance constraint between two bodies. Call set() with
- * the two bodies and a world-space anchor point; the joint maintains the
- * initial anchor separation each step via an impulse-based correction.
+ * A joint links two bodies at a fixed point in the world so they cannot
+ * drift apart. Think of it as a pin driven through both bodies at a shared
+ * anchor position. The engine applies a small corrective push each step to
+ * keep them at the original distance.
+ *
+ * Call set() with both bodies and the anchor point in world space, then
+ * pass a pointer to World::add(). The joint does not need any per-frame
+ * calls — the world handles it automatically inside step().
+ *
+ * bias_factor controls how hard the engine pushes them back together each
+ * step (default 0.2, range 0–1). softness adds a small give to the
+ * constraint so it feels spring-like rather than rigid (default 0.0).
  *
  *  Example:
  *
- *   physics::Joint hinge;
- *   hinge.set(&body_a, &body_b, { 0.0f, 1.0f });
- *   world.add(&hinge);
+ *   physics::Joint pin;
+ *   pin.set(&body_a, &body_b, { 0.0f, 1.0f }); // anchor at (0, 1)
+ *   world.add(&pin);
  *
- * bias_factor controls position correction strength (default 0.2).
- * softness adds constraint compliance, i.e. a spring-like feel (default 0.0).
+ *   pin.bias_factor = 0.3f; // slightly stiffer correction
  *
- ****************************************************************************/
+ *****************************************************************************/
 
 namespace luya::physics {
 
+/**
+ * @brief
+ * Store both bodies and convert the world-space anchor into per-body local
+ * offsets that stay valid regardless of how the bodies rotate later.
+ *
+ * The anchor is a point in world space where the two bodies should be pinned
+ * together. At the moment set() is called, the engine rotates that anchor
+ * into each body's own coordinate frame:
+ *
+ *   local_anchor1 = transpose(rot1) * (anchor - body1->position)
+ *   local_anchor2 = transpose(rot2) * (anchor - body2->position)
+ *
+ * local_anchor1 is a fixed offset from body1's center, expressed in body1's
+ * local space. When body1 rotates in a future step, pre_step() rotates
+ * local_anchor1 back to world space (stored as r1) to find where the anchor
+ * actually is that frame. Storing it locally means the pin point "rides"
+ * with the body correctly even as the body spins.
+ *
+ * Also resets P to zero (no accumulated impulse yet), softness to 0.0
+ * (rigid constraint), and bias_factor to 0.2 (default correction strength).
+ * Adjust these after calling set() if needed.
+ */
 void Joint::set(Body* b1, Body* b2, const Vec2& anchor)
 {
     body1 = b1;
@@ -58,6 +88,43 @@ void Joint::set(Body* b1, Body* b2, const Vec2& anchor)
     bias_factor = 0.2f;
 }
 
+/**
+ * @brief
+ * Prepare the joint for the iteration loop: rotate anchors to world space,
+ * build the effective mass matrix M, compute the correction bias, and
+ * optionally warm-start by re-applying the previous frame's impulse.
+ *
+ * The effective mass matrix M = K^{-1} is the key precomputation. K is the
+ * "generalized mass" of the constraint — how hard it is to move both bodies
+ * at the anchor. It accounts for both linear and rotational inertia:
+ *
+ * clang-format off
+ *
+ *   K = (1/m1 + 1/m2) * I  +  inv_i1 * skew(r1)^T * skew(r1)
+ *                          +  inv_i2 * skew(r2)^T * skew(r2)
+ *
+ *   where skew(r) = [[ r.y, -r.x ],   converts a cross product into
+ *                    [-r.y,  r.x ]]   a matrix multiply
+ *
+ * clang-format on
+ *
+ * M is inverted once here so apply_impulse() only needs to multiply by M
+ * on every iteration rather than solving a 2x2 system from scratch.
+ *
+ * The bias velocity gently pushes the two anchor points back together if
+ * they have drifted apart (only when World::position_correction is true):
+ *
+ *   bias = -bias_factor * inv_dt * (p2 - p1)
+ *
+ * where p1 = body1->position + r1 and p2 = body2->position + r2. A larger
+ * bias_factor corrects drift faster but can overshoot and make the joint
+ * feel bouncy. The default of 0.2 corrects 20% of the gap each step.
+ *
+ * Warm-starting: if World::warm_starting is true, the accumulated impulse P
+ * from the previous step is applied to both bodies immediately. This seeds
+ * the solver with a good starting estimate, which usually means the joint
+ * converges in far fewer iterations than starting from zero.
+ */
 void Joint::pre_step(float inv_dt)
 {
     // Pre-compute anchors, mass matrix, and bias.
@@ -120,6 +187,33 @@ void Joint::pre_step(float inv_dt)
     }
 }
 
+/**
+ * @brief
+ * Compute and apply a velocity correction impulse that pulls the two anchor
+ * points toward each other.
+ *
+ * Each call is one pass of the sequential impulse solver. The goal is to
+ * zero out the relative velocity at the pin point — the difference in speed
+ * between the two anchors. The impulse that achieves this is:
+ *
+ *   impulse = M * (bias - relative_velocity - softness * P)
+ *
+ * where:
+ *   M                  is the effective mass matrix from pre_step()
+ *   bias               is the position-correction target velocity
+ *   relative_velocity  is dv = v2 + w2×r2 - v1 - w1×r1
+ *   softness * P       adds a small restoring force proportional to the
+ *                      total accumulated impulse; makes the joint feel
+ *                      slightly elastic when softness > 0
+ *
+ * The impulse is then split between both bodies: body1 is pushed in the
+ * negative direction and body2 in the positive direction, each scaled by
+ * their inverse mass and inverse inertia so heavier or harder-to-spin
+ * bodies change speed less.
+ *
+ * P accumulates across all iterations within a frame so it can be reused
+ * as the warm-start seed on the next frame.
+ */
 void Joint::apply_impulse()
 {
     Vec2 dv = body2->velocity + cross(body2->angular_velocity, r2) -

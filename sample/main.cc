@@ -40,14 +40,14 @@ int main()
 
     // static ground platform — default Body has inv_mass = 0
     luya::physics::Body ground;
-    ground.position = { 0.0f, -2.5f };
-    ground.width = { 5.0f, 0.3f };
+    ground.position = { 3.5f, -0.5f };
+    ground.width = { 0.5f, 0.5f };
 
     // dynamic spell body — set() assigns mass and inertia
     luya::physics::Body spell;
     spell.set({ 0.3f, 0.3f }, 1.0f);
-    spell.position = { 0.0f, 2.0f };
-    spell.velocity = { 0.0f, -4.0f };
+    spell.position = { -4.2f, -1.0f };
+    spell.velocity = { -0.0f, 10.0f };
 
     world.add(&ground);
     world.add(&spell);
@@ -86,7 +86,7 @@ int main()
                 renderer.world_to_screen(ground.position.x, ground.position.y);
             renderer.add_sprite(&world_sprite,
                 static_cast<int16_t>(sx - world_sprite.width / 2),
-                static_cast<int16_t>(sy - world_sprite.height / 2));
+                static_cast<int16_t>(sx - world_sprite.height / 2));
         }
 
         {

@@ -2,3 +2,4 @@
 
 build
 cpm_modules
+*.profraw

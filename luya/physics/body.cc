@@ -21,26 +21,52 @@
 /****************************************************************************
  * Body
  *
- * A rigid "body" in the physics engine. Each body carries its position,
- * velocity, accumulated force, and inertial properties. Call set() with
- * box half-extents and mass before adding to a World. position may be
- * assigned directly after set().
+ * A body is a box that the physics engine can push around. It has a
+ * position in world space, a speed (velocity), and a spin (angular
+ * velocity). Each frame the engine applies gravity and any forces you
+ * have added, then moves the body accordingly.
+ *
+ * Call set() to give the body a size and mass. The two values in set()
+ * are the full dimensions of the box: a value of { 1.0, 1.0 } makes a 1x1
+ * unit box, { 2.0, 0.5 } makes a 2x0.5 unit platform, and so on.
+ * After set(), assign position to place it in the world, then pass a
+ * pointer to World::add().
+ *
+ * A body constructed without calling set() has infinite mass and will
+ * never move — use this for static walls and floors.
  *
  *  Example:
  *
- *   physics::Body b{};
- *   b.set({ 0.5f, 0.5f }, 10.0f);  // 1x1 unit box, 10 kg
- *   b.position = { 0.0f, 3.0f };   // start 3 units above origin
- *   world.add(&b);
+ *   physics::Body box;
+ *   box.set({ 1.0f, 1.0f }, 10.0f); // 1x1 unit box, 10 kg
+ *   box.position = { 0.0f, 3.0f };  // start 3 units above origin
+ *   world.add(&box);
  *
- * A mass of FLT_MAX is treated as infinite, i.e. the body is static and
- * will not move under impulse. The default constructor produces a static
- * body; call set() with a finite mass to make it dynamic.
+ *   // nudge it to the right before the first step
+ *   box.add_force({ 5.0f, 0.0f });
  *
  ****************************************************************************/
 
 namespace luya::physics {
 
+/**
+ * @brief
+ * Zero-initialize every field and start the body in a static state
+ * (infinite mass, inv_mass = 0, inv_i = 0).
+ *
+ * A body that has only been constructed — without calling set() — has
+ * inv_mass = 0, which means the constraint solver treats it as immovable.
+ * This is useful: you can create a static floor or wall simply by
+ * constructing a Body, setting its position, and adding it to the world:
+ *
+ *   physics::Body floor;
+ *   floor.position = { 0.0f, -5.0f }; // placed at y = -5, never moves
+ *   world.add(&floor);
+ *
+ * Friction is initialized to 0.2 — a light surface grip, close to
+ * wood-on-wood. Width defaults to { 1.0, 1.0 } as a placeholder; it
+ * is overwritten the moment you call set().
+ */
 Body::Body()
 {
     position.set(0.0f, 0.0f);
@@ -58,6 +84,54 @@ Body::Body()
     inv_i = 0.0f;
 }
 
+/**
+ * @brief
+ * Configure this body with a box size and mass, then derive all the
+ * internal values the solver needs. Also resets all motion state —
+ * position, velocity, forces — back to zero, so it is safe to call
+ * set() more than once to reinitialize the body between levels.
+ *
+ * The parameter `w` is the full dimensions of the box. A value of
+ * { 1.0, 1.0 } makes a 1x1 unit square; { 2.0, 0.5 } makes a 2x0.5
+ * platform:
+ *
+ * clang-format off
+ *
+ *   w = { 1.0, 1.0 }       w = { 2.0, 0.5 }
+ *   +----------+            +--------------------+
+ *   |          |            |                    |
+ *   |  1 x 1   |            |      2 x 0.5       |
+ *   |          |            +--------------------+
+ *   +----------+
+ *    ^-- full width = w.x
+ *
+ * clang-format on
+ *
+ * The solver never divides by mass or I during each step — it multiplies
+ * by their inverses instead (inv_mass, inv_i). This avoids a division
+ * every frame and, more importantly, lets static bodies be expressed as
+ * inv_mass = 0. A body with zero inverse mass ignores every force:
+ *
+ *   velocity += inv_mass * force * dt   // 0 * anything = 0
+ *
+ * So we compute:
+ *
+ *   inv_mass = 1.0 / mass   (or 0 if mass == FLT_MAX, i.e. static)
+ *
+ * The moment of inertia I measures how hard the body is to spin. A
+ * wide, heavy box resists rotation more than a narrow, light one. It
+ * is computed from mass and the box half-extents using the formula
+ * from box2d-lite:
+ *
+ *   I = mass * (w.x^2 + w.y^2) / 12
+ *
+ * Then inv_i = 1.0 / I (or 0 if static), used the same way as
+ * inv_mass — multiplied against torque to get angular acceleration.
+ *
+ * Pass FLT_MAX for mass to make the body static. It will not move,
+ * rotate, or respond to forces — use this for walls, floors, and
+ * any fixed platform.
+ */
 void Body::set(const Vec2& w, float m)
 {
     position.set(0.0f, 0.0f);

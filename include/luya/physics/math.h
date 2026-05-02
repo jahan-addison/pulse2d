@@ -37,7 +37,16 @@ constexpr float k_pi = 3.14159265358979323846264f;
 
 /**
  * @brief
- * Two-component float vector with arithmetic operators and length().
+ * Two-component float vector used for every 2D quantity in the engine:
+ * position, velocity, force, impulse, contact normal, and anchor offset.
+ *
+ * Every impulse application in the solver is a multiply-add of the form:
+ *
+ *   velocity += inv_mass * impulse
+ *
+ * where impulse is a Vec2. Keeping Vec2 as a plain struct with fully inlined
+ * operators avoids call overhead on the Teensy's Cortex-M7, where each
+ * function boundary costs real pipeline cycles at 600 MHz.
  */
 class Vec2
 {
@@ -87,7 +96,22 @@ class Vec2
 
 /**
  * @brief
- * 2x2 rotation matrix. Construct from an angle (radians) or two column Vec2s.
+ * 2x2 rotation matrix used to transform vectors between world space and a
+ * body's local coordinate frame.
+ *
+ * Constructed from an angle in radians it stores cos/sin in column layout:
+ *
+ * clang-format off
+ *
+ *   col1 = [ cos,  sin ]    col2 = [ -sin, cos ]
+ *
+ * clang-format on
+ *
+ * transpose() reverses the rotation (equivalent to the matrix inverse for
+ * a pure rotation), used throughout collide.cc to convert world-space normals
+ * into a body's local frame: local_v = rot.transpose() * world_v.
+ * invert() handles the general 2x2 case; used by Joint::pre_step() to
+ * compute M = K^{-1} each step.
  */
 class Mat22
 {

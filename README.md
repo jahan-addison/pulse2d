@@ -37,13 +37,14 @@ The Teensy 4.1 is a microcontroller development board based on the NXP i.MX RT10
 
 ## Architecture
 
-The engine is structured around three components:
+The engine is structured around four components:
 
 | Component | Class | Library |
 |-----------|-------|---------|
 | Display | `luya::display::Display` | ILI9341_t3, SDL2 |
 | Audio | `luya::Audio` | Teensy Audio Library |
 | Storage | `luya::Storage` | SdFat, stb_image |
+| Physics | `luya::physics::World` | box2d-lite (modified) |
 
 `Engine::init()` is called from Teensy `setup()` and `Engine::tick(world)` from `loop()`. On the host the SDL2 game loop runs both.
 
@@ -90,55 +91,11 @@ while (running) {
 
 ### Physics
 
-The physics module is a heavily-edited port of box2d-lite that uses sequential impulse constraint solving over a fixed timestep. Dynamic allocation has been replaced with ETL fixed-size containers.
+The physics module is a port of [box2d-lite](https://github.com/erincatto/box2d-lite) modified for embedded use, such as dynamic allocation replaced with ETL fixed-size containers, all math in single-precision float, and the solver tuned for the Teensy 4.1's Cortex-M7.
 
-#### Bodies
+For details, see the [physics readme](luya/physics/readme.md).
 
-A `Body` is axis-aligned and box-shaped, `width` holds the half-extents. A default-constructed body is static (infinite mass):
-
-```cpp
-physics::Body floor;
-floor.position = { 0.0f, -4.0f };   // static — inv_mass = 0 by default
-floor.width    = { 5.0f, 0.5f };    // 10x1 unit platform
-
-physics::Body box;
-box.set({ 0.5f, 0.5f }, 2.0f);      // 1x1 unit box, 2 kg
-box.position = { 0.0f, 3.0f };
-box.add_force({ 1.0f, 0.0f });       // nudge right
-```
-
-#### World
-
-`World` holds ~~the universe~~ the body and joint lists and runs the solver:
-
-```cpp
-physics::World world({ 0.0f, -10.0f }, 10);  // gravity, solver iterations
-
-world.add(&floor);
-world.add(&box);
-
-world.step(1.0f / 60.0f);   // advance one 60 Hz tick
-```
-
-`world.arbiters` is non-empty for every active contact pair after each `step()`. Use it to detect collision:
-
-```cpp
-if (!world.arbiters.empty()) {
-    // at least one contact is active this step
-}
-```
-
-#### Joints
-
-A `Joint` maintains a fixed distance between two bodies at a world-space anchor:
-
-```cpp
-physics::Joint hinge;
-hinge.set(&body_a, &body_b, { 0.0f, 1.0f });
-world.add(&hinge);
-```
-
-`bias_factor` (default 0.2) controls position correction strength; `softness` (default 0.0) adds compliance.
+---
 
 ### Renderer and sprites
 
