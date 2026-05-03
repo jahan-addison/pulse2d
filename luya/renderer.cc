@@ -55,7 +55,7 @@ void Renderer::clear(uint16_t color)
 
 /**
  * @brief Queue a sprite to be drawn at (x, y) on the next render pass.
- * angle_rad rotates the sprite counter-clockwise around its center;
+ * angle_rad rotates the sprite counter-clockwise around its center,
  * 0.0 is the fast axis-aligned path. Pass body.rotation directly to keep
  * a sprite visually in sync with its physics body.
  */
@@ -65,13 +65,13 @@ void Renderer::add_sprite(Sprite const* sprite,
     float angle_rad)
 {
     if (sprite && !sprite_queue_.full()) {
-        sprite_queue_.push_back({ sprite, x, y, angle_rad });
+        sprite_queue_.emplace_back(Entry{ sprite, x, y, angle_rad });
     }
 }
 
 /**
  * @brief Rasterize all active bodies in the world and queued sprites
- *        into the framebuffer, then drain the sprite queue
+ * into the framebuffer, then drain the sprite queue
  */
 void Renderer::draw(physics::World const& world)
 {

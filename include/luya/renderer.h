@@ -49,8 +49,8 @@ class Body;
 
 /**
  * @brief
- * RGB565 software renderer. Contains the framebuffer, drives physics
- * body rasterization, sprite blitting, and display output each frame.
+ * RGB565 software renderer. Contains the framebuffer, physics body
+ * rasterization, sprite blitting, and display output each frame.
  */
 class Renderer
 {
@@ -73,9 +73,11 @@ class Renderer
     void draw(physics::World const& world);
     void render();
 
-    /** @brief When true, draw() overlays a white bounding-box rectangle for
-     *         every body in the world. Off by default; flip on during
-     *         development to visualize collision shapes:
+    /**
+     * @brief
+     * When true, draw() overlays a white bounding-box rectangle for
+     * every body in the world. Enable during to visualize
+     * collision shapes:
      *
      *   engine.renderer().show_debug_rects = true;
      */

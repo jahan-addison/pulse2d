@@ -12,7 +12,6 @@
  ****************************************************************************/
 
 #include <luya/engine.h>        // for Engine
-#include <luya/physics/math.h>  // for Vec2
 #include <luya/physics/world.h> // for World
 
 /*****************************************************
@@ -26,8 +25,9 @@
  *          on Teensy 4.1
  *****************************************************/
 
-// Teensy entry point - game logic goes here.
-// For the SDL2 host sample see sample/main.cc.
+/*********************
+ * Teensy entry point
+ *********************/
 
 static luya::Engine engine;
 static luya::physics::World world({ 0.0f, -10.0f }, 10);

@@ -22,7 +22,7 @@
 
 ## Overview
 
-The Teensy 4.1 is a microcontroller development board based on the NXP i.MX RT1062, an ARM Cortex-M7 running at up to 600 MHz. It has hardware floating-point, a dedicated SPI bus, and a built-in SDIO SD card slot - enough for a 2D game platform along side an Adafruit ILI9341 TFT for display.
+The Teensy 4.1 is a microcontroller development board based on the NXP i.MX RT1062, an ARM Cortex-M7 running at up to 600 MHz. Luya enables you to turn the microcontroller into a 2D game platform with a display and controller, as it has hardware floating-point, a dedicated SPI bus, and a built-in SDIO SD card slot,
 
 <table border="0">
   <tr>
@@ -35,18 +35,20 @@ The Teensy 4.1 is a microcontroller development board based on the NXP i.MX RT10
   </tr>
 </table>
 
-## Architecture
+### Architecture
 
-The engine is structured around four components:
-
-| Component | Class |
-|-----------|-------|
-| [Display](#display) | `luya::display::Display` |
-| [Audio](#audio) | `luya::Audio` |
-| [Storage](#storage) | `luya::Storage` |
-| [Physics](#physics) | `luya::physics::World` |
-
-`Engine::init()` is called from Teensy `setup()` and `Engine::tick(world)` from `loop()`. On the host the SDL2 game loop runs both.
+* [Display](#display): `luya::display::Display`
+  - The display adapter, with a host SDL2 interface
+* [Storage](#storage): `luya::Storage`
+  - Storage of textures, sprites, and other assets in memory
+* [Physics](#physics): `luya::physics::World`
+  - The physics engine
+* [Renderer](#renderer) `luya::Renderer`
+  - The RGB565 framebuffer, rasterization, blitting
+* [Audio](#audio): `luya::Audio`
+  - Audio interface via the Teensy audio library
+* [Control](#control) `luya::Control`
+  - Controller interface
 
 ## Usage
 
@@ -59,26 +61,75 @@ add_subdirectory(luya)          # or use CPM, FetchContent
 target_link_libraries(my_game PRIVATE luya::engine)
 ```
 
-A minimal game loop:
+`Engine::init()` is called from Teensy `setup()` and `Engine::tick(world)` from `loop()`:
 
 ```cpp
 #include <luya/engine.h>
 #include <luya/physics/world.h>
 
-luya::Engine engine{};
-luya::physics::World world({ 0.0f, -10.0f }, 10);
+static luya::Engine engine;
+static luya::physics::World world({ 0.0f, -10.0f }, 10);
 
-engine.init();
+void setup()
+{
+    engine.init();
+}
 
-while (running) {
+void loop()
+{
     world.step(1.0f / 60.0f);
     engine.tick(world);
 }
+
 ```
 
----
+Check out the [sample game](/sample/main.cc) for a complete example on the SDL2.
 
-The `Renderer` holds the full-screen RGB565 framebuffer. Each frame runs clear, draw, and render:
+## Components
+
+## Display
+
+
+* Adafruit: `luya::display::Adafruit_Display`
+  - An Adafruit 2.8" ILI9341 TFT display driver that works well with the Teensy 4.1
+* SDL2: `luya::display::SDL_Display`
+  - A host desktop development driver for debugging and the game development phase
+
+The display component defaults to `SDL2`. The SDL2 driver opens a desktop window at the ILI9341 native resolution scaled up by `config::scale`.
+
+## Storage
+
+Load sprites via `Storage::load_sprite()`. On the host any image format supported by stb_image works; the image is nearest-neighbour scaled to the requested dimensions and converted to RGB565:
+
+```cpp
+luya::Sprite s = engine.storage().load_sprite("hero.png", 32, 32);
+```
+
+On Teensy, `load_sprite` reads the raw binary format (`uint16_t` width, `uint16_t` height, then `width x height` RGB565 pixels) from the SD card.
+
+* TODO
+
+The storage component will also enable loading of sounds and audio files.
+
+## Audio
+
+* TODO
+
+## Control
+
+* TODO
+
+## Physics
+
+The physics component is a port of [box2d-lite](https://github.com/erincatto/box2d-lite) modified for embedded use, such as dynamic allocation replaced with ETL fixed-size containers, all math in single-precision float, and the solver tuned for the Teensy 4.1's Cortex-M7.
+
+
+For more details, see the [physics readme](luya/physics/readme.md).
+
+
+## Renderer
+
+The `Renderer` holds the full-screen RGB565 framebuffer for razterization and blitting. Each frame runs clear, draw, and render:
 
 ```cpp
 auto& renderer = engine.renderer();
@@ -98,41 +149,6 @@ renderer.add_sprite(&my_sprite,
     static_cast<int16_t>(sx - my_sprite.width  / 2),
     static_cast<int16_t>(sy - my_sprite.height / 2));
 ```
-
-Check out the [sample game](/sample/main.cc) for a complete example!
-
-## Components
-
-## Display
-
-The display component is compile-time polymorphic and defaults to `SDL2`
-
-| Driver | Class |
-|--------|-------|
-| Adafruit 2.8" TFT | `Adafruit_Display` |
-| SDL2 | `SDL_Display` |
-
-The SDL2 driver opens a desktop window at the ILI9341 native resolution (320x240) scaled up by `config::scale` (3×, 960x720). `SDL_RenderSetLogicalSize` ensures all draw calls use the same coordinate space as the Adafruit.
-
-## Storage
-
-Load sprites via `Storage::load_sprite()`. On the host any image format supported by stb_image works; the image is nearest-neighbour scaled to the requested dimensions and converted to RGB565:
-
-```cpp
-luya::Sprite s = engine.storage().load_sprite("hero.png", 32, 32);
-```
-
-On Teensy, `load_sprite` reads the raw binary format (`uint16_t` width, `uint16_t` height, then `width x height` RGB565 pixels) from the SD card.
-
-## Audio
-
-* TODO
-
-## Physics
-
-The physics component is a port of [box2d-lite](https://github.com/erincatto/box2d-lite) modified for embedded use, such as dynamic allocation replaced with ETL fixed-size containers, all math in single-precision float, and the solver tuned for the Teensy 4.1's Cortex-M7.
-
-For details, see the [physics readme](luya/physics/readme.md).
 
 ## Build
 
