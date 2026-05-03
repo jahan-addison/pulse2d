@@ -20,7 +20,7 @@
 
 using namespace luya::physics;
 
-TEST_CASE("physics/body.cc: Body default constructor is static")
+TEST_CASE("body.cc: Body default constructor is static")
 {
     Body b;
     // A default body has infinite mass so it never moves
@@ -30,7 +30,7 @@ TEST_CASE("physics/body.cc: Body default constructor is static")
     CHECK(b.inv_i == 0.0f);
 }
 
-TEST_CASE("physics/body.cc: Body default constructor zeroes kinematic state")
+TEST_CASE("body.cc: Body default constructor zeroes kinematic state")
 {
     Body b;
     CHECK(b.position.x == 0.0f);
@@ -44,13 +44,13 @@ TEST_CASE("physics/body.cc: Body default constructor zeroes kinematic state")
     CHECK(b.torque == 0.0f);
 }
 
-TEST_CASE("physics/body.cc: Body default friction is 0.2")
+TEST_CASE("body.cc: Body default friction is 0.2")
 {
     Body b;
     CHECK(b.friction == doctest::Approx(0.2f));
 }
 
-TEST_CASE("physics/body.cc: Body::set stores full dimensions and mass")
+TEST_CASE("body.cc: Body::set stores full dimensions and mass")
 {
     Body b;
     b.set({ 0.5f, 0.5f }, 2.0f);
@@ -59,15 +59,14 @@ TEST_CASE("physics/body.cc: Body::set stores full dimensions and mass")
     CHECK(b.mass == 2.0f);
 }
 
-TEST_CASE("physics/body.cc: Body::set computes inverse mass")
+TEST_CASE("body.cc: Body::set computes inverse mass")
 {
     Body b;
     b.set({ 0.5f, 0.5f }, 4.0f);
     CHECK(b.inv_mass == doctest::Approx(0.25f));
 }
 
-TEST_CASE(
-    "physics/body.cc: Body::set computes moment of inertia from box formula")
+TEST_CASE("body.cc: Body::set computes moment of inertia from box formula")
 {
     Body b;
     // I = mass * (w.x^2 + w.y^2) / 12  (w = full dimensions)
@@ -77,7 +76,7 @@ TEST_CASE(
     CHECK(b.inv_i == doctest::Approx(0.5f));
 }
 
-TEST_CASE("physics/body.cc: Body::set with FLT_MAX mass stays static")
+TEST_CASE("body.cc: Body::set with FLT_MAX mass stays static")
 {
     Body b;
     b.set({ 1.0f, 1.0f }, FLT_MAX);
@@ -86,7 +85,7 @@ TEST_CASE("physics/body.cc: Body::set with FLT_MAX mass stays static")
     CHECK(b.inv_i == 0.0f);
 }
 
-TEST_CASE("physics/body.cc: Body::set resets kinematic state to zero")
+TEST_CASE("body.cc: Body::set resets kinematic state to zero")
 {
     Body b;
     b.velocity = { 5.0f, 3.0f };
@@ -106,7 +105,7 @@ TEST_CASE("physics/body.cc: Body::set resets kinematic state to zero")
     CHECK(b.torque == 0.0f);
 }
 
-TEST_CASE("physics/body.cc: Body::set is safe to call a second time")
+TEST_CASE("body.cc: Body::set is safe to call a second time")
 {
     Body b;
     b.set({ 0.5f, 0.5f }, 1.0f);
@@ -121,7 +120,7 @@ TEST_CASE("physics/body.cc: Body::set is safe to call a second time")
     CHECK(b.velocity.x == 0.0f);
 }
 
-TEST_CASE("physics/body.cc: Body::add_force accumulates into force")
+TEST_CASE("body.cc: Body::add_force accumulates into force")
 {
     Body b;
     b.set({ 0.5f, 0.5f }, 1.0f);
@@ -131,7 +130,7 @@ TEST_CASE("physics/body.cc: Body::add_force accumulates into force")
     CHECK(b.force.y == doctest::Approx(3.0f));
 }
 
-TEST_CASE("physics/body.cc: Body::add_force on static body accumulates but has "
+TEST_CASE("body.cc: Body::add_force on static body accumulates but has "
           "no effect on velocity")
 {
     // inv_mass = 0 so forces never change velocity
@@ -143,14 +142,14 @@ TEST_CASE("physics/body.cc: Body::add_force on static body accumulates but has "
     CHECK(b.velocity.x == 0.0f);
 }
 
-TEST_CASE("physics/body.cc: Body::set inv_mass is exactly 1/mass")
+TEST_CASE("body.cc: Body::set inv_mass is exactly 1/mass")
 {
     Body b;
     b.set({ 0.5f, 0.5f }, 8.0f);
     CHECK(b.inv_mass == doctest::Approx(1.0f / 8.0f));
 }
 
-TEST_CASE("physics/body.cc: Body::set moment of inertia scales with mass")
+TEST_CASE("body.cc: Body::set moment of inertia scales with mass")
 {
     Body b1, b2;
     b1.set({ 1.0f, 1.0f }, 1.0f);
@@ -159,7 +158,7 @@ TEST_CASE("physics/body.cc: Body::set moment of inertia scales with mass")
     CHECK(b2.I == doctest::Approx(b1.I * 2.0f));
 }
 
-TEST_CASE("physics/body.cc: Body::set moment of inertia scales with box size")
+TEST_CASE("body.cc: Body::set moment of inertia scales with box size")
 {
     Body b1, b2;
     b1.set({ 1.0f, 1.0f }, 1.0f);

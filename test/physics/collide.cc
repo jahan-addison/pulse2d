@@ -19,7 +19,7 @@
 
 using namespace luya::physics;
 
-TEST_CASE("physics/collide.cc: collide returns 0 for clearly separated boxes")
+TEST_CASE("collide.cc: collide returns 0 for clearly separated boxes")
 {
     Body a, b;
     a.set({ 0.5f, 0.5f }, 1.0f);
@@ -32,7 +32,7 @@ TEST_CASE("physics/collide.cc: collide returns 0 for clearly separated boxes")
     CHECK(n == 0);
 }
 
-TEST_CASE("physics/collide.cc: collide returns 0 for boxes separated in y")
+TEST_CASE("collide.cc: collide returns 0 for boxes separated in y")
 {
     Body a, b;
     a.set({ 0.5f, 0.5f }, 1.0f);
@@ -45,7 +45,7 @@ TEST_CASE("physics/collide.cc: collide returns 0 for boxes separated in y")
     CHECK(n == 0);
 }
 
-TEST_CASE("physics/collide.cc: collide returns contacts for overlapping boxes")
+TEST_CASE("collide.cc: collide returns contacts for overlapping boxes")
 {
     Body a, b;
     a.set({ 0.5f, 0.5f }, 1.0f);
@@ -58,7 +58,7 @@ TEST_CASE("physics/collide.cc: collide returns contacts for overlapping boxes")
     CHECK(n > 0);
 }
 
-TEST_CASE("physics/collide.cc: collide returns contacts for vertically "
+TEST_CASE("collide.cc: collide returns contacts for vertically "
           "overlapping boxes")
 {
     Body a, b;
@@ -72,7 +72,7 @@ TEST_CASE("physics/collide.cc: collide returns contacts for vertically "
     CHECK(n > 0);
 }
 
-TEST_CASE("physics/collide.cc: collide contact count is at most 2")
+TEST_CASE("collide.cc: collide contact count is at most 2")
 {
     Body a, b;
     a.set({ 0.5f, 0.5f }, 1.0f);
@@ -85,8 +85,7 @@ TEST_CASE("physics/collide.cc: collide contact count is at most 2")
     CHECK(n <= 2);
 }
 
-TEST_CASE(
-    "physics/collide.cc: collide separation is negative when boxes overlap")
+TEST_CASE("collide.cc: collide separation is negative when boxes overlap")
 {
     // separation < 0 means the boxes are penetrating each other
     Body a, b;
@@ -103,8 +102,7 @@ TEST_CASE(
         CHECK(contacts[i].separation < 0.0f);
 }
 
-TEST_CASE(
-    "physics/collide.cc: collide separation is proportional to overlap depth")
+TEST_CASE("collide.cc: collide separation is proportional to overlap depth")
 {
     // more overlap should produce a more negative separation value
     Body a, b1, b2;
@@ -127,7 +125,7 @@ TEST_CASE(
     CHECK(c2[0].separation < c1[0].separation);
 }
 
-TEST_CASE("physics/collide.cc: collide normal points from A toward B (x axis)")
+TEST_CASE("collide.cc: collide normal points from A toward B (x axis)")
 {
     // B is to the right of A - normal should point in +x
     Body a, b;
@@ -144,7 +142,7 @@ TEST_CASE("physics/collide.cc: collide normal points from A toward B (x axis)")
     CHECK(contacts[0].normal.y == doctest::Approx(0.0f).epsilon(1e-5f));
 }
 
-TEST_CASE("physics/collide.cc: collide normal points from A toward B (y axis)")
+TEST_CASE("collide.cc: collide normal points from A toward B (y axis)")
 {
     // B is above A - normal should point in +y
     Body a, b;
@@ -161,7 +159,7 @@ TEST_CASE("physics/collide.cc: collide normal points from A toward B (y axis)")
     CHECK(contacts[0].normal.y > 0.0f);
 }
 
-TEST_CASE("physics/collide.cc: collide contact normal is a unit vector")
+TEST_CASE("collide.cc: collide contact normal is a unit vector")
 {
     Body a, b;
     a.set({ 0.5f, 0.5f }, 1.0f);
@@ -178,7 +176,7 @@ TEST_CASE("physics/collide.cc: collide contact normal is a unit vector")
               doctest::Approx(1.0f).epsilon(1e-5f));
 }
 
-TEST_CASE("physics/collide.cc: collide produces two contacts for wide "
+TEST_CASE("collide.cc: collide produces two contacts for wide "
           "face-on-face overlap")
 {
     // Two wide boxes overlapping along the y axis - both corners of the
@@ -196,7 +194,7 @@ TEST_CASE("physics/collide.cc: collide produces two contacts for wide "
     CHECK(n == 2);
 }
 
-TEST_CASE("physics/collide.cc: collide works when one box is rotated")
+TEST_CASE("collide.cc: collide works when one box is rotated")
 {
     // rotate b by 45 degrees; it should still overlap if close enough
     Body a, b;

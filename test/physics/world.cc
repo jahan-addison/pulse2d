@@ -43,7 +43,7 @@ struct World_Fixture
     ~World_Fixture() = default;
 };
 
-TEST_CASE("physics/world.cc: World::add registers bodies")
+TEST_CASE("world.cc: World::add registers bodies")
 {
     World world({ 0.0f, -10.0f }, 10);
     Body a, b;
@@ -52,7 +52,7 @@ TEST_CASE("physics/world.cc: World::add registers bodies")
     CHECK(world.bodies.size() == 2);
 }
 
-TEST_CASE("physics/world.cc: World::add registers joints")
+TEST_CASE("world.cc: World::add registers joints")
 {
     World world({ 0.0f, -10.0f }, 10);
     Body a, b;
@@ -67,7 +67,7 @@ TEST_CASE("physics/world.cc: World::add registers joints")
     CHECK(world.joints.size() == 1);
 }
 
-TEST_CASE("physics/world.cc: World::clear empties bodies, joints, and arbiters")
+TEST_CASE("world.cc: World::clear empties bodies, joints, and arbiters")
 {
     World world({ 0.0f, -10.0f }, 10);
 
@@ -90,7 +90,7 @@ TEST_CASE("physics/world.cc: World::clear empties bodies, joints, and arbiters")
 }
 
 TEST_CASE_FIXTURE(World_Fixture,
-    "physics/world.cc: World::step applies gravity to dynamic body")
+    "world.cc: World::step applies gravity to dynamic body")
 {
     float vy_before = box.velocity.y;
     world.step(1.0f / 60.0f);
@@ -99,7 +99,7 @@ TEST_CASE_FIXTURE(World_Fixture,
 }
 
 TEST_CASE_FIXTURE(World_Fixture,
-    "physics/world.cc: World::step clears force after integration")
+    "world.cc: World::step clears force after integration")
 {
     box.add_force({ 5.0f, 0.0f });
     world.step(1.0f / 60.0f);
@@ -108,7 +108,7 @@ TEST_CASE_FIXTURE(World_Fixture,
 }
 
 TEST_CASE_FIXTURE(World_Fixture,
-    "physics/world.cc: World::step clears torque after integration")
+    "world.cc: World::step clears torque after integration")
 {
     box.torque = 2.0f;
     world.step(1.0f / 60.0f);
@@ -116,7 +116,7 @@ TEST_CASE_FIXTURE(World_Fixture,
 }
 
 TEST_CASE_FIXTURE(World_Fixture,
-    "physics/world.cc: World::step add_force changes velocity proportionally")
+    "world.cc: World::step add_force changes velocity proportionally")
 {
     // With no other forces or contacts, a horizontal push should
     // change velocity.x by F * inv_mass * dt
@@ -132,7 +132,7 @@ TEST_CASE_FIXTURE(World_Fixture,
 }
 
 TEST_CASE_FIXTURE(World_Fixture,
-    "physics/world.cc: World::step updates position by velocity * dt")
+    "world.cc: World::step updates position by velocity * dt")
 {
     // Give the box a known horizontal velocity; check position shifts
     box.position = { 0.0f, 100.0f }; // far from floor - no contacts
@@ -145,7 +145,7 @@ TEST_CASE_FIXTURE(World_Fixture,
 }
 
 TEST_CASE_FIXTURE(World_Fixture,
-    "physics/world.cc: World::step does not move static body")
+    "world.cc: World::step does not move static body")
 {
     Vec2 pos_before = floor.position;
     world.step(1.0f / 60.0f);
@@ -155,7 +155,7 @@ TEST_CASE_FIXTURE(World_Fixture,
     CHECK(floor.velocity.y == 0.0f);
 }
 
-TEST_CASE("physics/world.cc: World::broad_phase produces arbiter for "
+TEST_CASE("world.cc: World::broad_phase produces arbiter for "
           "overlapping bodies")
 {
     World world({ 0.0f, -10.0f }, 10);
@@ -174,7 +174,7 @@ TEST_CASE("physics/world.cc: World::broad_phase produces arbiter for "
     CHECK(!world.arbiters.empty());
 }
 
-TEST_CASE("physics/world.cc: World::broad_phase skips two static bodies")
+TEST_CASE("world.cc: World::broad_phase skips two static bodies")
 {
     World world({ 0.0f, -10.0f }, 10);
 
@@ -192,8 +192,7 @@ TEST_CASE("physics/world.cc: World::broad_phase skips two static bodies")
     CHECK(world.arbiters.empty());
 }
 
-TEST_CASE(
-    "physics/world.cc: World::broad_phase removes arbiter when bodies separate")
+TEST_CASE("world.cc: World::broad_phase removes arbiter when bodies separate")
 {
     World world({ 0.0f, 0.0f }, 10); // no gravity
 
@@ -215,7 +214,7 @@ TEST_CASE(
     CHECK(world.arbiters.empty());
 }
 
-TEST_CASE("physics/world.cc: World::step produces arbiters when bodies collide")
+TEST_CASE("world.cc: World::step produces arbiters when bodies collide")
 {
     // drop a dynamic box directly onto a static floor that it is already
     // touching so contact is detected on the first step
@@ -237,7 +236,7 @@ TEST_CASE("physics/world.cc: World::step produces arbiters when bodies collide")
     CHECK(!world.arbiters.empty());
 }
 
-TEST_CASE("physics/world.cc: World::step - dynamic box does not sink through "
+TEST_CASE("world.cc: World::step - dynamic box does not sink through "
           "static floor")
 {
     // Run the simulation long enough for a falling box to land and settle.

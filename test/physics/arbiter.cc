@@ -40,7 +40,7 @@ struct Arbiter_Fixture
 };
 
 TEST_CASE_FIXTURE(Arbiter_Fixture,
-    "physics/arbiter.cc: Arbiter constructor sorts body pointers")
+    "arbiter.cc: Arbiter constructor sorts body pointers")
 {
     Arbiter arb1(&a, &b);
     Arbiter arb2(&b, &a);
@@ -50,14 +50,14 @@ TEST_CASE_FIXTURE(Arbiter_Fixture,
 }
 
 TEST_CASE_FIXTURE(Arbiter_Fixture,
-    "physics/arbiter.cc: Arbiter constructor finds at least one contact")
+    "arbiter.cc: Arbiter constructor finds at least one contact")
 {
     Arbiter arb(&a, &b);
     CHECK(arb.num_contacts > 0);
 }
 
 TEST_CASE_FIXTURE(Arbiter_Fixture,
-    "physics/arbiter.cc: Arbiter constructor computes geometric mean friction")
+    "arbiter.cc: Arbiter constructor computes geometric mean friction")
 {
     a.friction = 0.4f;
     b.friction = 0.9f;
@@ -67,7 +67,7 @@ TEST_CASE_FIXTURE(Arbiter_Fixture,
 }
 
 TEST_CASE_FIXTURE(Arbiter_Fixture,
-    "physics/arbiter.cc: Arbiter friction with two identical surfaces")
+    "arbiter.cc: Arbiter friction with two identical surfaces")
 {
     a.friction = 0.5f;
     b.friction = 0.5f;
@@ -75,7 +75,7 @@ TEST_CASE_FIXTURE(Arbiter_Fixture,
     CHECK(arb.friction == doctest::Approx(0.5f));
 }
 
-TEST_CASE("physics/arbiter.cc: Arbiter separated bodies produce zero contacts")
+TEST_CASE("arbiter.cc: Arbiter separated bodies produce zero contacts")
 {
     Body a, b;
     a.set({ 0.5f, 0.5f }, 1.0f);
@@ -87,7 +87,7 @@ TEST_CASE("physics/arbiter.cc: Arbiter separated bodies produce zero contacts")
 }
 
 TEST_CASE_FIXTURE(Arbiter_Fixture,
-    "physics/arbiter.cc: Arbiter::update carries impulses when warm_starting "
+    "arbiter.cc: Arbiter::update carries impulses when warm_starting "
     "is on")
 {
     World::warm_starting = true;
@@ -116,7 +116,7 @@ TEST_CASE_FIXTURE(Arbiter_Fixture,
 }
 
 TEST_CASE_FIXTURE(Arbiter_Fixture,
-    "physics/arbiter.cc: Arbiter::update zeroes impulses when warm_starting is "
+    "arbiter.cc: Arbiter::update zeroes impulses when warm_starting is "
     "off")
 {
     World::warm_starting = false;
@@ -144,7 +144,7 @@ TEST_CASE_FIXTURE(Arbiter_Fixture,
 }
 
 TEST_CASE_FIXTURE(Arbiter_Fixture,
-    "physics/arbiter.cc: Arbiter::update preserves contact count")
+    "arbiter.cc: Arbiter::update preserves contact count")
 {
     World::warm_starting = true;
 
@@ -158,7 +158,7 @@ TEST_CASE_FIXTURE(Arbiter_Fixture,
 }
 
 TEST_CASE_FIXTURE(Arbiter_Fixture,
-    "physics/arbiter.cc: Arbiter::pre_step computes positive mass_normal")
+    "arbiter.cc: Arbiter::pre_step computes positive mass_normal")
 {
     Arbiter arb(&a, &b);
     REQUIRE(arb.num_contacts > 0);
@@ -170,7 +170,7 @@ TEST_CASE_FIXTURE(Arbiter_Fixture,
 }
 
 TEST_CASE_FIXTURE(Arbiter_Fixture,
-    "physics/arbiter.cc: Arbiter::pre_step computes positive mass_tangent")
+    "arbiter.cc: Arbiter::pre_step computes positive mass_tangent")
 {
     Arbiter arb(&a, &b);
     REQUIRE(arb.num_contacts > 0);
@@ -182,7 +182,7 @@ TEST_CASE_FIXTURE(Arbiter_Fixture,
 }
 
 TEST_CASE_FIXTURE(Arbiter_Fixture,
-    "physics/arbiter.cc: Arbiter::pre_step sets non-positive bias")
+    "arbiter.cc: Arbiter::pre_step sets non-positive bias")
 {
     // bias = -k_bias_factor * inv_dt * min(0, separation + 0.01)
     // separation is negative (overlapping) so bias should be non-negative
@@ -196,7 +196,7 @@ TEST_CASE_FIXTURE(Arbiter_Fixture,
         CHECK(arb.contacts[i].bias >= 0.0f);
 }
 
-TEST_CASE("physics/arbiter.cc: Arbiter::apply_impulse separates overlapping "
+TEST_CASE("arbiter.cc: Arbiter::apply_impulse separates overlapping "
           "bodies over time")
 {
     // Two dynamic boxes starting at the same position should be pushed apart
@@ -222,8 +222,7 @@ TEST_CASE("physics/arbiter.cc: Arbiter::apply_impulse separates overlapping "
     CHECK(dist > 0.5f);
 }
 
-TEST_CASE(
-    "physics/arbiter.cc: Arbiter::apply_impulse normal impulse is non-negative")
+TEST_CASE("arbiter.cc: Arbiter::apply_impulse normal impulse is non-negative")
 {
     // The normal impulse constraint (pn >= 0) means bodies can only push,
     // never pull. After pre_step and apply_impulse, pn must be >= 0.

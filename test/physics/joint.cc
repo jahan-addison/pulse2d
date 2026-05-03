@@ -51,15 +51,14 @@ struct Joint_Fixture
     ~Joint_Fixture() = default;
 };
 
-TEST_CASE_FIXTURE(Joint_Fixture,
-    "physics/joint.cc: Joint::set stores both bodies")
+TEST_CASE_FIXTURE(Joint_Fixture, "joint.cc: Joint::set stores both bodies")
 {
     CHECK(pin.body1 != nullptr);
     CHECK(pin.body2 != nullptr);
 }
 
 TEST_CASE_FIXTURE(Joint_Fixture,
-    "physics/joint.cc: Joint::set computes correct local anchors")
+    "joint.cc: Joint::set computes correct local anchors")
 {
     // a is at (-1, 0) and anchor is at (0, 0), rotation is 0
     // local_anchor for a = rot_t * (anchor - a.position) = (1, 0)
@@ -71,21 +70,21 @@ TEST_CASE_FIXTURE(Joint_Fixture,
 }
 
 TEST_CASE_FIXTURE(Joint_Fixture,
-    "physics/joint.cc: Joint::set resets accumulated impulse to zero")
+    "joint.cc: Joint::set resets accumulated impulse to zero")
 {
     CHECK(pin.P.x == 0.0f);
     CHECK(pin.P.y == 0.0f);
 }
 
 TEST_CASE_FIXTURE(Joint_Fixture,
-    "physics/joint.cc: Joint::set initializes default bias_factor and softness")
+    "joint.cc: Joint::set initializes default bias_factor and softness")
 {
     CHECK(pin.bias_factor == doctest::Approx(0.2f));
     CHECK(pin.softness == doctest::Approx(0.0f));
 }
 
 TEST_CASE_FIXTURE(Joint_Fixture,
-    "physics/joint.cc: Joint::set local anchors are in body-local space")
+    "joint.cc: Joint::set local anchors are in body-local space")
 {
     // rotate a by 90 degrees and re-set; the local anchor should change
     Joint pin2;
@@ -108,7 +107,7 @@ TEST_CASE_FIXTURE(Joint_Fixture,
 }
 
 TEST_CASE_FIXTURE(Joint_Fixture,
-    "physics/joint.cc: Joint::pre_step builds a non-degenerate effective mass "
+    "joint.cc: Joint::pre_step builds a non-degenerate effective mass "
     "matrix")
 {
     float inv_dt = 60.0f;
@@ -121,7 +120,7 @@ TEST_CASE_FIXTURE(Joint_Fixture,
 }
 
 TEST_CASE_FIXTURE(Joint_Fixture,
-    "physics/joint.cc: Joint::pre_step rotates local anchors to world space")
+    "joint.cc: Joint::pre_step rotates local anchors to world space")
 {
     pin.pre_step(60.0f);
     // body rotations are 0, so r1 == local_anchor1 and r2 == local_anchor2
@@ -132,7 +131,7 @@ TEST_CASE_FIXTURE(Joint_Fixture,
 }
 
 TEST_CASE_FIXTURE(Joint_Fixture,
-    "physics/joint.cc: Joint::pre_step bias is zero when constraint is already "
+    "joint.cc: Joint::pre_step bias is zero when constraint is already "
     "satisfied")
 {
     // At construction both anchor points are already coincident at the origin,
@@ -143,7 +142,7 @@ TEST_CASE_FIXTURE(Joint_Fixture,
     CHECK(pin.bias.y == doctest::Approx(0.0f).epsilon(1e-6f));
 }
 
-TEST_CASE("physics/joint.cc: Joint::pre_step bias is non-zero when anchor "
+TEST_CASE("joint.cc: Joint::pre_step bias is non-zero when anchor "
           "points have drifted")
 {
     World::position_correction = true;
@@ -168,7 +167,7 @@ TEST_CASE("physics/joint.cc: Joint::pre_step bias is non-zero when anchor "
     CHECK(bias_len > 0.0f);
 }
 
-TEST_CASE("physics/joint.cc: Joint constraint keeps anchor points close after "
+TEST_CASE("joint.cc: Joint constraint keeps anchor points close after "
           "applied velocity")
 {
     // Give both bodies velocities pulling them apart from the joint anchor.
@@ -210,8 +209,7 @@ TEST_CASE("physics/joint.cc: Joint constraint keeps anchor points close after "
     CHECK(error < 1.0f); // constraint pulled them back - error is bounded
 }
 
-TEST_CASE(
-    "physics/joint.cc: Joint with stiffer bias_factor corrects drift faster")
+TEST_CASE("joint.cc: Joint with stiffer bias_factor corrects drift faster")
 {
     // Seed a 1-unit position error directly by teleporting b after set().
     // The bias term corrects position error at rate (1 - bias_factor)^step,
