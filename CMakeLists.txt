@@ -9,10 +9,17 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
   )
 endif()
 
-project(
-  luya
-  VERSION 0.0.1
-  LANGUAGES CXX)
+if(CMAKE_CROSSCOMPILING)
+  project(
+    luya
+    VERSION 0.0.1
+    LANGUAGES C CXX ASM)
+else()
+  project(
+    luya
+    VERSION 0.0.1
+    LANGUAGES CXX)
+endif()
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,7 +29,6 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 include(GNUInstallDirs)
 include(CMakeDependentOption)
 include(cmake/CPM.cmake)
-include(cmake/teensy.cmake)
 
 include(GNUInstallDirs)
 
@@ -146,42 +152,69 @@ file(GLOB_RECURSE sources CONFIGURE_DEPENDS
 file(GLOB_RECURSE test_sources CONFIGURE_DEPENDS
      "${CMAKE_CURRENT_SOURCE_DIR}/test/*.cc")
 
-# main.cc is the Teensy entry point, and excluded from the engine library
-list(REMOVE_ITEM sources "${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}/main.cc")
+# sdl.cc is host-only; exclude it from the cross-compile build
+if(CMAKE_CROSSCOMPILING OR NOT LUYA_USE_SDL2)
+  list(REMOVE_ITEM sources
+       "${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}/display/sdl.cc")
+endif()
 
-# Engine as a static library - games link against luya::engine
-add_library(luya_engine STATIC ${sources} ${headers})
-add_library(luya::engine ALIAS luya_engine)
+# Engine as a static library - games link against luya::luya
+if(NOT CMAKE_CROSSCOMPILING)
+  add_library(libluya STATIC ${sources} ${headers})
+  add_library(luya::luya ALIAS libluya)
+  set_target_properties(libluya PROPERTIES OUTPUT_NAME "luya")
 
-target_include_directories(
-  luya_engine
-  PUBLIC $<BUILD_INTERFACE:${${PROJECT_NAME}_SOURCE_DIR}>
-         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-         $<INSTALL_INTERFACE:${PROJECT_NAME}-${PROJECT_VERSION}>)
+  target_include_directories(
+    libluya
+    PUBLIC $<BUILD_INTERFACE:${${PROJECT_NAME}_SOURCE_DIR}>
+           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:${PROJECT_NAME}-${PROJECT_VERSION}>)
 
-target_link_libraries(luya_engine PUBLIC etl)
+  target_link_libraries(libluya PUBLIC etl)
+endif()
 
 if(CMAKE_CROSSCOMPILING)
-  luya_add_teensy_target(luya_engine)
-
-  # Teensy executable
-  add_executable(${PROJECT_NAME}
-                 "${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}/main.cc")
-  target_link_libraries(${PROJECT_NAME} PRIVATE luya_engine)
+  # Teensy 4.1 build is handled entirely by cmake/build-teensy.sh, which
+  # compiles each library with the correct flags, applies the WireIMXRT
+  # constexpr patch for GCC 15, and links with --whole-archive for the core. Use
+  # `cmake --build build-teensy`
+  if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+    set(_teensy_default_hw
+        "$ENV{HOME}/Library/Arduino15/packages/teensy/hardware/avr/1.60.0")
+  else()
+    set(_teensy_default_hw
+        "$ENV{HOME}/.arduino15/packages/teensy/hardware/avr/1.60.0")
+  endif()
+  set(TEENSY41_HW
+      "${_teensy_default_hw}"
+      CACHE
+        PATH
+        "Root of the Teensyduino hardware directory (contains cores/, libraries/)"
+  )
+  find_program(BASH_EXECUTABLE bash REQUIRED)
+  set(_etl_include "${CMAKE_CURRENT_SOURCE_DIR}/build/_deps/etl-src/include")
+  add_custom_target(
+    luya ALL
+    COMMAND
+      env LUYA_ETL_INCLUDE=${_etl_include} TEENSY41_HW=${TEENSY41_HW}
+      ${BASH_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/build-teensy.sh"
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    COMMENT "Building Teensy 4.1 firmware via cmake/build-teensy.sh"
+    VERBATIM)
 else()
   if(stb_ADDED)
-    target_include_directories(luya_engine PRIVATE "${stb_SOURCE_DIR}")
+    target_include_directories(libluya PRIVATE "${stb_SOURCE_DIR}")
   endif()
 
   if(LUYA_USE_SDL2)
-    target_compile_definitions(luya_engine PUBLIC LUYA_USE_SDL2)
-    target_link_libraries(luya_engine PUBLIC ${LUYA_SDL2_TARGET})
+    target_compile_definitions(libluya PUBLIC LUYA_USE_SDL2)
+    target_link_libraries(libluya PUBLIC ${LUYA_SDL2_TARGET})
     message(STATUS "luya: SDL2 display backend enabled")
   endif()
 
   # Sample executable - demonstrates the engine with sprites + physics
   add_executable(sample "${CMAKE_CURRENT_SOURCE_DIR}/sample/main.cc")
-  target_link_libraries(sample PRIVATE luya_engine)
+  target_link_libraries(sample PRIVATE libluya)
   set_target_properties(sample PROPERTIES OUTPUT_NAME "sample_game")
 
   add_custom_command(

@@ -6,7 +6,7 @@ option(TEST_INSTALLED_VERSION "Test the version found by find_package" ON)
 # Test suite links against the engine library - no need to recompile sources
 add_executable(Test_Suite ${test_sources})
 
-target_link_libraries(Test_Suite PUBLIC luya_engine doctest::doctest)
+target_link_libraries(Test_Suite PUBLIC libluya doctest::doctest)
 
 set_target_properties(Test_Suite PROPERTIES CXX_STANDARD 23 OUTPUT_NAME
                                                             "test_suite")

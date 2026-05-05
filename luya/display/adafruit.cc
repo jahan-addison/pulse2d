@@ -50,10 +50,10 @@ void Adafruit_Display::clear(uint16_t color)
 /**
  * @brief DMA-blit a full-screen RGB565 framebuffer to the ILI9341
  */
-void Adafruit_Display::blit(frame_buffer_t* framebuffer, int len)
+void Adafruit_Display::blit(frame_buffer_t const* framebuffer, int len)
 {
     (void)len;
-    tft_.writeRect(0, 0, config::width, config::height, framebuffer);
+    tft_.writeRect(0, 0, config::width, config::height, framebuffer->data());
 }
 
 } // namespace luya::display

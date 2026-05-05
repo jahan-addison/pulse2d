@@ -43,25 +43,35 @@ The Teensy 4.1 is a microcontroller development board based on the NXP i.MX RT10
   - Storage of textures, sprites, and other assets in memory
 * [Physics](#physics): `luya::physics::World`
   - The physics engine
-* [Renderer](#renderer) `luya::Renderer`
+* [Renderer](#renderer): `luya::Renderer`
   - The RGB565 framebuffer, rasterization, blitting
 * [Audio](#audio): `luya::Audio`
   - Audio interface via the Teensy audio library
-* [Control](#control) `luya::Control`
+* [Control](#control): `luya::Control`
   - Controller interface
+
+## Installation
+
+### Arduino IDE and Teensyduino
+
+Building for Teensy 4.1 requires the Arduino IDE with the Teensy board support package (Teensyduino). Follow the installation instructions at:
+
+https://www.pjrc.com/teensy/td_download.html
+
+This installs the Teensy core, libraries, and linker scripts into your local Arduino package directory. **You will not** need to use the Arduino IDE, `cmake` and the build will find them automatically.
 
 ## Usage
 
 ### Using as a library
 
-Link against `luya::engine` in your `CMakeLists.txt`:
+Link against `luya::luya` in your `CMakeLists.txt`:
 
 ```cmake
 add_subdirectory(luya)          # or use CPM, FetchContent
-target_link_libraries(my_game PRIVATE luya::engine)
+target_link_libraries(my_game PRIVATE luya::luya)
 ```
 
-`Engine::init()` is called from Teensy `setup()` and `Engine::tick(world)` from `loop()`:
+`Engine::init()` is called once at startup and `Engine::tick(world)` each frame:
 
 ```cpp
 #include <luya/engine.h>
@@ -83,7 +93,24 @@ void loop()
 
 ```
 
-Check out the [sample game](/sample/main.cc) for a complete example on the SDL2.
+See [sample/teensy-main.cc](/sample/teensy-main.cc) for the Teensy sample game, and [sample/main.cc](/sample/main.cc) for the SDL2 host example.
+
+### Teensy 4.1
+
+The build produces two output files in `build-teensy/`:
+
+* `sample_game.elf`: ELF with full debug symbols — use with a JTAG probe or `arm-none-eabi-gdb`
+* `sample_game.hex`: The file you flash onto the Teensy
+
+To flash, press the button on the Teensy to enter the bootloader, then use [Teensy Loader](https://www.pjrc.com/teensy/loader.html):
+
+```bash
+# GUI
+open build-teensy/sample_game.hex   # macOS: opens Teensy Loader automatically
+
+# CLI (install via brew install teensy-loader-cli or apt install teensy-loader-cli)
+teensy_loader_cli --mcu=TEENSY41 -w -v build-teensy/sample_game.hex
+```
 
 ## Components
 
@@ -154,18 +181,22 @@ renderer.add_sprite(&my_sprite,
 
 ### macOS - SDL2
 
-SDL2 is required for all host builds:
+SDL2 is required for all host builds. Install both SDL2 and the ARM bare-metal toolchain:
 
 ```bash
 brew install sdl2
+brew install --cask gcc-arm-embedded
+export PATH="/Applications/ArmGNUToolchain/15.2.rel1/arm-none-eabi/bin:$PATH"
 ```
+
+> Add the `export` line to your `~/.zshrc` to make it permanent
 
 Then build:
 
 ```bash
 cmake -Bbuild -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER="Address;Undefined" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DSDL2_DIR=$(brew --prefix sdl2)/lib/cmake/SDL2
 cmake --build build
-./build/luya
+./build/sample_game
 ```
 
 ---
@@ -182,7 +213,7 @@ Install dependencies:
 
 ```bash
 sudo apt update
-sudo apt install cmake ninja-build libsdl2-dev
+sudo apt install cmake ninja-build libsdl2-dev gcc-arm-none-eabi
 ```
 
 Then build:
@@ -190,7 +221,7 @@ Then build:
 ```bash
 cmake -Bbuild -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER="Address;Undefined" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 cmake --build build
-./build/luya
+./build/sample_game
 ```
 
 Run the test suite:
@@ -204,13 +235,13 @@ Run the test suite:
 Install [MSYS2](https://www.msys2.org/), then from an **MSYS2 MinGW64** shell install dependencies:
 
 ```bash
-pacman -S mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja mingw-w64-x86_64-SDL2
+pacman -S mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja mingw-w64-x86_64-SDL2 mingw-w64-x86_64-arm-none-eabi-toolchain
 ```
 
 ```bash
 cmake -Bbuild -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 cmake --build build
-./build/luya.exe
+./build/sample_game.exe
 ```
 
 Run the test suite:
@@ -219,40 +250,44 @@ Run the test suite:
 ./build/test_suite.exe
 ```
 
-> **Note:** The MSVC toolchain is not supported. Use the MinGW64 shell from MSYS2, not a Visual Studio developer prompt.
+> **Note:** The MSVC toolchain is not supported.
 
-### Teensy 4.1 - cross-compile
+### Teensy 4.1
 
-Install [Teensyduino](https://www.pjrc.com/teensy/teensyduino.html) to get `arm-none-eabi-gcc` and the Teensy libraries, then:
+Install the ARM bare-metal toolchain:
 
 ```bash
-cmake -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain-teensy41.cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
-cmake --build build
+# macOS
+brew install --cask gcc-arm-embedded
+export PATH="/Applications/ArmGNUToolchain/15.2.rel1/arm-none-eabi/bin:$PATH"
+
+# Ubuntu
+sudo apt install gcc-arm-none-eabi
 ```
 
-To use the DMA-capable `ILI9341_t3n` display driver instead of `ILI9341_t3`, add `-DUSE_ILI9341_T3N=ON`.
+```bash
+cmake -Bbuild
+cmake -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain-teensy41.cmake -Bbuild-teensy -DCMAKE_BUILD_TYPE=Release
+cmake --build build-teensy
+```
 
-If Teensyduino is not installed at the default Arduino.app path, override with:
+This invokes `cmake/build-teensy.sh`, which compiles all Teensyduino libraries and luya sources and produces `build-teensy/sample_game.elf` and `build-teensy/sample_game.hex`.
+
+To override the Teensyduino hardware root (e.g. a non-default install path):
 
 ```bash
--DTEENSYDUINO_PATH=/path/to/your/teensyduino/hardware/teensy
+export TEENSY41_HW=/path/to/hardware/avr/1.60.0
 ```
 
 ## Dependencies
 
-- `ETLCPP` - [Embedded Template Library](https://www.etlcpp.com/)
-- `box2d-lite` Heavily modified port of [box2d-lite](https://github.com/erincatto/box2d-lite) for embedded devices
+Host dependencies are fetched automatically via [CPM](https://github.com/cpm-cmake/CPM.cmake).
 
-Teensy libraries
-
-- `teensy4_core` - Teensy 4.1 hardware abstraction and startup
-- `ILI9341_t3`, `ILI9341_t3n` - ILI9341 TFT display drivers
-- `SdFat` - SD card filesystem via built-in SDIO
-- `Teensy Audio Library` - I2S audio pipeline and SGTL5000 codec
-
-Host-only dependencies
-
-- `SDL2` - Default display driver for host development
+- [`ETLCPP`](https://www.etlcpp.com/) - Embedded Template Library
+- `box2d-lite` - Heavily modified port of [box2d-lite](https://github.com/erincatto/box2d-lite) for embedded devices
+- `doctest` - Test framework
+- `stb` - Image loading for the host storage backend
+- `SDL2` - Display driver for host development
 
 ## Licensing
 

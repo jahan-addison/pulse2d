@@ -104,8 +104,7 @@ Renderer::Screen Renderer::world_to_screen(float wx, float wy) const
 }
 
 /**
- * @brief Rasterize a body's axis-aligned bounding box as a filled white
- * rectangle
+ * @brief Rasterize a body's axis-aligned bounding box
  */
 void Renderer::draw_body(physics::Body const* body)
 {
@@ -118,7 +117,7 @@ void Renderer::draw_body(physics::Body const* body)
     const int cy =
         k_center_y - static_cast<int>(body->position.y * k_pixels_per_unit);
 
-    // body->width holds full dimensions; compute half-extents for centering
+    // body->width holds full dimensions; use half-extents for centering
     const int hw = static_cast<int>(body->width.x * k_pixels_per_unit * 0.5f);
     const int hh = static_cast<int>(body->width.y * k_pixels_per_unit * 0.5f);
 

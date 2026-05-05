@@ -58,7 +58,7 @@ inline constexpr uint8_t tft_miso = 12;
 class Adafruit_Display : public Display
 {
   public:
-    Adafruit_Display::Adafruit_Display()
+    Adafruit_Display()
         : tft_(pins::tft_cs,
               pins::tft_dc,
               pins::tft_rst,
