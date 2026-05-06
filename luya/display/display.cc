@@ -26,12 +26,12 @@
  *
  * Abstract display driver interface and compile-time dimensions.
  * config:: holds the ILI9341 native resolution (320x240) and the SDL2
- * desktop scale factor. display::make() returns the platform-appropriate
+ * desktop scale factor. display::factory() returns the platform-appropriate
  * driver.
  *
  *  Example:
  *
- *   auto display = luya::display::make();
+ *   auto display = luya::display::factory();
  *   display->init();
  *   display->blit(framebuffer, config::width * config::height);
  *
@@ -42,7 +42,7 @@ namespace luya::display {
 /**
  * @brief Return the platform-appropriate display driver
  */
-std::unique_ptr<Display> make()
+std::unique_ptr<Display> factory()
 {
 #if defined(__IMXRT1062__)
     return std::make_unique<Adafruit_Display>();

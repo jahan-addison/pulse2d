@@ -47,8 +47,6 @@ The Teensy 4.1 is a microcontroller development board based on the NXP i.MX RT10
   - The RGB565 framebuffer, rasterization, blitting
 * [Audio](#audio): `luya::Audio`
   - Audio interface via the Teensy audio library
-* [Control](#control): `luya::Control`
-  - Controller interface
 
 ## Installation
 
@@ -139,10 +137,6 @@ On Teensy, `load_sprite` reads the raw binary format (`uint16_t` width, `uint16_
 The storage component will also enable loading of sounds and audio files.
 
 ## Audio
-
-* TODO
-
-## Control
 
 * TODO
 

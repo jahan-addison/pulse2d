@@ -32,13 +32,13 @@ namespace luya {
  *   Controls the display, audio, and storage components. Construct once,
  *   call init() from Teensy setup(), and tick() on every loop() iteration.
  *
- *   The display driver is selected at compile time via display::make()
+ *   The display driver is selected at compile time via display::factory()
  */
 class Engine
 {
   public:
     Engine()
-        : display_(display::make())
+        : display_(display::factory())
         , renderer_(*display_)
     {
     }
