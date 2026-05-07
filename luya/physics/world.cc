@@ -162,14 +162,13 @@ void World::clear()
  */
 void World::broad_phase()
 {
-    // O(n^2) broad-phase
-    for (int i = 0; i < (int)bodies.size(); ++i) {
+    for (std::size_t i = 0; i < bodies.size(); ++i) {
         Body* bi = bodies[i];
 
-        for (int j = i + 1; j < (int)bodies.size(); ++j) {
+        for (std::size_t j = i + 1; j < bodies.size(); ++j) {
             Body* bj = bodies[j];
 
-            if (bi->inv_mass == 0.0f && bj->inv_mass == 0.0f)
+            if (bi->inv_mass == 0.0f and bj->inv_mass == 0.0f)
                 continue;
 
             Arbiter new_arb(bi, bj);

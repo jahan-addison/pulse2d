@@ -21,7 +21,7 @@ width = { 1.0, 1.0 }      width = { 4.0, 0.5 }
 +----------+
 ```
 
-A `Body` that is constructed with no call to `set()` has infinite mass and will never move. Use this for walls, floors, and any fixed platform:
+A `Body` that is constructed with no call to `set_mass` has infinite mass and will never move. Use this for walls, floors, and any fixed platform:
 
 ```cpp
 physics::Body floor;
@@ -29,11 +29,11 @@ floor.position = { 0.0f, -4.0f };  // place it, then add to the world
 floor.width    = { 5.0f, 0.5f };   // 5 × 0.5 unit platform
 ```
 
-To make a body dynamic (i.e. affected by gravity and collisions), call `set()` with full dimensions and a mass in kg. `set()` also zeroes all motion state, so calling it again is safe and reinitializes the body:
+To make a body dynamic (i.e. affected by gravity and collisions), call `set_mass` with full dimensions and a mass in kg. `set_mass` also zeroes all motion state, so calling it again is safe and reinitializes the body:
 
 ```cpp
 physics::Body box;
-box.set({ 1.0f, 1.0f }, 2.0f);  // 1 × 1 unit box, 2 kg
+box.set_mass({ 1.0f, 1.0f }, 2.0f);  // 1 × 1 unit box, 2 kg
 box.position = { 0.0f, 3.0f };  // place it above the floor
 ```
 

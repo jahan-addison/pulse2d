@@ -34,10 +34,10 @@ struct Joint_Fixture
     Joint_Fixture()
         : world({ 0.0f, 0.0f }, 10)
     {
-        a.set({ 0.5f, 0.5f }, 1.0f);
+        a.set_mass({ 0.5f, 0.5f }, 1.0f);
         a.position = { -1.0f, 0.0f };
 
-        b.set({ 0.5f, 0.5f }, 1.0f);
+        b.set_mass({ 0.5f, 0.5f }, 1.0f);
         b.position = { 1.0f, 0.0f };
 
         // anchor at origin: 1 unit from each body's center
@@ -89,12 +89,12 @@ TEST_CASE_FIXTURE(Joint_Fixture,
     // rotate a by 90 degrees and re-set; the local anchor should change
     Joint pin2;
     Body c;
-    c.set({ 0.5f, 0.5f }, 1.0f);
+    c.set_mass({ 0.5f, 0.5f }, 1.0f);
     c.position = { -1.0f, 0.0f };
     c.rotation = k_pi / 2.0f;
 
     Body d;
-    d.set({ 0.5f, 0.5f }, 1.0f);
+    d.set_mass({ 0.5f, 0.5f }, 1.0f);
     d.position = { 1.0f, 0.0f };
 
     pin2.set(&c, &d, { 0.0f, 0.0f });
@@ -148,10 +148,10 @@ TEST_CASE("joint.cc: Joint::pre_step bias is non-zero when anchor "
     World::position_correction = true;
 
     Body a, b;
-    a.set({ 0.5f, 0.5f }, 1.0f);
+    a.set_mass({ 0.5f, 0.5f }, 1.0f);
     a.position = { -2.0f, 0.0f }; // further from anchor than at set() time
 
-    b.set({ 0.5f, 0.5f }, 1.0f);
+    b.set_mass({ 0.5f, 0.5f }, 1.0f);
     b.position = { 2.0f, 0.0f };
 
     Joint pin;
@@ -178,9 +178,9 @@ TEST_CASE("joint.cc: Joint constraint keeps anchor points close after "
     World world({ 0.0f, 0.0f }, 20);
 
     Body a, b;
-    a.set({ 0.5f, 0.5f }, 1.0f);
+    a.set_mass({ 0.5f, 0.5f }, 1.0f);
     a.position = { -1.0f, 0.0f };
-    b.set({ 0.5f, 0.5f }, 1.0f);
+    b.set_mass({ 0.5f, 0.5f }, 1.0f);
     b.position = { 1.0f, 0.0f };
 
     Joint pin;
@@ -220,9 +220,9 @@ TEST_CASE("joint.cc: Joint with stiffer bias_factor corrects drift faster")
     auto run = [](float factor) -> float {
         World world({ 0.0f, 0.0f }, 10);
         Body a, b;
-        a.set({ 0.5f, 0.5f }, 1.0f);
+        a.set_mass({ 0.5f, 0.5f }, 1.0f);
         a.position = { -1.0f, 0.0f };
-        b.set({ 0.5f, 0.5f }, 1.0f);
+        b.set_mass({ 0.5f, 0.5f }, 1.0f);
         b.position = { 1.0f, 0.0f };
 
         Joint pin;

@@ -56,7 +56,7 @@ Building for Teensy 4.1 requires the Arduino IDE with the Teensy board support p
 
 https://www.pjrc.com/teensy/td_download.html
 
-This installs the Teensy core, libraries, and linker scripts into your local Arduino package directory. **You will not** need to use the Arduino IDE, `cmake` and the build will find them automatically.
+This installs the Teensy core, libraries, and linker scripts into your local Arduino package directory. **You do not need to use the Arduino IDE**, `cmake` and the build will find the libraries automatically.
 
 ## Usage
 
@@ -91,7 +91,7 @@ void loop()
 
 ```
 
-See [sample/teensy-main.cc](/sample/teensy-main.cc) for the Teensy sample game, and [sample/main.cc](/sample/main.cc) for the SDL2 host example.
+See [sample/teensy-main.cc](/sample/teensy-main.cc) for the Teensy sample game, and [sample/sample_game.cc](/sample/sample_game.cc) for the SDL2 host example.
 
 ### Teensy 4.1
 
@@ -162,10 +162,10 @@ renderer.add_sprite(&my_sprite, x, y); // queue sprites before draw
 // engine.tick() will call draw() + render()
 ```
 
-Use `Renderer::world_to_screen()` to convert a physics body position to a pixel coordinate:
+Use `Renderer::project_coordinates()` to convert a physics body position to a pixel coordinate:
 
 ```cpp
-auto [sx, sy] = renderer.world_to_screen(body.position.x, body.position.y);
+auto [sx, sy] = renderer.project_coordinates(body.position.x, body.position.y);
 renderer.add_sprite(&my_sprite,
     static_cast<int16_t>(sx - my_sprite.width  / 2),
     static_cast<int16_t>(sy - my_sprite.height / 2));

@@ -77,9 +77,7 @@ class Renderer
      * @brief
      * When true, draw() overlays a white bounding-box rectangle for
      * every body in the world. Enable during to visualize
-     * collision shapes:
-     *
-     *   engine.renderer().show_debug_rects = true;
+     * collision shapes.
      */
     bool show_debug_rects{ false };
 
@@ -89,7 +87,7 @@ class Renderer
         int16_t y;
     };
 
-    Screen world_to_screen(float wx, float wy) const;
+    static Screen project_coordinates(float wx, float wy);
 
   private:
     void draw_body(physics::Body const* body);

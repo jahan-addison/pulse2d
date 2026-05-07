@@ -64,7 +64,7 @@ void Renderer::add_sprite(Sprite const* sprite,
     int16_t y,
     float angle_rad)
 {
-    if (sprite && !sprite_queue_.full()) {
+    if (sprite and !sprite_queue_.full()) {
         sprite_queue_.emplace_back(Entry{ sprite, x, y, angle_rad });
     }
 }
@@ -95,7 +95,7 @@ void Renderer::render()
 /**
  * @brief Project a world-space position to screen pixel coordinates
  */
-Renderer::Screen Renderer::world_to_screen(float wx, float wy) const
+Renderer::Screen Renderer::project_coordinates(float wx, float wy)
 {
     return { static_cast<int16_t>(
                  static_cast<int>(wx * k_pixels_per_unit) + k_center_x),
@@ -138,12 +138,12 @@ void Renderer::draw_sprite(Sprite const* sprite,
         // fast path - axis-aligned blit
         for (uint16_t row = 0; row < sprite->height; ++row) {
             const int dy = sy + static_cast<int>(row);
-            if (dy < 0 || dy >= k_height)
+            if (dy < 0 or dy >= k_height)
                 continue;
 
             for (uint16_t col = 0; col < sprite->width; ++col) {
                 const int dx = sx + static_cast<int>(col);
-                if (dx < 0 || dx >= k_width)
+                if (dx < 0 or dx >= k_width)
                     continue;
 
                 uint16_t const px = sprite->data[row * sprite->width + col];
@@ -170,12 +170,12 @@ void Renderer::draw_sprite(Sprite const* sprite,
 
     for (int oy = -radius; oy <= radius; ++oy) {
         const int screen_y = static_cast<int>(cy) + oy;
-        if (screen_y < 0 || screen_y >= k_height)
+        if (screen_y < 0 or screen_y >= k_height)
             continue;
 
         for (int ox = -radius; ox <= radius; ++ox) {
             const int screen_x = static_cast<int>(cx) + ox;
-            if (screen_x < 0 || screen_x >= k_width)
+            if (screen_x < 0 or screen_x >= k_width)
                 continue;
 
             // inverse rotation: map output pixel back to sprite-local coords
@@ -185,9 +185,9 @@ void Renderer::draw_sprite(Sprite const* sprite,
             const int src_x = static_cast<int>(src_u);
             const int src_y = static_cast<int>(src_v);
 
-            if (src_x < 0 || src_x >= sprite->width)
+            if (src_x < 0 or src_x >= sprite->width)
                 continue;
-            if (src_y < 0 || src_y >= sprite->height)
+            if (src_y < 0 or src_y >= sprite->height)
                 continue;
 
             uint16_t const px = sprite->data[src_y * sprite->width + src_x];
@@ -204,10 +204,10 @@ void Renderer::draw_sprite(Sprite const* sprite,
 void Renderer::fill_rect(int x, int y, int w, int h, uint16_t color)
 {
     for (int row = y; row < y + h; ++row) {
-        if (row < 0 || row >= k_height)
+        if (row < 0 or row >= k_height)
             continue;
         for (int col = x; col < x + w; ++col) {
-            if (col < 0 || col >= k_width)
+            if (col < 0 or col >= k_width)
                 continue;
             framebuffer_[row * k_width + col] = color;
         }

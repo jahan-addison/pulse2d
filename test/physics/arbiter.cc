@@ -30,9 +30,9 @@ struct Arbiter_Fixture
 
     Arbiter_Fixture()
     {
-        a.set({ 0.5f, 0.5f }, 1.0f);
+        a.set_mass({ 0.5f, 0.5f }, 1.0f);
         a.position = { 0.0f, 0.0f };
-        b.set({ 0.5f, 0.5f }, 1.0f);
+        b.set_mass({ 0.5f, 0.5f }, 1.0f);
         b.position = { 0.0f, 0.0f }; // fully overlapping - always has contacts
     }
 
@@ -78,9 +78,9 @@ TEST_CASE_FIXTURE(Arbiter_Fixture,
 TEST_CASE("arbiter.cc: Arbiter separated bodies produce zero contacts")
 {
     Body a, b;
-    a.set({ 0.5f, 0.5f }, 1.0f);
+    a.set_mass({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
-    b.set({ 0.5f, 0.5f }, 1.0f);
+    b.set_mass({ 0.5f, 0.5f }, 1.0f);
     b.position = { 5.0f, 0.0f }; // clearly separated
     Arbiter arb(&a, &b);
     CHECK(arb.num_contacts == 0);
@@ -204,9 +204,9 @@ TEST_CASE("arbiter.cc: Arbiter::apply_impulse separates overlapping "
     World world({ 0.0f, 0.0f }, 20); // no gravity
 
     Body a, b;
-    a.set({ 0.5f, 0.5f }, 1.0f);
+    a.set_mass({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
-    b.set({ 0.5f, 0.5f }, 1.0f);
+    b.set_mass({ 0.5f, 0.5f }, 1.0f);
     b.position = { 0.0f, 0.0f };
 
     world.add(&a);
@@ -227,9 +227,9 @@ TEST_CASE("arbiter.cc: Arbiter::apply_impulse normal impulse is non-negative")
     // The normal impulse constraint (pn >= 0) means bodies can only push,
     // never pull. After pre_step and apply_impulse, pn must be >= 0.
     Body a, b;
-    a.set({ 0.5f, 0.5f }, 1.0f);
+    a.set_mass({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
-    b.set({ 0.5f, 0.5f }, 1.0f);
+    b.set_mass({ 0.5f, 0.5f }, 1.0f);
     b.position = { 0.4f, 0.0f };
 
     Arbiter arb(&a, &b);

@@ -66,13 +66,13 @@ Sprite Storage::load_sprite(const char* path,
     if (!file) {
         return { nullptr, 0, 0 };
     }
-    if (file.read(&w, sizeof(w)) != sizeof(w) ||
+    if (file.read(&w, sizeof(w)) != sizeof(w) or
         file.read(&h, sizeof(h)) != sizeof(h)) {
         file.close();
         return { nullptr, 0, 0 };
     }
     const size_t pixel_count = static_cast<size_t>(w) * h;
-    if (pixel_count == 0 || pixel_count > k_max_sprite_pixels) {
+    if (pixel_count == 0 or pixel_count > k_max_sprite_pixels) {
         file.close();
         return { nullptr, 0, 0 };
     }
@@ -97,7 +97,7 @@ Sprite Storage::load_sprite(const char* path,
     h = target_h ? target_h : static_cast<uint16_t>(src_h);
 
     const size_t pixel_count = static_cast<size_t>(w) * h;
-    if (pixel_count == 0 || pixel_count > k_max_sprite_pixels) {
+    if (pixel_count == 0 or pixel_count > k_max_sprite_pixels) {
         stbi_image_free(img);
         return { nullptr, 0, 0 };
     }

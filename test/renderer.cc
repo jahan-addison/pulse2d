@@ -49,38 +49,38 @@ struct Renderer_Fixture
     }
 };
 
-TEST_CASE("renderer.cc: Renderer::world_to_screen origin")
+TEST_CASE("renderer.cc: Renderer::project_coordinates origin")
 {
     Renderer_Fixture f;
-    auto s = f.renderer.world_to_screen(0.0f, 0.0f);
+    auto s = f.renderer.project_coordinates(0.0f, 0.0f);
     CHECK(s.x == display::config::width / 2);
     CHECK(s.y == display::config::height / 2);
 }
 
-TEST_CASE("renderer.cc: Renderer::world_to_screen positive x")
+TEST_CASE("renderer.cc: Renderer::project_coordinates positive x")
 {
     Renderer_Fixture f;
-    auto origin = f.renderer.world_to_screen(0.0f, 0.0f);
-    auto right = f.renderer.world_to_screen(1.0f, 0.0f);
+    auto origin = f.renderer.project_coordinates(0.0f, 0.0f);
+    auto right = f.renderer.project_coordinates(1.0f, 0.0f);
     CHECK(right.x > origin.x);
     CHECK(right.y == origin.y);
 }
 
-TEST_CASE("renderer.cc: Renderer::world_to_screen positive y")
+TEST_CASE("renderer.cc: Renderer::project_coordinates positive y")
 {
     Renderer_Fixture f;
-    auto origin = f.renderer.world_to_screen(0.0f, 0.0f);
-    auto up = f.renderer.world_to_screen(0.0f, 1.0f);
+    auto origin = f.renderer.project_coordinates(0.0f, 0.0f);
+    auto up = f.renderer.project_coordinates(0.0f, 1.0f);
     CHECK(up.y < origin.y);
     CHECK(up.x == origin.x);
 }
 
-TEST_CASE("renderer.cc: Renderer::world_to_screen pixels per unit")
+TEST_CASE("renderer.cc: Renderer::project_coordinates pixels per unit")
 {
     Renderer_Fixture f;
     // k_pixels_per_unit == 30
-    auto origin = f.renderer.world_to_screen(0.0f, 0.0f);
-    auto s = f.renderer.world_to_screen(1.0f, 0.0f);
+    auto origin = f.renderer.project_coordinates(0.0f, 0.0f);
+    auto s = f.renderer.project_coordinates(1.0f, 0.0f);
     CHECK(s.x - origin.x == 30);
 }
 
@@ -215,7 +215,7 @@ TEST_CASE("renderer.cc: Renderer::show_debug_rects false")
     physics::World world({ 0.0f, -10.0f }, 10);
 
     physics::Body box;
-    box.set({ 1.0f, 1.0f }, 1.0f); // centered at origin → screen center
+    box.set_mass({ 1.0f, 1.0f }, 1.0f); // centered at origin → screen center
     world.add(&box);
 
     f.renderer.clear(0x0000);
@@ -236,7 +236,8 @@ TEST_CASE("renderer.cc: Renderer::show_debug_rects true")
     physics::World world({ 0.0f, -10.0f }, 10);
 
     physics::Body box;
-    box.set({ 2.0f, 2.0f }, 1.0f); // large body at origin → fills screen center
+    box.set_mass(
+        { 2.0f, 2.0f }, 1.0f); // large body at origin → fills screen center
     world.add(&box);
 
     f.renderer.clear(0x0000);

@@ -270,12 +270,12 @@ int collide(Arbiter::Contacts& contacts, Body const* bodyA, Body const* bodyB)
 
     // Box A faces
     Vec2 face_a = abs_val(d_a) - h_a - abs_c * h_b;
-    if (face_a.x > 0.0f || face_a.y > 0.0f)
+    if (face_a.x > 0.0f or face_a.y > 0.0f)
         return 0;
 
     // Box B faces
     Vec2 face_b = abs_val(d_b) - abs_ct * h_a - h_b;
-    if (face_b.x > 0.0f || face_b.y > 0.0f)
+    if (face_b.x > 0.0f or face_b.y > 0.0f)
         return 0;
 
     // Find best axis
@@ -405,7 +405,7 @@ int collide(Arbiter::Contacts& contacts, Body const* bodyA, Body const* bodyB)
             contacts[num_contacts].position =
                 clip_points2[i].v - c_separation * front_normal;
             contacts[num_contacts].feature = clip_points2[i].fp;
-            if (axis == FACE_B_X || axis == FACE_B_Y)
+            if (axis == FACE_B_X or axis == FACE_B_Y)
                 flip(contacts[num_contacts].feature);
             ++num_contacts;
         }

@@ -73,45 +73,10 @@ namespace luya::physics {
 
 /**
  * @brief
- * Zero-initialize every field and start the body in a static state
- * (infinite mass, inv_mass = 0, inv_i = 0).
- *
- * A body that has only been constructed - without calling set() - has
- * inv_mass = 0, which means the constraint solver treats it as immovable.
- * This is useful because you can create a static floor or wall simply by
- * constructing a Body, setting its position, and adding it to the world:
- *
- *   physics::Body floor;
- *   floor.position = { 0.0f, -5.0f }; // placed at y = -5, never moves
- *   world.add(&floor);
- *
- * Friction is initialized to 0.2 - a light surface grip, close to
- * wood-on-wood. Width defaults to { 1.0, 1.0 } as a placeholder; it
- * is overwritten the moment you call set().
- */
-Body::Body()
-{
-    position.set(0.0f, 0.0f);
-    rotation = 0.0f;
-    velocity.set(0.0f, 0.0f);
-    angular_velocity = 0.0f;
-    force.set(0.0f, 0.0f);
-    torque = 0.0f;
-    friction = 0.2f;
-
-    width.set(1.0f, 1.0f);
-    mass = FLT_MAX;
-    inv_mass = 0.0f;
-    I = FLT_MAX;
-    inv_i = 0.0f;
-}
-
-/**
- * @brief
  * Configure this body with a box size and mass, then derive all the
  * internal values the solver needs. Also resets all motion state -
  * position, velocity, forces - back to zero, so it is safe to call
- * set() more than once to reinitialize the body between levels.
+ * set_mass() more than once to reinitialize the body between levels.
  *
  * The parameter `w` is the full dimensions of the box. A value of
  * { 1.0, 1.0 } makes a 1x1 unit square; { 2.0, 0.5 } makes a 2x0.5
@@ -154,7 +119,7 @@ Body::Body()
  * rotate, or respond to forces - use this for walls, floors, and
  * any fixed platform.
  */
-void Body::set(const Vec2& w, float m)
+void Body::set_mass(const Vec2& w, float m)
 {
     position.set(0.0f, 0.0f);
     rotation = 0.0f;
@@ -163,7 +128,6 @@ void Body::set(const Vec2& w, float m)
     force.set(0.0f, 0.0f);
     torque = 0.0f;
     friction = 0.2f;
-
     width = w;
     mass = m;
 

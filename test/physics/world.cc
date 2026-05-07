@@ -33,7 +33,7 @@ struct World_Fixture
         floor.width = { 10.0f, 0.5f };
         floor.position = { 0.0f, -5.0f }; // static - default-constructed
 
-        box.set({ 0.5f, 0.5f }, 1.0f);
+        box.set_mass({ 0.5f, 0.5f }, 1.0f);
         box.position = { 0.0f, 3.0f }; // well above the floor
 
         world.add(&floor);
@@ -56,8 +56,8 @@ TEST_CASE("world.cc: World::add registers joints")
 {
     World world({ 0.0f, -10.0f }, 10);
     Body a, b;
-    a.set({ 0.5f, 0.5f }, 1.0f);
-    b.set({ 0.5f, 0.5f }, 1.0f);
+    a.set_mass({ 0.5f, 0.5f }, 1.0f);
+    b.set_mass({ 0.5f, 0.5f }, 1.0f);
     b.position = { 2.0f, 0.0f };
     world.add(&a);
     world.add(&b);
@@ -72,9 +72,9 @@ TEST_CASE("world.cc: World::clear empties bodies, joints, and arbiters")
     World world({ 0.0f, -10.0f }, 10);
 
     Body a, b;
-    a.set({ 0.5f, 0.5f }, 1.0f);
+    a.set_mass({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
-    b.set({ 0.5f, 0.5f }, 1.0f);
+    b.set_mass({ 0.5f, 0.5f }, 1.0f);
     b.position = { 0.0f, 0.0f }; // overlapping - forces a contact
 
     world.add(&a);
@@ -162,9 +162,9 @@ TEST_CASE("world.cc: World::broad_phase produces arbiter for "
 
     // place two dynamic boxes on top of each other
     Body a, b;
-    a.set({ 0.5f, 0.5f }, 1.0f);
+    a.set_mass({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
-    b.set({ 0.5f, 0.5f }, 1.0f);
+    b.set_mass({ 0.5f, 0.5f }, 1.0f);
     b.position = { 0.0f, 0.0f };
 
     world.add(&a);
@@ -197,9 +197,9 @@ TEST_CASE("world.cc: World::broad_phase removes arbiter when bodies separate")
     World world({ 0.0f, 0.0f }, 10); // no gravity
 
     Body a, b;
-    a.set({ 0.5f, 0.5f }, 1.0f);
+    a.set_mass({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
-    b.set({ 0.5f, 0.5f }, 1.0f);
+    b.set_mass({ 0.5f, 0.5f }, 1.0f);
     b.position = { 0.5f, 0.0f }; // overlapping
 
     world.add(&a);
@@ -226,7 +226,7 @@ TEST_CASE("world.cc: World::step produces arbiters when bodies collide")
         -0.4f }; // h_y=0.25 → top at -0.15; box bottom at -0.25 → 0.1 overlap
 
     Body box;
-    box.set({ 0.5f, 0.5f }, 1.0f);
+    box.set_mass({ 0.5f, 0.5f }, 1.0f);
     box.position = { 0.0f, 0.0f }; // resting on the floor
 
     world.add(&floor);
@@ -248,7 +248,7 @@ TEST_CASE("world.cc: World::step - dynamic box does not sink through "
     floor.position = { 0.0f, -5.0f };
 
     Body box;
-    box.set({ 0.5f, 0.5f }, 1.0f);
+    box.set_mass({ 0.5f, 0.5f }, 1.0f);
     box.position = { 0.0f, 0.0f };
 
     world.add(&floor);

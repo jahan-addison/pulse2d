@@ -192,11 +192,10 @@ if(CMAKE_CROSSCOMPILING)
         "Root of the Teensyduino hardware directory (contains cores/, libraries/)"
   )
   find_program(BASH_EXECUTABLE bash REQUIRED)
-  set(_etl_include "${CMAKE_CURRENT_SOURCE_DIR}/build/_deps/etl-src/include")
   add_custom_target(
     luya ALL
     COMMAND
-      env LUYA_ETL_INCLUDE=${_etl_include} TEENSY41_HW=${TEENSY41_HW}
+      env LUYA_ETL_INCLUDE=${etl_SOURCE_DIR}/include TEENSY41_HW=${TEENSY41_HW}
       ${BASH_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/build-teensy.sh"
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     COMMENT "Building Teensy 4.1 firmware via cmake/build-teensy.sh"
@@ -213,7 +212,7 @@ else()
   endif()
 
   # Sample executable - demonstrates the engine with sprites + physics
-  add_executable(sample "${CMAKE_CURRENT_SOURCE_DIR}/sample/main.cc")
+  add_executable(sample "${CMAKE_CURRENT_SOURCE_DIR}/sample/sample_game.cc")
   target_link_libraries(sample PRIVATE libluya)
   set_target_properties(sample PROPERTIES OUTPUT_NAME "sample_game")
 

@@ -75,7 +75,7 @@ namespace luya::physics {
  * A rigid box body - the fundamental unit of simulation. Every collidable
  * object in the scene is a Body.
  *
- * A Body carries two kinds of state. Kinematic state (position, rotation,
+ * A Body carries two kinds of state: Kinematic state (position, rotation,
  * velocity, angular_velocity) describes where the body is and how fast it
  * is moving. Dynamic state (force, torque) is the total push accumulated
  * during a frame. Each call to World::step() integrates dynamic into
@@ -92,20 +92,51 @@ namespace luya::physics {
  *
  * The solver never divides by mass directly - it multiplies by inv_mass.
  * This means a static body (inv_mass = 0) requires no special case: any
- * force multiplied by zero produces no velocity change. A default-constructed
- * Body is already static; call set() to make it dynamic.
+ * force multiplied by zero produces no velocity change.
  *
- * width holds full dimensions, not half-extents. A body with
+ * Width holds full dimensions, not half-extents. A body with
  * width = { 1.0, 0.5 } is a 1x0.5 unit box. Internally collide.cc
  * computes half-extents as h = 0.5 * width for the SAT overlap test.
+ *
+ * Note:
+ *
+ * Unlike in box2d-lite, this is an aggregate type that takes designated
+ * initializers. A body with no defined mass, inv_mass, or inv_i, i.e.:
+ *
+ * (mass = FLT_MAX, inv_mass = 0, inv_i = 0).
+ *
+ * is an immovable static body.
+ *
  */
 class Body
 {
   public:
-    Body();
-    void set(const Vec2& w, float m);
+    /**
+     * @brief
+     * Configure this body with a box size and mass, then derive all the
+     * internal values the solver needs. Also resets all motion state -
+     * position, velocity, forces - back to zero, so it is safe to call
+     * set_mass() more than once to reinitialize the body between levels.
+     *
+     * The parameter `w` is the full dimensions of the box. A value of
+     * { 1.0, 1.0 } makes a 1x1 unit square; { 2.0, 0.5 } makes a 2x0.5
+     * platform:
+     *
+     * clang-format off
+     *
+     *   w = { 1.0, 1.0 }       w = { 2.0, 0.5 }
+     *   +----------+            +--------------------+
+     *   |          |            |                    |
+     *   |  1 x 1   |            |      2 x 0.5       |
+     *   |          |            +--------------------+
+     *   +----------+
+     *    ^-- full width = w.x
+     *
+     * clang-format on
+     */
+    void set_mass(Vec2 const& w, float m);
 
-    void add_force(const Vec2& f) { force += f; }
+    inline void add_force(Vec2 const& f) { force += f; }
 
     /**
      * @brief
@@ -121,7 +152,7 @@ class Body
      *
      *   body.position = { 0.0f, 5.0f }; // place it 5 units above origin
      */
-    Vec2 position;
+    Vec2 position = { 0.0f, 0.0f };
 
     /**
      * @brief
@@ -141,7 +172,7 @@ class Body
      *
      *   renderer.add_sprite(&sprite, sx, sy, body.rotation);
      */
-    float rotation;
+    float rotation = 0.0f;
 
     /**
      * @brief
@@ -165,7 +196,7 @@ class Body
      * the physics integrator handles the acceleration naturally. Writing
      * velocity directly is best for one-shot effects like jumps.
      */
-    Vec2 velocity;
+    Vec2 velocity = { 0.0f, 0.0f };
 
     /**
      * @brief
@@ -181,7 +212,7 @@ class Body
      *
      *   body.angular_velocity = k_pi; // half a turn per second
      */
-    float angular_velocity;
+    float angular_velocity = 0.0f;
 
     /**
      * @brief
@@ -195,7 +226,7 @@ class Body
      *   velocity += dt * (gravity + inv_mass * force)
      *   force     = { 0, 0 }   // cleared by step()
      */
-    Vec2 force;
+    Vec2 force = { 0.0f, 0.0f };
 
     /**
      * @brief Accumulated rotational force to apply this step, in N·m.
@@ -210,7 +241,7 @@ class Body
      *
      *   body.torque = 2.0f; // spin counter-clockwise for one step
      */
-    float torque;
+    float torque = 0.0f;
 
     /**
      * @brief Full width and height of the box, in world units.
@@ -224,9 +255,8 @@ class Body
      *
      *   body.set({ 2.0f, 0.5f }, 3.0f); // 2×0.5 box, 3 kg
      */
-    Vec2 width;
+    Vec2 width = { 1.0f, 1.0f };
 
-  public:
     /**
      * @brief
      * Surface friction coefficient. Range [0, 1].
@@ -239,7 +269,7 @@ class Body
      *
      * Defaults to 0.2 (light wood-on-wood).
      */
-    float friction;
+    float friction = 0.2f;
 
     /**
      * @brief
@@ -248,7 +278,7 @@ class Body
      * Set by set(). FLT_MAX means the body is static - it never moves
      * regardless of forces applied. Read-only after set().
      */
-    float mass;
+    float mass = FLT_MAX;
 
     /**
      * @brief
@@ -259,7 +289,7 @@ class Body
      * inv_mass = 0 means any force scaled by it produces zero acceleration.
      * Read-only after set().
      */
-    float inv_mass;
+    float inv_mass = 0.0f;
 
     /**
      * @brief
@@ -272,7 +302,7 @@ class Body
      * A wide, heavy box has a larger I and is harder to spin than a small,
      * light one. FLT_MAX for static bodies. Read-only after set().
      */
-    float I;
+    float I = FLT_MAX;
 
     /**
      * @brief
@@ -282,7 +312,7 @@ class Body
      * angular acceleration. 0 means the body never rotates.
      * Read-only after set().
      */
-    float inv_i;
+    float inv_i = 0.0f;
 };
 
 } // namespace physics

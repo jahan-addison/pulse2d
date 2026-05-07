@@ -190,7 +190,7 @@ inline bool operator<(const Arbiter_Key& a1, const Arbiter_Key& a2)
     if (a1.body1 < a2.body1)
         return true;
 
-    if (a1.body1 == a2.body1 && a1.body2 < a2.body2)
+    if (a1.body1 == a2.body1 and a1.body2 < a2.body2)
         return true;
 
     return false;

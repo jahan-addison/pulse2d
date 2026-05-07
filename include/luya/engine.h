@@ -46,8 +46,24 @@ class Engine
     Engine& operator=(Engine const&) = delete;
 
   public:
-    void init();
-    void tick(physics::World& world);
+    /**
+     * @brief Hardware and component initialization
+     */
+    inline void init()
+    {
+        storage_.init();
+        audio_.init();
+        display_->init();
+    }
+    /**
+     * @brief Per-frame update, drive rendering and logic each loop() tick
+     */
+    inline void tick(physics::World& world)
+    {
+        renderer_.clear();
+        renderer_.draw(world);
+        renderer_.render();
+    }
 
     Renderer& renderer() { return renderer_; }
     Storage& storage() { return storage_; }

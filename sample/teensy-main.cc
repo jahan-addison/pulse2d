@@ -37,7 +37,7 @@ void setup()
     planet.position = { 3.5f, 0.0f };
     planet.width = { 1.0f, 1.0f };
 
-    spell.set({ 1.0f, 0.5f }, 1.0f);
+    spell.set_mass({ 1.0f, 0.5f }, 1.0f);
     spell.position = { -5.0f, -0.1111f };
     spell.velocity = { 0.5f, 0.0f };
 
@@ -56,7 +56,7 @@ void loop()
 {
     world.step(k_dt);
 
-    if (!exploded && !world.arbiters.empty()) {
+    if (!exploded and not world.arbiters.empty()) {
         exploded = true;
     }
 
@@ -64,7 +64,7 @@ void loop()
 
     {
         auto [sx, sy] =
-            renderer.world_to_screen(planet.position.x, planet.position.y);
+            renderer.project_coordinates(planet.position.x, planet.position.y);
         const luya::Sprite& active = exploded ? explode_sprite : planet_sprite;
         renderer.add_sprite(&active,
             static_cast<int16_t>(sx - active.width / 2),
@@ -73,7 +73,7 @@ void loop()
 
     if (!exploded) {
         auto [sx, sy] =
-            renderer.world_to_screen(spell.position.x, spell.position.y);
+            renderer.project_coordinates(spell.position.x, spell.position.y);
         renderer.add_sprite(&spell_sprite,
             static_cast<int16_t>(sx - spell_sprite.width / 2),
             static_cast<int16_t>(sy - spell_sprite.height / 2),
