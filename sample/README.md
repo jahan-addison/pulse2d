@@ -143,10 +143,10 @@ code later.
 
 **Deferred construction for hardware objects** — Any object with a non-trivial
 constructor that touches hardware (SPI, SD, audio) must not be constructed at
-static-init time, before `setup()` runs. Use `luya::Deferred_Init<T>`:
+static-init time, before `setup()` runs. Use `luya::HARDWARE_Deferred_Init<T>`:
 
 ```cpp
-static luya::Deferred_Init<luya::Engine> engine;
+static luya::HARDWARE_Deferred_Init<luya::Engine> engine;
 
 void setup() {
     engine.emplace();   // constructs Engine here, hardware is ready
@@ -154,7 +154,7 @@ void setup() {
 }
 ```
 
-Declare the `Deferred_Init` as a global — its own constructor is trivial and
+Declare the `HARDWARE_Deferred_Init` as a global — its own constructor is trivial and
 does not touch hardware. T's constructor only runs when you call `emplace()`.
 
 ---

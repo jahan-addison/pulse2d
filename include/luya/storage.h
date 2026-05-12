@@ -15,8 +15,8 @@
 
 #include <cstddef>       // for size_t
 #include <etl/array.h>   // for array
-#include <luya/common.h> // for LUYA_TEENSY
 #include <luya/sprite.h> // for Sprite
+#include <luya/util.h>   // for LUYA_TEENSY
 
 #ifndef MAX_LOADED_SPRITES
 #define MAX_LOADED_SPRITES 8

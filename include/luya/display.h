@@ -13,9 +13,9 @@
 
 #pragma once
 
-#include <cstdint>       // for uint16_t
-#include <etl/array.h>   // for array
-#include <luya/common.h> // for LUYA_PRIVATE, LUYA_TEENSY
+#include <cstdint>     // for uint16_t
+#include <etl/array.h> // for array
+#include <luya/util.h> // for LUYA_PRIVATE, LUYA_TEENSY
 
 /****************************************************************************
  * Display

@@ -11,15 +11,15 @@
  * for the full text of these licenses.
  ****************************************************************************/
 
-#include <luya/common.h>        // for Deferred_Init
 #include <luya/engine.h>        // for Engine
 #include <luya/physics/body.h>  // for Body
 #include <luya/physics/math.h>  // for Vec2
 #include <luya/physics/world.h> // for World
+#include <luya/util.h>          // for HARDWARE_Deferred_Init
 
 // NOLINTBEGIN
-static luya::Deferred_Init<luya::Engine> engine;
-static luya::Deferred_Init<luya::physics::World> world;
+static luya::HARDWARE_Deferred_Init<luya::Engine> engine;
+static luya::HARDWARE_Deferred_Init<luya::physics::World> world;
 
 static luya::physics::Body planet;
 static luya::physics::Body spell;

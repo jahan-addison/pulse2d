@@ -53,7 +53,7 @@ namespace luya {
  *
  *   Usage:
  *
- *     static luya::Deferred_Init<Engine> engine;
+ *     static luya::HARDWARE_Deferred_Init<Engine> engine;
  *
  *     void setup() {
  *         engine.emplace();          // default-construct
@@ -65,14 +65,14 @@ namespace luya {
  *     }
  */
 template<typename T>
-class Deferred_Init
+class HARDWARE_Deferred_Init
 {
   public:
-    constexpr Deferred_Init() = default;
-    Deferred_Init(Deferred_Init const&) = delete;
-    Deferred_Init& operator=(Deferred_Init const&) = delete;
+    constexpr HARDWARE_Deferred_Init() = default;
+    HARDWARE_Deferred_Init(HARDWARE_Deferred_Init const&) = delete;
+    HARDWARE_Deferred_Init& operator=(HARDWARE_Deferred_Init const&) = delete;
 
-    ~Deferred_Init()
+    ~HARDWARE_Deferred_Init()
     {
         if (ptr_)
             ptr_->~T();

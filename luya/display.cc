@@ -11,8 +11,8 @@
  * for the full text of these licenses.
  ****************************************************************************/
 
-#include <luya/common.h> //  LUYA_TEENSY
 #include <luya/display.h>
+#include <luya/util.h> //  LUYA_TEENSY
 
 #include <cstdint> // for uint16_t, uint8_t
 

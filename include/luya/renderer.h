@@ -17,10 +17,10 @@
 #include <cstdint>              // for uint16_t, int16_t
 #include <etl/array.h>          // for array
 #include <etl/vector.h>         // for vector
-#include <luya/common.h>        // for LUYA_PRIVATE
 #include <luya/display.h>       // for Display, config::width, config::height
 #include <luya/physics/world.h> // for World
 #include <luya/sprite.h>        // for Sprite
+#include <luya/util.h>          // for LUYA_PRIVATE
 
 namespace luya {
 

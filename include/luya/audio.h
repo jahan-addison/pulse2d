@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include <luya/common.h> // for LUYA_TEENSY
+#include <luya/util.h> // for LUYA_TEENSY
 
 #if defined(LUYA_TEENSY)
 #include <Audio.h> // for AudioMemory, AudioOutputI2S, AudioControlSGTL5000

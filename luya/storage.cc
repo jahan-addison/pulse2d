@@ -13,7 +13,7 @@
 
 #include <luya/storage.h>
 
-#include <luya/common.h> // for LUYA_TEENSY
+#include <luya/util.h> // for LUYA_TEENSY
 
 #if !defined(LUYA_TEENSY)
 #define STB_IMAGE_IMPLEMENTATION
