@@ -15,20 +15,21 @@
 
 #include <cstddef>       // for size_t
 #include <etl/array.h>   // for array
+#include <luya/common.h> // for LUYA_TEENSY
 #include <luya/sprite.h> // for Sprite
 
 #ifndef MAX_LOADED_SPRITES
-#define MAX_LOADED_SPRITES 16
+#define MAX_LOADED_SPRITES 8
 #endif
 
-#if defined(__IMXRT1062__)
+#if defined(LUYA_TEENSY)
 #include <SdFat.h> // for SdFs, SdioConfig, FIFO_SDIO, BUILTIN_SDCARD
 #endif
 
 /****************************************************************************
  * Storage
  *
- * Fixed-pool sprite loader. On host, uses stb_image to decode any supported
+ * A fixed-pool sprite loader. On host, uses stb_image to decode any supported
  * format and converts RGBA8 to RGB565 with nearest-neighbour scaling.
  *
  * On Teensy, reads raw binary (uint16_t width, height, then pixels) from
@@ -56,12 +57,12 @@ namespace luya {
 class Storage
 {
   public:
-    // Maximum number of sprites that can be resident at once
+    // maximum number of sprites that can be resident at once
     static constexpr size_t k_max_loaded_sprites = MAX_LOADED_SPRITES;
-    // Maximum pixels per sprite - sized for the host display; Teensy games
+    // maximum pixels per sprite - sized for the host display; Teensy games
     // should use smaller sprites and tune this for available SRAM.
-#if defined(__IMXRT1062__)
-    static constexpr size_t k_max_sprite_pixels = 64 * 64;
+#if defined(LUYA_TEENSY)
+    static constexpr size_t k_max_sprite_pixels = 96 * 96;
 #else
     static constexpr size_t k_max_sprite_pixels = 320 * 240;
 #endif
@@ -83,7 +84,7 @@ class Storage
     etl::array<Pixel_Buffer, k_max_loaded_sprites> pool_{};
     size_t next_slot_{ 0 };
 
-#if defined(__IMXRT1062__)
+#if defined(LUYA_TEENSY)
     SdFs sd_;
 #endif
 };

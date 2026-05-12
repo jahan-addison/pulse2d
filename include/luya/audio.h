@@ -13,11 +13,21 @@
 
 #pragma once
 
-#if defined(__IMXRT1062__)
+#include <luya/common.h> // for LUYA_TEENSY
+
+#if defined(LUYA_TEENSY)
 #include <Audio.h> // for AudioMemory, AudioOutputI2S, AudioControlSGTL5000
 #include <SPI.h>   // for SPI (required by Teensy audio shield)
 #include <Wire.h>  // for Wire (required by Teensy audio shield i2c)
 #endif
+
+/****************************************************************************
+ * Audio
+ *
+ * Allocates Teensy audio library memory blocks and enables the SGTL5000
+ * codec at 50% volume. Both calls do nothing in SDL2 (host) builds.
+ *
+ ****************************************************************************/
 
 namespace luya {
 
@@ -36,7 +46,7 @@ class Audio
     void init();
 
   private:
-#if defined(__IMXRT1062__)
+#if defined(LUYA_TEENSY)
     static constexpr int k_audio_memory_blocks = 8;
 
     AudioOutputI2S out_;

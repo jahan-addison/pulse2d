@@ -18,7 +18,13 @@
  ****************************************************************************/
 
 #include <SDL2/SDL.h>           // for SDL_PollEvent, SDL_QUIT, SDL_Event
+#include <cstdio>               // for fprintf
+#include <cstdlib>              // for abort
+#include <cxxabi.h>             // for abi::__cxa_demangle
+#include <etl/error_handler.h>  // for error_handler::set_callback
+#include <etl/exception.h>      // for exception
 #include <etl/map.h>            // for map
+#include <execinfo.h>           // for backtrace, backtrace_symbols
 #include <luya/engine.h>        // for Engine
 #include <luya/physics/body.h>  // for Body
 #include <luya/physics/math.h>  // for Vec2
@@ -26,27 +32,40 @@
 #include <string>               // for string
 #include <string_view>          // for string_view
 
+// ETL error callback - abort when a container overflows
+static void on_etl_error(const etl::exception& e)
+{
+    std::fprintf(stderr,
+        "ETL error: %s (%s:%d)\n",
+        e.what(),
+        e.file_name(),
+        e.line_number());
+    std::abort();
+}
+
 enum class Action
 {
     Up,
     Down,
-    Shoot,
-    Reset,
+    Shoot, // "A" key
+    Reset, // "Z" key
     None
 };
 
 struct State
 {
-    constexpr void won()
+    constexpr inline void win_game()
     {
         fired = false;
         exploded = true;
     }
-    constexpr void reset()
+    constexpr inline void reset()
     {
         fired = false;
         exploded = false;
     }
+
+  public:
     bool fired{ false };
     bool exploded{ false };
 };
@@ -176,6 +195,7 @@ inline void reset_fire_ball(Object_Pool& objects,
     bool position = true)
 {
     auto& spell = objects.get("fireball");
+    // reset position, too?
     if (position) {
         *y_pos = 2.833f;
         spell.position = { -4.333f, *y_pos };
@@ -220,6 +240,8 @@ inline void on_reset(Object_Pool& objects,
 
 int main()
 {
+    etl::error_handler::set_callback<&on_etl_error>();
+
     luya::Engine engine{};
     State state{};
     Sprite_Pool sprites{};
@@ -275,7 +297,7 @@ int main()
 
         // a collision!
         if (!state.exploded and not world.arbiters.empty()) {
-            state.won();
+            state.win_game();
             reset_fire_ball(objects, &spell_ypos, false);
             world.arbiters.clear();
         }

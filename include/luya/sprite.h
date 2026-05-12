@@ -32,7 +32,7 @@ namespace luya {
  */
 struct Sprite
 {
-    const uint16_t* data; // row-major RGB565 pixels; nullptr on load failure
+    uint16_t const* data; // row-major RGB565 pixels; nullptr on load failure
     uint16_t width;
     uint16_t height;
 };

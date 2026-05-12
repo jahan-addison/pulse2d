@@ -13,11 +13,10 @@
 
 #pragma once
 
-#include <luya/audio.h>           // for Audio
-#include <luya/display/display.h> // for Display
-#include <luya/renderer.h>        // for Renderer
-#include <luya/storage.h>         // for Storage
-#include <memory>                 // for unique_ptr
+#include <luya/audio.h>    // for Audio
+#include <luya/display.h>  // for Display
+#include <luya/renderer.h> // for Renderer
+#include <luya/storage.h>  // for Storage
 
 namespace luya::physics {
 class World;
@@ -32,14 +31,13 @@ namespace luya {
  *   Controls the display, audio, and storage components. Construct once,
  *   call init() from Teensy setup(), and tick() on every loop() iteration.
  *
- *   The display driver is selected at compile time via display::factory()
+ *   The display driver is selected at compile time. See display.h for details.
  */
 class Engine
 {
   public:
     Engine()
-        : display_(display::factory())
-        , renderer_(*display_)
+        : renderer_(display_)
     {
     }
     Engine(Engine const&) = delete;
@@ -52,8 +50,13 @@ class Engine
     inline void init()
     {
         storage_.init();
+        LUYA_DEBUG_SERIAL("engine: storage OK");
         audio_.init();
-        display_->init();
+        LUYA_DEBUG_SERIAL("engine: audio OK");
+        display_.init();
+        LUYA_DEBUG_SERIAL("engine: display OK");
+        renderer_.init();
+        LUYA_DEBUG_SERIAL("engine: renderer OK");
     }
     /**
      * @brief Per-frame update, drive rendering and logic each loop() tick
@@ -69,7 +72,7 @@ class Engine
     Storage& storage() { return storage_; }
 
   private:
-    std::unique_ptr<display::Display> display_;
+    Display display_;
     Renderer renderer_;
     Audio audio_;
     Storage storage_;

@@ -13,7 +13,9 @@
 
 #include <luya/storage.h>
 
-#if !defined(__IMXRT1062__)
+#include <luya/common.h> // for LUYA_TEENSY
+
+#if !defined(LUYA_TEENSY)
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h> // for stbi_load, stbi_image_free
 #endif
@@ -36,7 +38,8 @@ namespace luya {
  */
 bool Storage::init()
 {
-#if defined(__IMXRT1062__)
+#if defined(LUYA_TEENSY)
+    delay(200); // allow SD card SDIO bus to settle after power-on
     return sd_.begin(SdioConfig(FIFO_SDIO));
 #else
     return true;
@@ -61,7 +64,7 @@ Sprite Storage::load_sprite(const char* path,
     uint16_t w = 0;
     uint16_t h = 0;
 
-#if defined(__IMXRT1062__)
+#if defined(LUYA_TEENSY)
     auto file = sd_.open(path, O_RDONLY);
     if (!file) {
         return { nullptr, 0, 0 };

@@ -12,12 +12,13 @@
  ****************************************************************************/
 
 #include <luya/audio.h>
+#include <luya/common.h> // for LUYA_TEENSY
 
 /****************************************************************************
  * Audio
  *
  * Allocates Teensy audio library memory blocks and enables the SGTL5000
- * codec at 50% volume. Both calls are no-ops in SDL2 (host) builds.
+ * codec at 50% volume. Both calls do nothing in SDL2 (host) builds.
  *
  ****************************************************************************/
 
@@ -28,7 +29,7 @@ namespace luya {
  */
 void Audio::init()
 {
-#if defined(__IMXRT1062__)
+#if defined(LUYA_TEENSY)
     AudioMemory(k_audio_memory_blocks);
     codec_.enable();
     codec_.volume(0.5f);

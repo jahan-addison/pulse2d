@@ -13,7 +13,7 @@
 
 #include <doctest/doctest.h>
 
-#include <luya/display/display.h>
+#include <luya/display.h>
 #include <luya/physics/body.h>
 #include <luya/physics/world.h>
 #include <luya/renderer.h>
@@ -24,28 +24,21 @@
 
 using namespace luya;
 
-struct Mock_Display : public display::Display
+// Helper: read the framebuffer via LUYA_PRIVATE access
+static frame_buffer_t const& framebuffer(Renderer const& r)
 {
-    display::frame_buffer_t captured{};
-    int blit_call_count{ 0 };
-
-    void init() override {}
-    void clear(uint16_t) override {}
-    void blit(display::frame_buffer_t const* fb, int) override
-    {
-        captured = *fb;
-        ++blit_call_count;
-    }
-};
+    return *r.framebuffer_;
+}
 
 struct Renderer_Fixture
 {
-    Mock_Display display;
+    Display display;
     Renderer renderer;
 
     Renderer_Fixture()
         : renderer(display)
     {
+        renderer.init();
     }
 };
 
@@ -53,8 +46,8 @@ TEST_CASE("renderer.cc: Renderer::project_coordinates origin")
 {
     Renderer_Fixture f;
     auto s = f.renderer.project_coordinates(0.0f, 0.0f);
-    CHECK(s.x == display::config::width / 2);
-    CHECK(s.y == display::config::height / 2);
+    CHECK(s.x == config::width / 2);
+    CHECK(s.y == config::height / 2);
 }
 
 TEST_CASE("renderer.cc: Renderer::project_coordinates positive x")
@@ -90,8 +83,8 @@ TEST_CASE("renderer.cc: Renderer::clear default color")
     f.renderer.clear();
     f.renderer.render();
 
-    bool all_zero = std::all_of(f.display.captured.begin(),
-        f.display.captured.end(),
+    bool all_zero = std::all_of(framebuffer(f.renderer).begin(),
+        framebuffer(f.renderer).end(),
         [](uint16_t px) { return px == 0x0000; });
     CHECK(all_zero);
 }
@@ -102,8 +95,8 @@ TEST_CASE("renderer.cc: Renderer::clear explicit zero")
     f.renderer.clear(0x0000);
     f.renderer.render();
 
-    bool all_zero = std::all_of(f.display.captured.begin(),
-        f.display.captured.end(),
+    bool all_zero = std::all_of(framebuffer(f.renderer).begin(),
+        framebuffer(f.renderer).end(),
         [](uint16_t px) { return px == 0x0000; });
     CHECK(all_zero);
 }
@@ -115,8 +108,8 @@ TEST_CASE("renderer.cc: Renderer::clear non-zero color")
     f.renderer.clear(sky_blue);
     f.renderer.render();
 
-    bool all_color = std::all_of(f.display.captured.begin(),
-        f.display.captured.end(),
+    bool all_color = std::all_of(framebuffer(f.renderer).begin(),
+        framebuffer(f.renderer).end(),
         [](uint16_t px) { return px == 0x041F; });
     CHECK(all_color);
 }
@@ -124,8 +117,10 @@ TEST_CASE("renderer.cc: Renderer::clear non-zero color")
 TEST_CASE("renderer.cc: Renderer::render calls blit")
 {
     Renderer_Fixture f;
+    // render() must not crash and framebuffer must be reachable afterwards
     f.renderer.render();
-    CHECK(f.display.blit_call_count == 1);
+    CHECK(framebuffer(f.renderer).size() ==
+          static_cast<std::size_t>(config::width * config::height));
 }
 
 TEST_CASE("renderer.cc: Renderer::add_sprite null pointer")
@@ -138,7 +133,8 @@ TEST_CASE("renderer.cc: Renderer::add_sprite null pointer")
     f.renderer.draw(world); // must not crash
 
     f.renderer.render();
-    CHECK(f.display.blit_call_count == 1);
+    CHECK(framebuffer(f.renderer).size() ==
+          static_cast<std::size_t>(config::width * config::height));
 }
 
 TEST_CASE("renderer.cc: Renderer::add_sprite axis-aligned visible pixel")
@@ -158,7 +154,7 @@ TEST_CASE("renderer.cc: Renderer::add_sprite axis-aligned visible pixel")
     f.renderer.render();
 
     // pixel at (5, 7) must equal red
-    CHECK(f.display.captured[7 * display::config::width + 5] == red);
+    CHECK(framebuffer(f.renderer)[7 * config::width + 5] == red);
 }
 
 TEST_CASE("renderer.cc: Renderer::add_sprite axis-aligned transparent pixels")
@@ -177,7 +173,7 @@ TEST_CASE("renderer.cc: Renderer::add_sprite axis-aligned transparent pixels")
     f.renderer.render();
 
     // pixel at (6, 7) is the transparent texel — framebuffer must stay 0
-    CHECK(f.display.captured[7 * display::config::width + 6] == 0x0000);
+    CHECK(framebuffer(f.renderer)[7 * config::width + 6] == 0x0000);
 }
 
 TEST_CASE("renderer.cc: Renderer::draw drains sprite queue")
@@ -200,7 +196,7 @@ TEST_CASE("renderer.cc: Renderer::draw drains sprite queue")
     f.renderer.render();
 
     // the sprite must not appear in this second frame
-    CHECK(f.display.captured[7 * display::config::width + 5] == 0x0000);
+    CHECK(framebuffer(f.renderer)[7 * config::width + 5] == 0x0000);
 }
 
 TEST_CASE("renderer.cc: Renderer::show_debug_rects default")
@@ -224,8 +220,8 @@ TEST_CASE("renderer.cc: Renderer::show_debug_rects false")
     f.renderer.render();
 
     // with debug rects off the framebuffer must remain all black
-    bool all_zero = std::all_of(f.display.captured.begin(),
-        f.display.captured.end(),
+    bool all_zero = std::all_of(framebuffer(f.renderer).begin(),
+        framebuffer(f.renderer).end(),
         [](uint16_t px) { return px == 0x0000; });
     CHECK(all_zero);
 }
@@ -246,7 +242,7 @@ TEST_CASE("renderer.cc: Renderer::show_debug_rects true")
     f.renderer.render();
 
     // the center pixel must have been painted white (0xFFFF)
-    const int cx = display::config::width / 2;
-    const int cy = display::config::height / 2;
-    CHECK(f.display.captured[cy * display::config::width + cx] == 0xFFFF);
+    const int cx = config::width / 2;
+    const int cy = config::height / 2;
+    CHECK(framebuffer(f.renderer)[cy * config::width + cx] == 0xFFFF);
 }

@@ -152,10 +152,12 @@ file(GLOB_RECURSE sources CONFIGURE_DEPENDS
 file(GLOB_RECURSE test_sources CONFIGURE_DEPENDS
      "${CMAKE_CURRENT_SOURCE_DIR}/test/*.cc")
 
-# sdl.cc is host-only; exclude it from the cross-compile build
+# display.cc contains both SDL2 and ILI9341 implementations under #ifdef;
+# exclude it when cross-compiling since the Teensy build compiles sources
+# directly.
 if(CMAKE_CROSSCOMPILING OR NOT LUYA_USE_SDL2)
   list(REMOVE_ITEM sources
-       "${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}/display/sdl.cc")
+       "${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}/display.cc")
 endif()
 
 # Engine as a static library - games link against luya::luya
@@ -163,6 +165,7 @@ if(NOT CMAKE_CROSSCOMPILING)
   add_library(libluya STATIC ${sources} ${headers})
   add_library(luya::luya ALIAS libluya)
   set_target_properties(libluya PROPERTIES OUTPUT_NAME "luya")
+  target_compile_definitions(libluya PUBLIC ETL_LOG_ERRORS)
 
   target_include_directories(
     libluya
@@ -174,10 +177,8 @@ if(NOT CMAKE_CROSSCOMPILING)
 endif()
 
 if(CMAKE_CROSSCOMPILING)
-  # Teensy 4.1 build is handled entirely by cmake/build-teensy.sh, which
-  # compiles each library with the correct flags, applies the WireIMXRT
-  # constexpr patch for GCC 15, and links with --whole-archive for the core. Use
-  # `cmake --build build-teensy`
+  # Teensy 4.1 build is handled entirely by cmake/build-teensy.sh Use `cmake
+  # --build build-teensy`
   if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
     set(_teensy_default_hw
         "$ENV{HOME}/Library/Arduino15/packages/teensy/hardware/avr/1.60.0")
@@ -215,7 +216,16 @@ else()
   add_executable(sample "${CMAKE_CURRENT_SOURCE_DIR}/sample/sample_game.cc")
   target_link_libraries(sample PRIVATE libluya)
   set_target_properties(sample PROPERTIES OUTPUT_NAME "sample_game")
-
+  # Enforce Teensy-like constraints on the host build
+  if(LUYA_TEENSY_CONSTRAINTS)
+    message(STATUS "Enabling Teensy-like constraints on host build")
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+      target_compile_options(sample PRIVATE -Wstack-usage=256 -fstack-usage)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+      target_compile_options(sample PRIVATE -Wframe-larger-than=256
+                                            -Wno-error=frame-larger-than)
+    endif()
+  endif()
   add_custom_command(
     TARGET sample
     POST_BUILD

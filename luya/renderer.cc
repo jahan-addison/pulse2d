@@ -22,7 +22,7 @@
 /****************************************************************************
  * Renderer
  *
- * Maintains a full-screen RGB565 framebuffer. Each frame:
+ * Contains the full-screen RGB565 framebuffer. Each frame:
  *   1. clear()  - fill the framebuffer with a background color
  *   2. draw()   - rasterize active physics bodies and queued sprites
  *   3. render() - blit the finished framebuffer to the display driver
@@ -47,10 +47,10 @@ namespace luya {
 void Renderer::clear(uint16_t color)
 {
     if (color == 0x0000) {
-        framebuffer_.fill(0);
+        framebuffer_->fill(0);
         return;
     }
-    framebuffer_.fill(color);
+    framebuffer_->fill(color);
 }
 
 /**
@@ -64,7 +64,7 @@ void Renderer::add_sprite(Sprite const* sprite,
     int16_t y,
     float angle_rad)
 {
-    if (sprite and !sprite_queue_.full()) {
+    if (sprite and not sprite_queue_.full()) {
         sprite_queue_.emplace_back(Entry{ sprite, x, y, angle_rad });
     }
 }
@@ -75,32 +75,13 @@ void Renderer::add_sprite(Sprite const* sprite,
  */
 void Renderer::draw(physics::World const& world)
 {
-    for (const auto* body : world.bodies) {
+    for (auto const* body : world.bodies) {
         draw_body(body);
     }
-    for (const auto& entry : sprite_queue_) {
+    for (auto const& entry : sprite_queue_) {
         draw_sprite(entry.sprite, entry.x, entry.y, entry.angle_rad);
     }
     sprite_queue_.clear();
-}
-
-/**
- * @brief Blit the framebuffer to the display driver
- */
-void Renderer::render()
-{
-    display_.blit(&framebuffer_, k_width * k_height);
-}
-
-/**
- * @brief Project a world-space position to screen pixel coordinates
- */
-Renderer::Screen Renderer::project_coordinates(float wx, float wy)
-{
-    return { static_cast<int16_t>(
-                 static_cast<int>(wx * k_pixels_per_unit) + k_center_x),
-        static_cast<int16_t>(
-            k_center_y - static_cast<int>(wy * k_pixels_per_unit)) };
 }
 
 /**
@@ -148,7 +129,7 @@ void Renderer::draw_sprite(Sprite const* sprite,
 
                 uint16_t const px = sprite->data[row * sprite->width + col];
                 if (px != 0xF81F)
-                    framebuffer_[dy * k_width + dx] = px;
+                    (*framebuffer_)[dy * k_width + dx] = px;
             }
         }
         return;
@@ -192,7 +173,7 @@ void Renderer::draw_sprite(Sprite const* sprite,
 
             uint16_t const px = sprite->data[src_y * sprite->width + src_x];
             if (px != 0xF81F)
-                framebuffer_[screen_y * k_width + screen_x] = px;
+                (*framebuffer_)[screen_y * k_width + screen_x] = px;
         }
     }
 }
@@ -209,7 +190,7 @@ void Renderer::fill_rect(int x, int y, int w, int h, uint16_t color)
         for (int col = x; col < x + w; ++col) {
             if (col < 0 or col >= k_width)
                 continue;
-            framebuffer_[row * k_width + col] = color;
+            (*framebuffer_)[row * k_width + col] = color;
         }
     }
 }

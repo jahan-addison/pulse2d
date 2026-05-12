@@ -37,7 +37,7 @@ The Teensy 4.1 is a microcontroller development board based on the NXP i.MX RT10
 
 ### Architecture
 
-* [Display](#display): `luya::display::Display`
+* [Display](#display): `luya::Display`
   - The display adapter, with a host SDL2 interface
 * [Storage](#storage): `luya::Storage`
   - Storage of textures, sprites, and other assets in memory
@@ -91,7 +91,7 @@ void loop()
 
 ```
 
-See [sample/teensy-main.cc](/sample/teensy-main.cc) for the Teensy sample game, and [sample/sample_game.cc](/sample/sample_game.cc) for the SDL2 host example.
+See [sample/sample_game-teensy.cc](/sample/sample_game-teensy.cc) for the Teensy sample game, and [sample/sample_game.cc](/sample/sample_game.cc) for the SDL2 host example.
 
 ### Teensy 4.1
 
@@ -114,13 +114,7 @@ teensy_loader_cli --mcu=TEENSY41 -w -v build-teensy/sample_game.hex
 
 ## Display
 
-
-* Adafruit: `luya::display::Adafruit_Display`
-  - An Adafruit 2.8" ILI9341 TFT display driver that works well with the Teensy 4.1
-* SDL2: `luya::display::SDL_Display`
-  - A host desktop development driver for debugging and the game development phase
-
-The display component defaults to `SDL2`. The SDL2 driver opens a desktop window at the ILI9341 native resolution scaled up by `config::scale`.
+On Teensy, the display driver targets the [PJRC ILI9341 TFT](https://www.pjrc.com/store/display_ili9341_touch.html), driven by the `ILI9341_t3` library. On host and local development, the driver opens an SDL2 window at the same logical resolution scaled up by `luya::config::scale`.
 
 ## Storage
 
