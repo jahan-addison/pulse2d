@@ -24,7 +24,7 @@
  * TFT, driven by ILI9341_t3. On host the driver opens an SDL2 window at the
  * same logical resolution scaled up by config::scale.
  *
- * Usage:
+ * Example:
  *
  *   luya::Display display;
  *   display.init();
@@ -56,16 +56,6 @@ using Frame_Buffer = etl::array<uint16_t, x * y>;
 
 using frame_buffer_t = Frame_Buffer<>;
 
-/**
- * @brief Place a variable in OCRAM (the secondary 512 KB RAM bank on the
- *  i.MX RT1062)
- */
-#if defined(LUYA_TEENSY)
-#define LUYA_EXTMEM __attribute__((section(".dmabuffers"), used))
-#else
-#define LUYA_EXTMEM
-#endif
-
 #if defined(LUYA_TEENSY)
 /**
  * @brief ILI9341 pin assignments for the Teensy 4.1 SPI0 bus
@@ -78,15 +68,50 @@ using frame_buffer_t = Frame_Buffer<>;
  *  | MOSI/SDI    | 11            |
  *  | SCK         | 13            |
  *  | MISO/SDO    | 12            |
+ *  | T_CS        | 8  (touch CS — driven HIGH to keep XPT2046 off the bus) |
  */
 namespace pins {
 inline constexpr uint8_t tft_cs = 10;
 inline constexpr uint8_t tft_dc = 9;
-inline constexpr uint8_t tft_rst = 255; // RESET tied to 3.3V on the PJRC board
+inline constexpr uint8_t tft_rst = 6;
 inline constexpr uint8_t tft_mosi = 11;
 inline constexpr uint8_t tft_sck = 13;
 inline constexpr uint8_t tft_miso = 12;
+inline constexpr uint8_t touch_cs =
+    8; // XPT2046 CS — must be HIGH before SPI init
 } // namespace pins
+
+// Compile-time pin validation
+
+static_assert(pins::tft_mosi == 11,
+    "luya: tft_mosi must be 11 (hardware SPI0 MOSI on Teensy 4.1)");
+static_assert(pins::tft_sck == 13,
+    "luya: tft_sck must be 13 (hardware SPI0 SCK on Teensy 4.1)");
+static_assert(pins::tft_miso == 12,
+    "luya: tft_miso must be 12 (hardware SPI0 MISO on Teensy 4.1)");
+
+static_assert(pins::tft_cs != pins::tft_dc,
+    "luya: tft_cs and tft_dc must be different pins");
+static_assert(pins::tft_cs != pins::tft_rst,
+    "luya: tft_cs and tft_rst must be different pins");
+static_assert(pins::tft_dc != pins::tft_rst,
+    "luya: tft_dc and tft_rst must be different pins");
+static_assert(pins::tft_cs != pins::touch_cs,
+    "luya: tft_cs and touch_cs must be different pins");
+static_assert(pins::tft_dc != pins::touch_cs,
+    "luya: tft_dc and touch_cs must be different pins");
+static_assert(pins::tft_rst != pins::touch_cs,
+    "luya: tft_rst and touch_cs must be different pins");
+
+static_assert(pins::tft_cs < 42,
+    "luya: tft_cs is not a valid Teensy 4.1 pin (0-41)");
+static_assert(pins::tft_dc < 42,
+    "luya: tft_dc is not a valid Teensy 4.1 pin (0-41)");
+static_assert(pins::tft_rst < 42,
+    "luya: tft_rst is not a valid Teensy 4.1 pin (0-41)");
+static_assert(pins::touch_cs < 42,
+    "luya: touch_cs is not a valid Teensy 4.1 pin (0-41)");
+
 #endif
 
 /**

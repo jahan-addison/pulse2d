@@ -76,6 +76,7 @@ ForEachMacros:
   - BOOST_FOREACH
 StatementAttributeLikeMacros:
   - Q_EMIT
+  - LUYA_DEFINE
 IncludeBlocks:   Preserve
 IncludeCategories:
   - Regex:           '^"(llvm|llvm-c|clang|clang-c)/'

@@ -17,58 +17,26 @@
 #include <luya/physics/world.h> // for World
 #include <luya/util.h>          // for HARDWARE_Deferred_Init
 
-// NOLINTBEGIN
-static luya::HARDWARE_Deferred_Init<luya::Engine> engine;
-static luya::HARDWARE_Deferred_Init<luya::physics::World> world;
+LUYA_DEFINE_ENGINE();
 
-static luya::physics::Body planet;
-static luya::physics::Body spell;
+LUYA_DEFINE luya::physics::Body planet;
+LUYA_DEFINE luya::physics::Body spell;
 
-static luya::Sprite planet_sprite;
-static luya::Sprite spell_sprite;
-static luya::Sprite explode_sprite;
+LUYA_DEFINE luya::Sprite planet_sprite;
+LUYA_DEFINE luya::Sprite spell_sprite;
+LUYA_DEFINE luya::Sprite explode_sprite;
 
-static bool exploded = false;
+LUYA_DEFINE bool exploded = false;
 
-constexpr float k_dt = 1.0f / 60.0f;
-
-extern "C" uint32_t _ebss;
-extern "C" uint32_t _estack;
-
-uint32_t stack_used()
-{
-    const uint32_t* p = (const uint32_t*)&_ebss;
-    uint32_t count = 0;
-    while (*p++ == 0xA5A5A5A5)
-        count += 4;
-    return (uint32_t)&_estack - (uint32_t)&_ebss - count; // bytes consumed
-}
+LUYA_DEFINE constexpr float k_dt = 1.0f / 60.0f;
 
 void setup()
 {
     Serial.begin(115200);
-#ifdef DEBUG
-    while (!Serial)
-        ; // DEBUG: wait indefinitely so all setup() output is visible
-#else
-    while (!Serial && millis() < 3000)
-        ; // release builds: give up after 3 s (no monitor attached)
-#endif
 
-    Serial.println("setup: serial ok");
+    LUYA_POLL_SERIAL_CONNECTION();
 
-    // Construct engine and world now that the Arduino runtime is ready.
-    Serial.println("setup: constructing Engine");
-    engine.emplace();
-    Serial.println("setup: constructing World");
-    world.emplace(luya::physics::Vec2{ 0.0f, 0.0f }, 10);
-    Serial.println("setup: objects constructed");
-
-    Serial.println("setup: calling engine->init()");
-    Serial.flush();
-
-    engine->init();
-    Serial.println("setup: engine->init() done");
+    LUYA_INIT(0.0f, 0.0f, 10);
 
     planet.position = { 3.5f, 0.0f };
     planet.width = { 1.0f, 1.0f };
@@ -106,26 +74,15 @@ void setup()
 
 void loop()
 {
-#ifdef DEBUG
-    static bool first_loop = true;
-    if (first_loop) {
-        Serial.println("loop: running");
-        Serial.flush();
-        first_loop = false;
-    }
-#endif
-
     world->step(k_dt);
 
-    if (!exploded and not world->arbiters.empty()) {
+    if (!exploded && !world->arbiters.empty())
         exploded = true;
-    }
 
 #ifdef DEBUG
     static uint32_t frame = 0;
-    if (++frame % 300 == 0) { // every 5 seconds at 60 Hz
-        Serial.printf("stack used: %lu bytes\n", stack_used());
-    }
+    if (++frame % 300 == 0)
+        Serial.printf("stack used: %lu bytes\n", luya::teensy::stack_used());
 #endif
 
     auto& renderer = engine->renderer();
@@ -150,4 +107,3 @@ void loop()
 
     engine->tick(*world);
 }
-// NOLINTEND

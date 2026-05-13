@@ -14,6 +14,7 @@
 #pragma once
 
 #include <cstddef> // for std::byte
+#include <cstdint> // for uint32_t
 #include <utility> // for std::forward
 
 #ifdef __IMXRT1062__
@@ -26,6 +27,16 @@
 #define LUYA_PRIVATE private
 #endif
 
+#if defined(LUYA_TEENSY)
+/**
+ * @brief Place a variable in OCRAM (the secondary 512 KB RAM bank on the
+ *  i.MX RT1062)
+ */
+#define LUYA_EXTMEM __attribute__((section(".dmabuffers"), used))
+#else
+#define LUYA_EXTMEM
+#endif
+
 #if defined(LUYA_TEENSY) && defined(DEBUG)
 #define LUYA_DEBUG_SERIAL(...)          \
     do {                                \
@@ -35,11 +46,63 @@
             Serial.println();           \
         }                               \
     } while (0)
+#define LUYA_POLL_SERIAL_CONNECTION()               \
+    do {                                            \
+        while (!Serial)                             \
+            ;                                       \
+        Serial.println("[DEBUG] setup: serial OK"); \
+    } while (0)
 #else
 #define LUYA_DEBUG_SERIAL(...)
+#define LUYA_POLL_SERIAL_CONNECTION()
 #endif
 
+#if defined(LUYA_TEENSY)
+/**
+ * @brief
+ * On teensy, place the variable in the .bss section (zero-initialised RAM).
+ * Note that the constructor is never called, so the variable must be trivially
+ * constructible and destructible. Use LUYA_HARDWARE_DEFINE for
+ * non-trivial types that depend on hardware that must be constructed at
+ * runtime.
+ *
+ */
+#define LUYA_DEFINE static
+
+#define LUYA_HARDWARE_DEFINE(type) \
+    LUYA_DEFINE luya::HARDWARE_Deferred_Init<type>
+#endif
+
+#define LUYA_DEFINE_ENGINE()                   \
+    LUYA_HARDWARE_DEFINE(luya::Engine) engine; \
+    LUYA_HARDWARE_DEFINE(luya::physics::World) world;
+
+#define LUYA_INIT(gravity_1, gravity_2, solver)                             \
+    do {                                                                    \
+        engine.emplace();                                                   \
+        world.emplace(luya::physics::Vec2{ gravity_1, gravity_2 }, solver); \
+        engine->init();                                                     \
+    } while (0)
+
 namespace luya {
+
+namespace teensy {
+
+#if defined(LUYA_TEENSY)
+extern "C" uint32_t _ebss;
+extern "C" uint32_t _estack;
+
+uint32_t inline stack_used()
+{
+    const uint32_t* p = (const uint32_t*)&_ebss;
+    uint32_t count = 0;
+    while (*p++ == 0xA5A5A5A5)
+        count += 4;
+    return (uint32_t)&_estack - (uint32_t)&_ebss - count; // bytes consumed
+}
+#endif
+
+} // namespace teensy
 
 /**
  * @brief
@@ -51,7 +114,7 @@ namespace luya {
  *   static-init time. Call emplace() once the runtime is ready to
  *   construct T in-place inside the internal aligned storage.
  *
- *   Usage:
+ *   Example:
  *
  *     static luya::HARDWARE_Deferred_Init<Engine> engine;
  *

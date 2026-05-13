@@ -1,16 +1,39 @@
 {
     "configurations": [
         {
+            "name": "Host",
             "includePath": [
                 "${default}",
-                "${workspaceFolder}/**",
+                "${workspaceFolder}/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/c++",
             "intelliSenseMode": "${default}",
-            "compileCommands": [
-                "${workspaceFolder}/build/compile_commands.json"
-            ]
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json"
+        },
+        {
+            "name": "Teensy 4.1",
+            "includePath": [
+                "${workspaceFolder}/include",
+                "${env:HOME}/Library/Arduino15/packages/teensy/hardware/avr/1.60.0/cores/teensy4",
+                "${env:HOME}/Library/Arduino15/packages/teensy/hardware/avr/1.60.0/libraries/ILI9341_t3",
+                "${env:HOME}/Library/Arduino15/packages/teensy/hardware/avr/1.60.0/libraries/SdFat/src",
+                "${env:HOME}/Library/Arduino15/packages/teensy/hardware/avr/1.60.0/libraries/Audio",
+                "${env:HOME}/Library/Arduino15/packages/teensy/hardware/avr/1.60.0/libraries/SPI",
+                "${env:HOME}/Library/Arduino15/packages/teensy/hardware/avr/1.60.0/libraries/Wire",
+                "${env:HOME}/Library/Arduino15/packages/teensy/hardware/avr/1.60.0/libraries/SD/src",
+                "${env:HOME}/Library/Arduino15/packages/teensy/hardware/avr/1.60.0/libraries/SerialFlash",
+            ],
+            "defines": [
+                "__IMXRT1062__",
+                "F_CPU=600000000",
+                "TEENSYDUINO=160",
+                "DEBUG",
+                "ARDUINO=10819",
+                "ARDUINO_TEENSY41",
+                "USB_SERIAL",
+                "LAYOUT_US_ENGLISH"
+            ],
         }
     ],
     "version": 4

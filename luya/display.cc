@@ -27,7 +27,7 @@
  * TFT, driven by ILI9341_t3. On host the driver opens an SDL2 window at the
  * same logical resolution scaled up by config::scale.
  *
- * Usage:
+ * Example:
  *
  *   luya::Display display;
  *   display.init();
@@ -43,6 +43,20 @@ namespace luya {
 void Display::init()
 {
 #if defined(LUYA_TEENSY)
+    // Deselect the XPT2046 touchscreen before SPI init. T_CS (pin 8) shares
+    // MOSI/SCK/MISO with the ILI9341 — if left floating it corrupts all SPI.
+    pinMode(pins::touch_cs, OUTPUT);
+    digitalWrite(pins::touch_cs, HIGH);
+    Serial.printf(
+        "display: CS=%u DC=%u RST=%u MOSI=%u SCK=%u MISO=%u T_CS=%u\n",
+        pins::tft_cs,
+        pins::tft_dc,
+        pins::tft_rst,
+        pins::tft_mosi,
+        pins::tft_sck,
+        pins::tft_miso,
+        pins::touch_cs);
+    Serial.flush();
     tft_.begin();
     tft_.setRotation(1);
     clear();
