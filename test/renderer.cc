@@ -1,30 +1,27 @@
 /*****************************************************************************
- * Copyright (c) Jahan Addison
+ * Copyright (c) 2026 Jahan Addison
  *
- * This software is dual-licensed under the Apache License, Version 2.0 or
- * the GNU General Public License, Version 3.0 or later.
+ * This file is part of pulse2d.
+ * This software is released under the MIT License. You may use,
+ * distribute, and modify this code under the terms of the license.
  *
- * You may use this work, in part or in whole, under the terms of either
- * license.
- *
- * See the LICENSE.Apache-v2 and LICENSE.GPL-v3 files in the project root
- * for the full text of these licenses.
+ * See the LICENSE file in the project root for the full text.
  ****************************************************************************/
 
 #include <doctest/doctest.h>
 
-#include <luya/display.h>
-#include <luya/physics/body.h>
-#include <luya/physics/world.h>
-#include <luya/renderer.h>
-#include <luya/sprite.h>
+#include <pulse2d/display.h>
+#include <pulse2d/graphics/body.h>
+#include <pulse2d/graphics/world.h>
+#include <pulse2d/renderer.h>
+#include <pulse2d/sprite.h>
 
 #include <algorithm>
 #include <cstdint>
 
-using namespace luya;
+using namespace pulse2d;
 
-// Helper: read the framebuffer via LUYA_PRIVATE access
+// Helper: read the framebuffer via PULSE2D_PRIVATE access
 static frame_buffer_t const& framebuffer(Renderer const& r)
 {
     return *r.framebuffer_;
@@ -32,14 +29,9 @@ static frame_buffer_t const& framebuffer(Renderer const& r)
 
 struct Renderer_Fixture
 {
-    Display display;
     Renderer renderer;
 
-    Renderer_Fixture()
-        : renderer(display)
-    {
-        renderer.init();
-    }
+    Renderer_Fixture() { renderer.init(); }
 };
 
 TEST_CASE("renderer.cc: Renderer::project_coordinates origin")
@@ -126,7 +118,7 @@ TEST_CASE("renderer.cc: Renderer::render calls blit")
 TEST_CASE("renderer.cc: Renderer::add_sprite null pointer")
 {
     Renderer_Fixture f;
-    physics::World world({ 0.0f, 0.0f }, 0);
+    graphics::World world({ 0.0f, 0.0f }, 0);
 
     f.renderer.clear();
     f.renderer.add_sprite(nullptr, 0, 0);
@@ -140,7 +132,7 @@ TEST_CASE("renderer.cc: Renderer::add_sprite null pointer")
 TEST_CASE("renderer.cc: Renderer::add_sprite axis-aligned visible pixel")
 {
     Renderer_Fixture f;
-    physics::World world({ 0.0f, 0.0f }, 0);
+    graphics::World world({ 0.0f, 0.0f }, 0);
 
     // 2x2 sprite, top-left pixel is a visible red, rest are transparent
     constexpr uint16_t red = 0xF800;
@@ -160,7 +152,7 @@ TEST_CASE("renderer.cc: Renderer::add_sprite axis-aligned visible pixel")
 TEST_CASE("renderer.cc: Renderer::add_sprite axis-aligned transparent pixels")
 {
     Renderer_Fixture f;
-    physics::World world({ 0.0f, 0.0f }, 0);
+    graphics::World world({ 0.0f, 0.0f }, 0);
 
     constexpr uint16_t red = 0xF800;
     constexpr uint16_t transparent = 0xF81F;
@@ -179,7 +171,7 @@ TEST_CASE("renderer.cc: Renderer::add_sprite axis-aligned transparent pixels")
 TEST_CASE("renderer.cc: Renderer::draw drains sprite queue")
 {
     Renderer_Fixture f;
-    physics::World world({ 0.0f, 0.0f }, 0);
+    graphics::World world({ 0.0f, 0.0f }, 0);
 
     constexpr uint16_t red = 0xF800;
     constexpr uint16_t transparent = 0xF81F;
@@ -208,9 +200,9 @@ TEST_CASE("renderer.cc: Renderer::show_debug_rects default")
 TEST_CASE("renderer.cc: Renderer::show_debug_rects false")
 {
     Renderer_Fixture f;
-    physics::World world({ 0.0f, -10.0f }, 10);
+    graphics::World world({ 0.0f, -10.0f }, 10);
 
-    physics::Body box;
+    graphics::Body box;
     box.set_mass({ 1.0f, 1.0f }, 1.0f); // centered at origin → screen center
     world.add(&box);
 
@@ -229,9 +221,9 @@ TEST_CASE("renderer.cc: Renderer::show_debug_rects false")
 TEST_CASE("renderer.cc: Renderer::show_debug_rects true")
 {
     Renderer_Fixture f;
-    physics::World world({ 0.0f, -10.0f }, 10);
+    graphics::World world({ 0.0f, -10.0f }, 10);
 
-    physics::Body box;
+    graphics::Body box;
     box.set_mass(
         { 2.0f, 2.0f }, 1.0f); // large body at origin → fills screen center
     world.add(&box);

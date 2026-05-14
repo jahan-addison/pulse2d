@@ -6,7 +6,7 @@ option(TEST_INSTALLED_VERSION "Test the version found by find_package" ON)
 # Test suite links against the engine library - no need to recompile sources
 add_executable(Test_Suite ${test_sources})
 
-target_link_libraries(Test_Suite PUBLIC libluya doctest::doctest)
+target_link_libraries(Test_Suite PUBLIC libpulse2d doctest::doctest)
 
 set_target_properties(Test_Suite PROPERTIES CXX_STANDARD 23 OUTPUT_NAME
                                                             "test_suite")
@@ -16,7 +16,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     Test_Suite
     PUBLIC -DROOT_TEST_PATH=${CMAKE_CURRENT_SOURCE_DIR}
            -DDEBUG
-           -DLUYA_TESTING
+           -DPULSE2D_TESTING
            -Wall
            -Wpedantic
            -Wextra

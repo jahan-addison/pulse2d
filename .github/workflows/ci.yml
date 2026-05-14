@@ -86,9 +86,9 @@ jobs:
             fi
           fi
           if [[ "${{ matrix.platform.name }}" == "x86_64 Linux" ]]; then
-            SDL2FLAGS="-DLUYA_USE_SDL2=ON"
+            SDL2FLAGS="-DPULSE2D_USE_SDL2=ON"
           elif [[ "${{ runner.os }}" == "macOS" ]]; then
-            SDL2FLAGS="-DLUYA_USE_SDL2=ON -DSDL2_DIR=$(brew --prefix sdl2)/lib/cmake/SDL2"
+            SDL2FLAGS="-DPULSE2D_USE_SDL2=ON -DSDL2_DIR=$(brew --prefix sdl2)/lib/cmake/SDL2"
           fi
           cmake -Bbuild -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -DIWYU=OFF -DCMAKE_BUILD_TYPE=Debug $SANDFLAGS $COVERAGE $SDL2FLAGS -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 

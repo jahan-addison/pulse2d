@@ -1,0 +1,439 @@
+#####################################################
+# Copyright (c) 2026 Jahan Addison
+# License: MIT
+#####################################################
+
+#####################################################
+#  @brief Makefile.teensy
+#  @description
+#       Cross-compile pulse2d for the Teensy 4.1.
+#
+#       Usage:
+#         make -f Makefile.teensy -j     build
+#         make -f Makefile.teensy clean  remove build-teensy/
+#         make -f Makefile.teensy flash  flash with teensy_loader_cli
+#
+#       Requirements:
+#         - arm-none-eabi-g++ on PATH
+#             macOS:  export PATH=/Applications/ArmGNUToolchain/
+#                             15.2.rel1/arm-none-eabi/bin:$PATH
+#             Ubuntu: sudo apt install gcc-arm-none-eabi
+#         - Teensyduino 1.60.0 installed via Arduino IDE
+#
+#       Outputs:
+#         build-teensy/game-teensy.elf — ELF debug image (default GAME_NAME)
+#         build-teensy/game-teensy.hex — flashable Intel HEX
+#
+#       External use (include from a game's Makefile):
+#         PULSE2D_ROOT = /path/to/pulse2d
+#         GAME_SRCS    = src/mygame.cc src/level.cc
+#         GAME_NAME    = mygame
+#         include $(PULSE2D_ROOT)/Makefile.teensy
+#####################################################
+
+MAKEFLAGS += --no-print-directory
+
+#####################################################
+#  @brief Teensyduino hardware root
+#  @description
+#       macOS: ~/Library/Arduino15/packages/teensy/...
+#       Linux: ~/.arduino15/packages/teensy/...
+#       Override with TEENSY_HW environment variable.
+#####################################################
+
+ifeq ($(shell uname),Darwin)
+  TEENSY_HW ?= $(HOME)/Library/Arduino15/packages/teensy/hardware/avr/1.60.0
+  NJOBS      := $(shell sysctl -n hw.logicalcpu)
+else
+  TEENSY_HW ?= $(HOME)/.arduino15/packages/teensy/hardware/avr/1.60.0
+  NJOBS      := $(shell nproc)
+endif
+
+CORE := $(TEENSY_HW)/cores/teensy4
+LIBS := $(TEENSY_HW)/libraries
+OUT  := build-teensy
+
+ETL_INCLUDE ?= $(firstword $(shell find $(HOME)/.cache/CPM/etl -maxdepth 4 -name include -type d 2>/dev/null))
+
+#####################################################
+#  @brief pulse2d root and game entry point
+#  @description
+#       PULSE2D_ROOT: path to the pulse2d source tree.
+#           Default: this directory (in-tree development).
+#           External games: set to the cloned pulse2d root.
+#       GAME_SRCS: space-separated list of .cc game files.
+#       GAME_NAME: output binary name (no extension).
+#####################################################
+
+PULSE2D_ROOT ?= $(CURDIR)
+GAME_SRCS    ?= $(PULSE2D_ROOT)/shift/game-teensy.cc
+GAME_NAME    ?= game-teensy
+
+#####################################################
+#  @brief Toolchain
+#####################################################
+
+CC      := arm-none-eabi-gcc
+CXX     := arm-none-eabi-g++
+AR      := arm-none-eabi-ar
+OBJCOPY := arm-none-eabi-objcopy
+SIZE    := arm-none-eabi-size
+
+#####################################################
+#  @brief Compiler flags
+#  @description
+#       MCU flags target the Cortex-M7 with FPv5-D16
+#       hard-float ABI.
+#       -fno-exceptions / -fno-rtti / -felide-constructors
+#       match Teensyduino's own build and are required to
+#       prevent .ARM.exidx overflow at link time.
+#####################################################
+
+MCU := -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb
+
+DEFS :=               \
+  -D__IMXRT1062__     \
+  -DF_CPU=600000000   \
+  -DTEENSYDUINO=160   \
+  -DDEBUG             \
+  -DARDUINO=10819     \
+  -DARDUINO_TEENSY41  \
+  -DUSB_SERIAL        \
+  -DLAYOUT_US_ENGLISH \
+  -DETL_LOG_ERRORS
+
+SYS_INC :=                    \
+  -isystem$(CORE)              \
+  -isystem$(LIBS)/ILI9341_t3   \
+  -isystem$(LIBS)/SdFat/src    \
+  -isystem$(LIBS)/Audio        \
+  -isystem$(LIBS)/SPI          \
+  -isystem$(LIBS)/SD/src       \
+  -isystem$(LIBS)/SerialFlash  \
+  -isystem$(LIBS)/Wire
+
+PROJ_INC := -I$(PULSE2D_ROOT) -I$(ETL_INCLUDE)
+INC      := $(SYS_INC) $(PROJ_INC)
+
+CXXFLAGS     := $(MCU) -O2 -Wall -std=gnu++23 \
+                -felide-constructors -fno-exceptions -fno-rtti -fpermissive \
+                $(DEFS) $(INC)
+CFLAGS       := $(MCU) -O2 -Wall $(DEFS) $(INC)
+ASFLAGS      := $(MCU) $(DEFS) $(INC)
+
+LIB_CXXFLAGS := $(MCU) -O2 -w -std=gnu++23 \
+                -felide-constructors -fno-exceptions -fno-rtti -fpermissive \
+                $(DEFS) $(INC)
+LIB_CFLAGS   := $(MCU) -O2 -w $(DEFS) $(INC)
+LIB_ASFLAGS  := $(MCU) -w $(DEFS) $(INC)
+
+LDFLAGS := $(MCU) -Wl,--gc-sections -T$(CORE)/imxrt1062_t41.ld
+
+#####################################################
+#  @note  Edit above this line.
+#         Do not edit below.
+#####################################################
+
+#####################################################
+#  @brief Output formatting
+#####################################################
+
+ESC := $(shell printf '\033')
+_R  := $(ESC)[0m
+_C  := $(ESC)[1;36m
+_G  := $(ESC)[1;32m
+_DM := $(ESC)[2m
+
+define _step
+@printf "\n  $(_C)── $(1)$(_R)\n"
+endef
+
+#####################################################
+#  @brief Source lists
+#####################################################
+
+CORE_OBJ := \
+  $(patsubst $(CORE)/%.cpp,$(OUT)/core/%.o,$(wildcard $(CORE)/*.cpp)) \
+  $(patsubst $(CORE)/%.c,  $(OUT)/core/%.o,$(wildcard $(CORE)/*.c))   \
+  $(patsubst $(CORE)/%.S,  $(OUT)/core/%.o,$(wildcard $(CORE)/*.S))
+
+ILI_OBJ := \
+  $(patsubst $(LIBS)/ILI9341_t3/%.cpp,$(OUT)/ili9341/%.o,$(wildcard $(LIBS)/ILI9341_t3/*.cpp)) \
+  $(patsubst $(LIBS)/ILI9341_t3/%.c,  $(OUT)/ili9341/%.o,$(wildcard $(LIBS)/ILI9341_t3/*.c))
+
+AUDIO_OBJ := \
+  $(OUT)/audio/output_i2s.o       \
+  $(OUT)/audio/control_sgtl5000.o \
+  $(OUT)/audio/imxrt_hw.o         \
+  $(OUT)/audio/sqrt_integer.o     \
+  $(OUT)/audio/memcpy_audio.o
+
+_sdfat_src  := $(shell find $(LIBS)/SdFat/src -name "*.cpp")
+_sdfat_stem := $(patsubst $(LIBS)/SdFat/src/%.cpp,%,$(_sdfat_src))
+SDFAT_OBJ   := $(foreach s,$(_sdfat_stem),$(OUT)/sdfat/$(subst /,_,$(s)).o)
+
+WIRE_OBJ := $(OUT)/wire/Wire.o $(OUT)/wire/WireIMXRT_patched.o
+
+SERIALFLASH_OBJ := \
+  $(patsubst $(LIBS)/SerialFlash/%.cpp,$(OUT)/serialflash/%.o,$(wildcard $(LIBS)/SerialFlash/*.cpp))
+
+PULSE2D_OBJ := \
+  $(patsubst $(PULSE2D_ROOT)/pulse2d/%.cc,$(OUT)/pulse2d/%.o,$(shell find $(PULSE2D_ROOT)/pulse2d -name "*.cc" | sort))
+
+GAME_OBJ := $(addprefix $(OUT)/game/,$(notdir $(GAME_SRCS:.cc=.o)))
+
+#####################################################
+#  @brief Default target
+#####################################################
+
+.PHONY: all clean size flash _check_deps
+all: _check_deps $(OUT)/$(GAME_NAME).hex
+
+_check_deps:
+ifeq ($(ETL_INCLUDE),)
+	$(error ETL_INCLUDE is not set. Run 'cmake -B build' to populate it, \
+	  or pass ETL_INCLUDE=/path/to/etl/include on the command line.)
+endif
+
+#####################################################
+#  @step Teensy core
+#####################################################
+
+$(OUT)/core/%.o: $(CORE)/%.cpp
+	@mkdir -p $(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "CXX" "$(notdir $<)"
+	@$(CXX) $(LIB_CXXFLAGS) -c $< -o $@
+
+$(OUT)/core/%.o: $(CORE)/%.c
+	@mkdir -p $(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "CC" "$(notdir $<)"
+	@$(CC) $(LIB_CFLAGS) -c $< -o $@
+
+$(OUT)/core/%.o: $(CORE)/%.S
+	@mkdir -p $(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "AS" "$(notdir $<)"
+	@$(CC) $(LIB_ASFLAGS) -c $< -o $@
+
+$(OUT)/libteensy_core.a: $(CORE_OBJ)
+	$(call _step,Teensy core)
+	@$(AR) rcs $@ $^
+
+#####################################################
+#  @step ILI9341_t3
+#####################################################
+
+$(OUT)/ili9341/%.o: $(LIBS)/ILI9341_t3/%.cpp
+	@mkdir -p $(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "CXX" "$(notdir $<)"
+	@$(CXX) $(LIB_CXXFLAGS) -c $< -o $@
+
+$(OUT)/ili9341/%.o: $(LIBS)/ILI9341_t3/%.c
+	@mkdir -p $(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "CC" "$(notdir $<)"
+	@$(CC) $(LIB_CFLAGS) -c $< -o $@
+
+$(OUT)/libili9341_t3.a: $(ILI_OBJ)
+	$(call _step,ILI9341_t3)
+	@$(AR) rcs $@ $^
+
+#####################################################
+#  @step Teensy Audio
+#  @description
+#       Only the files used by pulse2d::Audio.
+#####################################################
+
+$(OUT)/audio/output_i2s.o: $(LIBS)/Audio/output_i2s.cpp
+	@mkdir -p $(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "CXX" "$(notdir $<)"
+	@$(CXX) $(LIB_CXXFLAGS) -c $< -o $@
+
+$(OUT)/audio/control_sgtl5000.o: $(LIBS)/Audio/control_sgtl5000.cpp
+	@mkdir -p $(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "CXX" "$(notdir $<)"
+	@$(CXX) $(LIB_CXXFLAGS) -c $< -o $@
+
+$(OUT)/audio/imxrt_hw.o: $(LIBS)/Audio/utility/imxrt_hw.cpp
+	@mkdir -p $(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "CXX" "$(notdir $<)"
+	@$(CXX) $(LIB_CXXFLAGS) -c $< -o $@
+
+$(OUT)/audio/sqrt_integer.o: $(LIBS)/Audio/utility/sqrt_integer.c
+	@mkdir -p $(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "CC" "$(notdir $<)"
+	@$(CC) $(LIB_CFLAGS) -c $< -o $@
+
+$(OUT)/audio/memcpy_audio.o: $(LIBS)/Audio/memcpy_audio.S
+	@mkdir -p $(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "AS" "$(notdir $<)"
+	@$(CC) $(LIB_ASFLAGS) -c $< -o $@
+
+$(OUT)/libteensy_audio.a: $(AUDIO_OBJ)
+	$(call _step,Teensy Audio)
+	@$(AR) rcs $@ $^
+
+#####################################################
+#  @step SdFat
+#####################################################
+
+define SDFAT_RULE
+$(OUT)/sdfat/$(subst /,_,$(patsubst $(LIBS)/SdFat/src/%.cpp,%,$(1))).o: $(1)
+	@mkdir -p $$(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "CXX" "$(notdir $(1))"
+	@$(CXX) $(LIB_CXXFLAGS) -c $$< -o $$@
+endef
+$(foreach src,$(_sdfat_src),$(eval $(call SDFAT_RULE,$(src))))
+
+$(OUT)/libsdfat.a: $(SDFAT_OBJ)
+	$(call _step,SdFat)
+	@$(AR) rcs $@ $^
+
+#####################################################
+#  @step SPI
+#####################################################
+
+$(OUT)/spi/SPI.o: $(LIBS)/SPI/SPI.cpp
+	@mkdir -p $(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "CXX" "$(notdir $<)"
+	@$(CXX) $(LIB_CXXFLAGS) -c $< -o $@
+
+$(OUT)/libteensy_spi.a: $(OUT)/spi/SPI.o
+	$(call _step,SPI)
+	@$(AR) rcs $@ $^
+
+#####################################################
+#  @step Wire
+#  @description
+#       WireIMXRT.cpp patches constexpr -> const;
+#       GCC 15 rejects constexpr on structs containing
+#       hardware register addresses.
+#####################################################
+
+$(OUT)/wire/WireIMXRT_patched.cpp: $(LIBS)/Wire/WireIMXRT.cpp
+	@mkdir -p $(@D)
+	@printf "  $(_DM)%-5s$(_R) WireIMXRT.cpp (constexpr -> const)\n" "patch"
+	@sed 's/constexpr TwoWire::I2C_Hardware_t/const TwoWire::I2C_Hardware_t/g' $< > $@
+
+$(OUT)/wire/Wire.o: $(LIBS)/Wire/Wire.cpp
+	@mkdir -p $(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "CXX" "$(notdir $<)"
+	@$(CXX) $(LIB_CXXFLAGS) -c $< -o $@
+
+$(OUT)/wire/WireIMXRT_patched.o: $(OUT)/wire/WireIMXRT_patched.cpp
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "CXX" "$(notdir $<)"
+	@$(CXX) $(LIB_CXXFLAGS) -c $< -o $@
+
+$(OUT)/libteensy_wire.a: $(WIRE_OBJ)
+	$(call _step,Wire)
+	@$(AR) rcs $@ $^
+
+#####################################################
+#  @step SD
+#####################################################
+
+$(OUT)/sd/SD.o: $(LIBS)/SD/src/SD.cpp
+	@mkdir -p $(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "CXX" "$(notdir $<)"
+	@$(CXX) $(LIB_CXXFLAGS) -c $< -o $@
+
+$(OUT)/libteensy_sd.a: $(OUT)/sd/SD.o
+	$(call _step,SD)
+	@$(AR) rcs $@ $^
+
+#####################################################
+#  @step SerialFlash
+#####################################################
+
+$(OUT)/serialflash/%.o: $(LIBS)/SerialFlash/%.cpp
+	@mkdir -p $(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "CXX" "$(notdir $<)"
+	@$(CXX) $(LIB_CXXFLAGS) -c $< -o $@
+
+$(OUT)/libteensy_serialflash.a: $(SERIALFLASH_OBJ)
+	$(call _step,SerialFlash)
+	@$(AR) rcs $@ $^
+
+#####################################################
+#  @step pulse2d engine
+#####################################################
+
+$(OUT)/pulse2d/%.o: $(PULSE2D_ROOT)/pulse2d/%.cc
+	@mkdir -p $(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "CXX" "$(notdir $<)"
+	@$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(OUT)/libpulse2d.a: $(PULSE2D_OBJ)
+	$(call _step,pulse2d engine)
+	@$(AR) rcs $@ $^
+
+#####################################################
+#  @step Entry point
+#####################################################
+
+define GAME_RULE
+$(OUT)/game/$(notdir $(1:.cc=.o)): $(1)
+	@mkdir -p $$(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "CXX" "$(notdir $(1))"
+	@$(CXX) $(CXXFLAGS) -c $$< -o $$@
+endef
+$(foreach src,$(GAME_SRCS),$(eval $(call GAME_RULE,$(src))))
+
+#####################################################
+#  @step Link
+#  @description
+#       teensy_core is linked with --whole-archive so
+#       that startup objects (vectors, USB descriptors,
+#       syscall stubs) are not dropped by --gc-sections.
+#       --start-group/--end-group allows multiple passes
+#       for circular references between the other archives.
+#####################################################
+
+$(OUT)/$(GAME_NAME).elf: \
+    $(GAME_OBJ)               \
+    $(OUT)/libpulse2d.a       \
+    $(OUT)/libteensy_core.a   \
+    $(OUT)/libili9341_t3.a    \
+    $(OUT)/libteensy_audio.a  \
+    $(OUT)/libsdfat.a         \
+    $(OUT)/libteensy_spi.a    \
+    $(OUT)/libteensy_wire.a   \
+    $(OUT)/libteensy_sd.a     \
+    $(OUT)/libteensy_serialflash.a
+	$(call _step,Linking $(GAME_NAME))
+	@$(CXX) $(LDFLAGS)                                                       \
+	  $(GAME_OBJ)                                                           \
+	  $(OUT)/libpulse2d.a                                                   \
+	  -Wl,--start-group                                                     \
+	    -Wl,--whole-archive $(OUT)/libteensy_core.a -Wl,--no-whole-archive  \
+	    $(OUT)/libili9341_t3.a                                              \
+	    $(OUT)/libteensy_audio.a                                            \
+	    $(OUT)/libsdfat.a                                                   \
+	    $(OUT)/libteensy_spi.a                                              \
+	    $(OUT)/libteensy_wire.a                                             \
+	    $(OUT)/libteensy_sd.a                                               \
+	    $(OUT)/libteensy_serialflash.a                                      \
+	  -Wl,--end-group                                                       \
+	  -o $@
+
+#####################################################
+#  @step Convert to Intel HEX + memory report
+#  @description
+#       Teensy 4.1 limits:
+#         Flash (text+data): 7,936 KB
+#         DTCM RAM (data+bss): 512 KB
+#         Stack: 8 KB reserved by Teensyduino
+#####################################################
+
+$(OUT)/$(GAME_NAME).hex: $(OUT)/$(GAME_NAME).elf
+	$(call _step,$(GAME_NAME).hex)
+	@$(OBJCOPY) -O ihex -R .eeprom $< $@
+	@echo
+	@$(SIZE) $<
+
+size: $(OUT)/$(GAME_NAME).elf
+	@$(SIZE) $<
+
+flash: $(OUT)/$(GAME_NAME).hex
+	@teensy_loader_cli --mcu=TEENSY41 -w -s $<
+
+clean:
+	rm -rf $(OUT)
