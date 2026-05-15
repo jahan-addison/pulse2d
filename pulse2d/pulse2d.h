@@ -11,6 +11,7 @@
 #include <pulse2d/display.h>  // for Display
 #include <pulse2d/renderer.h> // for Renderer
 #include <pulse2d/storage.h>  // for Storage
+#include <pulse2d/util.h>     // for utilities
 
 namespace pulse2d::graphics {
 class World;

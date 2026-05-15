@@ -96,6 +96,8 @@ DEFS :=               \
   -DF_CPU=600000000   \
   -DTEENSYDUINO=160   \
   -DDEBUG             \
+	-DPULSE2D_HEADER=\"pulse2d/pulse2d.h\"        \
+	-DPULSE2D_GRAPHICS=\"pulse2d/graphics/all.h\" \
   -DARDUINO=10819     \
   -DARDUINO_TEENSY41  \
   -DUSB_SERIAL        \

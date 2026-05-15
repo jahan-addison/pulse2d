@@ -7,9 +7,10 @@
 
 #pragma once
 
-#include <cstddef> // for std::byte
-#include <cstdint> // for uint32_t
-#include <utility> // for std::forward
+#include <cstddef>     // for std::byte
+#include <cstdint>     // for uint32_t
+#include <type_traits> // std::is_same_v
+#include <utility>     // for std::forward
 
 #ifdef __IMXRT1062__
 #define PULSE2D_TEENSY __IMXRT1062__
@@ -21,6 +22,10 @@
 #define PULSE2D_PRIVATE private
 #endif
 
+//////////////////////
+// Teensy Debugging //
+//////////////////////
+
 #if defined(PULSE2D_TEENSY)
 /**
  * @brief Place a variable in OCRAM (the secondary 512 KB RAM bank on the
@@ -30,7 +35,6 @@
 #else
 #define PULSE2D_EXTMEM
 #endif
-
 #if defined(PULSE2D_TEENSY) && defined(DEBUG)
 #define PULSE2D_DEBUG_SERIAL(...)       \
     do {                                \
@@ -51,6 +55,10 @@
 #define PULSE2D_POLL_SERIAL_CONNECTION()
 #endif
 
+/////////////////////////////
+// Teensy Development DSL  //
+/////////////////////////////
+
 #if defined(PULSE2D_TEENSY)
 #define PULSE2D_DEFINE static
 
@@ -58,9 +66,46 @@
     PULSE2D_DEFINE pulse2d::HARDWARE_Deferred_Init<type>
 #endif
 
-#define PULSE2D_DEFINE_ENGINE()                       \
-    PULSE2D_HARDWARE_DEFINE(pulse2d::Pulse2d) engine; \
-    PULSE2D_HARDWARE_DEFINE(pulse2d::graphics::World) world;
+#define PULSE2D_ON_GAMESTART() void setup()
+#define PULSE2D_ON_GAMELOOP() void loop()
+
+#define PULSE2D_BODY static pulse2d::graphics::Body
+#define PULSE2D_SPRITE static pulse2d::Sprite
+
+#define PULSE2D_START_PULSE()                                \
+    PULSE2D_HARDWARE_DEFINE(pulse2d::Pulse2d) engine;        \
+    PULSE2D_HARDWARE_DEFINE(pulse2d::graphics::World) world; \
+    PULSE2D_DEFINE constexpr float PULSE = 1.0f / 60.0f
+
+#define PULSE2D_TICK_WORLD() \
+    world->step(PULSE);      \
+    auto& renderer = engine->renderer()
+
+#define PULSE2D_TICK_PULSE() engine->tick(*world)
+
+#define PULSE2D_ON_COLLISION() if (!world->arbiters.empty())
+
+#define PULSE2D_DRAW(sprite)                                             \
+    do {                                                                 \
+        static_assert(std::is_same_v<decltype(sprite), pulse2d::Sprite>, \
+            "Parameter must be defined with PULSE2D_SPRITE!");           \
+        auto [sx, sy] = pulse2d::Renderer::project_coordinates(          \
+            planet.position.x, planet.position.y);                       \
+        const pulse2d::Sprite& active = sprite;                          \
+        renderer.add_sprite(&active,                                     \
+            static_cast<int16_t>(sx - active.width / 2),                 \
+            static_cast<int16_t>(sy - active.height / 2));               \
+    } while (0)
+
+#define PULSE2D_ADD_BODY(name) world->add(&name)
+
+#define PULSE2D_ADD_SPRITE(to, path, x, y)                   \
+    to = engine->storage().load_sprite(path, x, y);          \
+    Serial.printf("[DEBUG]: SPRITE %s: data=%p w=%u h=%u\n", \
+        path,                                                \
+        to.data,                                             \
+        to.width,                                            \
+        to.height)
 
 #define PULSE2D_INIT(gravity_1, gravity_2, solver)                    \
     do {                                                              \
@@ -69,6 +114,18 @@
             pulse2d::graphics::Vec2{ gravity_1, gravity_2 }, solver); \
         engine->init();                                               \
     } while (0)
+
+#if defined(DEBUG)
+#define PULSE2D_PRINT_STACKSIZE()                                          \
+    do {                                                                   \
+        static uint32_t frame = 0;                                         \
+        if (++frame % 300 == 0)                                            \
+            Serial.printf(                                                 \
+                "stack used: %lu bytes\n", pulse2d::teensy::stack_used()); \
+    } while (0)
+#else
+#define PULSE2D_PRINT_STACKSIZE()
+#endif
 
 namespace pulse2d {
 

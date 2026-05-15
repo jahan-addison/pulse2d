@@ -55,7 +55,7 @@ export PATH="/Applications/ArmGNUToolchain/15.2.rel1/arm-none-eabi/bin:$PATH"
 sudo apt install gcc-arm-none-eabi
 ```
 
-## How to use
+## Building
 
 ### C++
 
@@ -72,28 +72,11 @@ target_link_libraries(my_game PRIVATE pulse2d::pulse2d)
 
 ## Game Development
 
-### Sample game
+### DSL
 
-The included sample game `shift` targets both SDL2 and Teensy 4.1.
-
-**Host:**
-
-```bash
-cmake -Bbuild -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DSDL2_DIR=$(brew --prefix sdl2)/lib/cmake/SDL2
-cmake --build build
-./build/shift_game
-```
-
-**Teensy 4.1:**
-
-```bash
-make -f Makefile.teensy -j
-make -f Makefile.teensy flash
-```
+TODO: description for the DSL
 
 ---
-
-### Building your own game
 
 Set three variables and include `Makefile.teensy` from your own Makefile:
 
@@ -115,6 +98,27 @@ make flash
 
 `TEENSY_HW` is auto-detected from the Arduino package directory; see [Makefile.teensy](Makefile.teensy) for all configurable variables.
 
+---
+
+### Sample game
+
+The included sample game `shift` targets both SDL2 and Teensy 4.1:
+
+**Host:**
+
+```bash
+cmake -Bbuild -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DSDL2_DIR=$(brew --prefix sdl2)/lib/cmake/SDL2
+cmake --build build
+./build/shift_game
+```
+
+**Teensy 4.1:**
+
+```bash
+make -f Makefile.teensy -j
+make -f Makefile.teensy flash
+```
+
 # Architecture
 
 * [Display](#display): `pulse2d::Display`
@@ -134,11 +138,7 @@ On Teensy, the display driver targets the [PJRC ILI9341 TFT](https://www.pjrc.co
 
 ## Storage
 
-Load sprites via `Storage::load_sprite()`. On the host any image format supported by stb_image works; the image is nearest-neighbour scaled to the requested dimensions and converted to RGB565:
-
-```cpp
-pulse2d::Sprite s = engine.storage().load_sprite("hero.png", 32, 32);
-```
+Load sprites via `Storage::load_sprite()`. On the host any image format supported by stb_image works. The image is nearest-neighbour scaled to the requested dimensions and converted to RGB565:
 
 On Teensy, `load_sprite` reads the raw binary format (`uint16_t` width, `uint16_t` height, then `width x height` RGB565 pixels) from the SD card.
 
@@ -160,26 +160,8 @@ For more details, see the [physics readme](pulse2d/graphics/readme.md).
 
 ## Renderer
 
-The `Renderer` holds the full-screen RGB565 framebuffer for razterization and blitting. Each frame runs clear, draw, and render:
+The `Renderer` holds the full-screen RGB565 framebuffer for razterization and blitting. Each frame runs clear, draw, and render.
 
-```cpp
-auto& renderer = engine.renderer();
-
-pulse2d::Sprite my_sprite = engine.storage().load_sprite("hero.png", 32, 32);
-
-renderer.clear();
-renderer.add_sprite(&my_sprite, x, y); // queue sprites before draw
-// engine.tick() will call draw() + render()
-```
-
-Use `Renderer::project_coordinates()` to convert a physics body position to a pixel coordinate:
-
-```cpp
-auto [sx, sy] = renderer.project_coordinates(body.position.x, body.position.y);
-renderer.add_sprite(&my_sprite,
-    static_cast<int16_t>(sx - my_sprite.width  / 2),
-    static_cast<int16_t>(sy - my_sprite.height / 2));
-```
 
 ## Dependencies
 

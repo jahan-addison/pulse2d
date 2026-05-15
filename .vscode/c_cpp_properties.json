@@ -3,7 +3,6 @@
         {
             "name": "Host",
             "includePath": [
-                "${default}",
                 "${workspaceFolder}/**"
             ],
             "defines": [],
@@ -12,21 +11,26 @@
             "compileCommands": "${workspaceFolder}/build/compile_commands.json"
         },
         {
+            // Requires TEENSY_HW to point to the Teensyduino hardware root:
+            //   macOS: export TEENSY_HW=~/Library/Arduino15/packages/teensy/hardware/avr/1.60.0
+            //   Linux: export TEENSY_HW=~/.arduino15/packages/teensy/hardware/avr/1.60.0
+            //
             "name": "Teensy 4.1",
             "includePath": [
-                "${workspaceFolder}/include",
-                "${env:HOME}/Library/Arduino15/packages/teensy/hardware/avr/1.60.0/cores/teensy4",
-                "${env:HOME}/Library/Arduino15/packages/teensy/hardware/avr/1.60.0/libraries/ILI9341_t3",
-                "${env:HOME}/Library/Arduino15/packages/teensy/hardware/avr/1.60.0/libraries/SdFat/src",
-                "${env:HOME}/Library/Arduino15/packages/teensy/hardware/avr/1.60.0/libraries/Audio",
-                "${env:HOME}/Library/Arduino15/packages/teensy/hardware/avr/1.60.0/libraries/SPI",
-                "${env:HOME}/Library/Arduino15/packages/teensy/hardware/avr/1.60.0/libraries/Wire",
-                "${env:HOME}/Library/Arduino15/packages/teensy/hardware/avr/1.60.0/libraries/SD/src",
-                "${env:HOME}/Library/Arduino15/packages/teensy/hardware/avr/1.60.0/libraries/SerialFlash",
+                "${workspaceFolder}/**",
+                "${env:TEENSY_HW}/cores/teensy4",
+                "${env:TEENSY_HW}/libraries/**",
+                "${env:ETL_INCLUDE}/**"
+            ],
+            "forcedInclude": [
+                "${workspaceFolder}/pulse2d/pulse2d.h",
+                "${workspaceFolder}/pulse2d/graphics/all.h"
             ],
             "defines": [
                 "__IMXRT1062__",
                 "F_CPU=600000000",
+                "PULSE2D_HEADER=\"pulse2d/pulse2d.h\"",
+                "PULSE2D_GRAPHICS=\"pulse2d/graphics/all.h\"",
                 "TEENSYDUINO=160",
                 "DEBUG",
                 "ARDUINO=10819",
@@ -34,6 +38,8 @@
                 "USB_SERIAL",
                 "LAYOUT_US_ENGLISH"
             ],
+            "compilerPath": "arm-none-eabi-g++",
+            "intelliSenseMode": "gcc-arm",
         }
     ],
     "version": 4
