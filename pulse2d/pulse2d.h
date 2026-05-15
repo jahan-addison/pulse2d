@@ -1,9 +1,6 @@
 /*****************************************************************************
  * Copyright (c) 2026 Jahan Addison
- *
- * This file is part of pulse2d.
- * This software is released under the MIT License. You may use,
- * distribute, and modify this code under the terms of the license.
+ * License: MIT
  *
  * See the LICENSE file in the project root for the full text.
  ****************************************************************************/
@@ -22,8 +19,7 @@ class World;
 namespace pulse2d {
 
 /********************************************************************************
- * @brief
- *   pulse2d
+ * @brief Pulse2d
  *
  * Primary control of the display, audio, and storage components. Construct
  * once, call init() from Teensy setup(), and tick() on every loop() iteration.

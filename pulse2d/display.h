@@ -1,9 +1,6 @@
 /*****************************************************************************
  * Copyright (c) 2026 Jahan Addison
- *
- * This file is part of pulse2d.
- * This software is released under the MIT License. You may use,
- * distribute, and modify this code under the terms of the license.
+ * License: MIT
  *
  * See the LICENSE file in the project root for the full text.
  ****************************************************************************/
@@ -77,46 +74,13 @@ inline constexpr uint8_t touch_cs =
     8; // XPT2046 CS — must be HIGH before SPI init
 } // namespace pins
 
-//////////////////////////////////
-// Compile-time pin validation  //
-//////////////////////////////////
-
-static_assert(pins::tft_mosi == 11,
-    "pulse2d: tft_mosi must be 11 (hardware SPI0 MOSI on Teensy 4.1)");
-static_assert(pins::tft_sck == 13,
-    "pulse2d: tft_sck must be 13 (hardware SPI0 SCK on Teensy 4.1)");
-static_assert(pins::tft_miso == 12,
-    "pulse2d: tft_miso must be 12 (hardware SPI0 MISO on Teensy 4.1)");
-
-static_assert(pins::tft_cs != pins::tft_dc,
-    "pulse2d: tft_cs and tft_dc must be different pins");
-static_assert(pins::tft_cs != pins::tft_rst,
-    "pulse2d: tft_cs and tft_rst must be different pins");
-static_assert(pins::tft_dc != pins::tft_rst,
-    "pulse2d: tft_dc and tft_rst must be different pins");
-static_assert(pins::tft_cs != pins::touch_cs,
-    "pulse2d: tft_cs and touch_cs must be different pins");
-static_assert(pins::tft_dc != pins::touch_cs,
-    "pulse2d: tft_dc and touch_cs must be different pins");
-static_assert(pins::tft_rst != pins::touch_cs,
-    "pulse2d: tft_rst and touch_cs must be different pins");
-
-static_assert(pins::tft_cs < 42,
-    "pulse2d: tft_cs is not a valid Teensy 4.1 pin (0-41)");
-static_assert(pins::tft_dc < 42,
-    "pulse2d: tft_dc is not a valid Teensy 4.1 pin (0-41)");
-static_assert(pins::tft_rst < 42,
-    "pulse2d: tft_rst is not a valid Teensy 4.1 pin (0-41)");
-static_assert(pins::touch_cs < 42,
-    "pulse2d: touch_cs is not a valid Teensy 4.1 pin (0-41)");
-
 #endif
 
 /**
  * @brief Display driver
  *
- *   Teensy: ILI9341_t3 over SPI0.
- *   Host: SDL2 window at config::width × config::height × config::scale.
+ *  Teensy: ILI9341_t3 over SPI0.
+ *  Host: SDL2 window at config::width × config::height × config::scale.
  */
 class Display
 {

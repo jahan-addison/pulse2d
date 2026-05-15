@@ -1,9 +1,6 @@
 /*****************************************************************************
  * Copyright (c) 2026 Jahan Addison
- *
- * This file is part of pulse2d.
- * This software is released under the MIT License. You may use,
- * distribute, and modify this code under the terms of the license.
+ * License: MIT
  *
  * See the LICENSE file in the project root for the full text.
  ****************************************************************************/
@@ -55,15 +52,6 @@
 #endif
 
 #if defined(PULSE2D_TEENSY)
-/**
- * @brief
- * On teensy, place the variable in the .bss section (zero-initialised RAM).
- * Note that the constructor is never called, so the variable must be trivially
- * constructible and destructible. Use PULSE2D_HARDWARE_DEFINE for
- * non-trivial types that depend on hardware that must be constructed at
- * runtime.
- *
- */
 #define PULSE2D_DEFINE static
 
 #define PULSE2D_HARDWARE_DEFINE(type) \

@@ -176,8 +176,6 @@ Check the memory report. The big things that eat DTCM are:
    ```cpp
    static PULSE2D_EXTMEM uint16_t my_tilemap[64 * 64];
    ```
-   On the host `PULSE2D_EXTMEM` is a no-op, so the same declaration compiles both ways.
-
 2. **The framebuffer** — already in OCRAM. Do not copy it or make a second one.
 
 3. **ETL containers** — their capacity is baked into their type and size. Declare

@@ -1,9 +1,6 @@
 /*****************************************************************************
  * Copyright (c) 2026 Jahan Addison
- *
- * This file is part of pulse2d.
- * This software is released under the MIT License. You may use,
- * distribute, and modify this code under the terms of the license.
+ * License: MIT
  *
  * See the LICENSE file in the project root for the full text.
  ****************************************************************************/
@@ -15,11 +12,9 @@
 
 #include <float.h>
 
-using namespace pulse2d::graphics;
-
 TEST_CASE("body.cc: Body default constructor is static")
 {
-    Body b;
+    pulse2d::graphics::Body b;
     // A default body has infinite mass so it never moves
     CHECK(b.mass == FLT_MAX);
     CHECK(b.inv_mass == 0.0f);
@@ -29,7 +24,7 @@ TEST_CASE("body.cc: Body default constructor is static")
 
 TEST_CASE("body.cc: Body default constructor zeroes kinematic state")
 {
-    Body b;
+    pulse2d::graphics::Body b;
     CHECK(b.position.x == 0.0f);
     CHECK(b.position.y == 0.0f);
     CHECK(b.rotation == 0.0f);
@@ -43,13 +38,13 @@ TEST_CASE("body.cc: Body default constructor zeroes kinematic state")
 
 TEST_CASE("body.cc: Body default friction is 0.2")
 {
-    Body b;
+    pulse2d::graphics::Body b;
     CHECK(b.friction == doctest::Approx(0.2f));
 }
 
 TEST_CASE("body.cc: Body::set stores full dimensions and mass")
 {
-    Body b;
+    pulse2d::graphics::Body b;
     b.set_mass({ 0.5f, 0.5f }, 2.0f);
     CHECK(b.width.x == 0.5f);
     CHECK(b.width.y == 0.5f);
@@ -58,14 +53,14 @@ TEST_CASE("body.cc: Body::set stores full dimensions and mass")
 
 TEST_CASE("body.cc: Body::set computes inverse mass")
 {
-    Body b;
+    pulse2d::graphics::Body b;
     b.set_mass({ 0.5f, 0.5f }, 4.0f);
     CHECK(b.inv_mass == doctest::Approx(0.25f));
 }
 
 TEST_CASE("body.cc: Body::set computes moment of inertia from box formula")
 {
-    Body b;
+    pulse2d::graphics::Body b;
     // I = mass * (w.x^2 + w.y^2) / 12  (w = full dimensions)
     // with width = (1, 1) and mass = 12:  I = 12 * (1 + 1) / 12 = 2
     b.set_mass({ 1.0f, 1.0f }, 12.0f);
@@ -75,7 +70,7 @@ TEST_CASE("body.cc: Body::set computes moment of inertia from box formula")
 
 TEST_CASE("body.cc: Body::set with FLT_MAX mass stays static")
 {
-    Body b;
+    pulse2d::graphics::Body b;
     b.set_mass({ 1.0f, 1.0f }, FLT_MAX);
     CHECK(b.inv_mass == 0.0f);
     CHECK(b.I == FLT_MAX);
@@ -84,7 +79,7 @@ TEST_CASE("body.cc: Body::set with FLT_MAX mass stays static")
 
 TEST_CASE("body.cc: Body::set resets kinematic state to zero")
 {
-    Body b;
+    pulse2d::graphics::Body b;
     b.velocity = { 5.0f, 3.0f };
     b.angular_velocity = 1.0f;
     b.position = { 10.0f, 20.0f };
@@ -104,7 +99,7 @@ TEST_CASE("body.cc: Body::set resets kinematic state to zero")
 
 TEST_CASE("body.cc: Body::set is safe to call a second time")
 {
-    Body b;
+    pulse2d::graphics::Body b;
     b.set_mass({ 0.5f, 0.5f }, 1.0f);
     b.position = { 10.0f, 5.0f };
     b.velocity = { 3.0f, 3.0f };
@@ -119,7 +114,7 @@ TEST_CASE("body.cc: Body::set is safe to call a second time")
 
 TEST_CASE("body.cc: Body::add_force accumulates into force")
 {
-    Body b;
+    pulse2d::graphics::Body b;
     b.set_mass({ 0.5f, 0.5f }, 1.0f);
     b.add_force({ 1.0f, 0.0f });
     b.add_force({ 2.0f, 3.0f });
@@ -131,7 +126,7 @@ TEST_CASE("body.cc: Body::add_force on static body accumulates but has "
           "no effect on velocity")
 {
     // inv_mass = 0 so forces never change velocity
-    Body b;
+    pulse2d::graphics::Body b;
     b.add_force({ 100.0f, 0.0f });
     CHECK(b.force.x == 100.0f);
     CHECK(b.inv_mass == 0.0f);
@@ -141,14 +136,14 @@ TEST_CASE("body.cc: Body::add_force on static body accumulates but has "
 
 TEST_CASE("body.cc: Body::set inv_mass is exactly 1/mass")
 {
-    Body b;
+    pulse2d::graphics::Body b;
     b.set_mass({ 0.5f, 0.5f }, 8.0f);
     CHECK(b.inv_mass == doctest::Approx(1.0f / 8.0f));
 }
 
 TEST_CASE("body.cc: Body::set moment of inertia scales with mass")
 {
-    Body b1, b2;
+    pulse2d::graphics::Body b1, b2;
     b1.set_mass({ 1.0f, 1.0f }, 1.0f);
     b2.set_mass({ 1.0f, 1.0f }, 2.0f);
     // I = mass * (w.x^2 + w.y^2) / 12 - doubling mass doubles I
@@ -157,7 +152,7 @@ TEST_CASE("body.cc: Body::set moment of inertia scales with mass")
 
 TEST_CASE("body.cc: Body::set moment of inertia scales with box size")
 {
-    Body b1, b2;
+    pulse2d::graphics::Body b1, b2;
     b1.set_mass({ 1.0f, 1.0f }, 1.0f);
     b2.set_mass({ 2.0f, 2.0f }, 1.0f);
     // wider box has higher moment of inertia

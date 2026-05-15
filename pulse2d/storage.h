@@ -1,9 +1,6 @@
 /*****************************************************************************
  * Copyright (c) 2026 Jahan Addison
- *
- * This file is part of pulse2d.
- * This software is released under the MIT License. You may use,
- * distribute, and modify this code under the terms of the license.
+ * License: MIT
  *
  * See the LICENSE file in the project root for the full text.
  ****************************************************************************/
@@ -26,7 +23,7 @@
 /****************************************************************************
  * Storage
  *
- * A fixed-pool sprite loader. On host, uses stb_image to decode any supported
+ * Fixed-pool sprite loader. On host, uses stb_image to decode any supported
  * format and converts RGBA8 to RGB565 with nearest-neighbour scaling.
  *
  * On Teensy, reads raw binary (uint16_t width, height, then pixels) from

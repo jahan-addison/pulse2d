@@ -1,9 +1,6 @@
 /*****************************************************************************
  * Copyright (c) 2026 Jahan Addison
- *
- * This file is part of pulse2d.
- * This software is released under the MIT License. You may use,
- * distribute, and modify this code under the terms of the license.
+ * License: MIT
  *
  * See the LICENSE file in the project root for the full text.
  ****************************************************************************/
@@ -31,7 +28,7 @@
 namespace pulse2d {
 
 /**
- * @brief Mount and initialise the SD card (no-op on host, returns true)
+ * @brief Mount and initialise the SD card
  */
 bool Storage::init()
 {
@@ -44,7 +41,7 @@ bool Storage::init()
 }
 
 /**
- * @brief Load a sprite from disk (host) or SD card (Teensy) into the pool
+ * @brief Load a sprite from disk or SD card into the pool
  *
  * Reads a raw binary file: uint16_t width, uint16_t height, then
  * width * height uint16_t RGB565 pixels. Returns a Sprite with a nullptr

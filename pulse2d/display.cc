@@ -1,15 +1,12 @@
 /*****************************************************************************
  * Copyright (c) 2026 Jahan Addison
- *
- * This file is part of pulse2d.
- * This software is released under the MIT License. You may use,
- * distribute, and modify this code under the terms of the license.
+ * License: MIT
  *
  * See the LICENSE file in the project root for the full text.
  ****************************************************************************/
 
 #include <pulse2d/display.h>
-#include <pulse2d/util.h> //  PULSE2D_TEENSY
+#include <pulse2d/util.h> //  PULSE2D_TEENSY, PULSE2D_POLL_SERIAL...
 
 #include <cstdint> // for uint16_t, uint8_t
 
@@ -20,9 +17,9 @@
 /****************************************************************************
  * Display
  *
- * On Teensy 4.1 (i.MX RT1062) the target hardware is the PJRC ILI9341 320x240
- * TFT, driven by ILI9341_t3. On host the driver opens an SDL2 window at the
- * same logical resolution scaled up by config::scale.
+ * On Teensy the target hardware is the PJRC ILI9341 320x240, and on host the
+ * driver opens an SDL2 window at the same logical resolution scaled up by
+ * config::scale.
  *
  * Example:
  *
@@ -40,11 +37,9 @@ namespace pulse2d {
 void Display::init()
 {
 #if defined(PULSE2D_TEENSY)
-    // Deselect the XPT2046 touchscreen before SPI init. T_CS (pin 8) shares
-    // MOSI/SCK/MISO with the ILI9341 — if left floating it corrupts all SPI.
     pinMode(pins::touch_cs, OUTPUT);
     digitalWrite(pins::touch_cs, HIGH);
-    Serial.printf(
+    PULSE2D_DEBUG_SERIAL(
         "display: CS=%u DC=%u RST=%u MOSI=%u SCK=%u MISO=%u T_CS=%u\n",
         pins::tft_cs,
         pins::tft_dc,
@@ -78,6 +73,7 @@ void Display::init()
 
 /**
  * @brief Upload framebuffer to the SDL texture and present the frame
+ *   Uses TFT writeRect on teensy target
  */
 void Display::blit(frame_buffer_t const* framebuffer, [[maybe_unused]] int len)
 {
@@ -95,6 +91,7 @@ void Display::blit(frame_buffer_t const* framebuffer, [[maybe_unused]] int len)
 
 /**
  * @brief Expand RGB565 color to RGB888 and clear the SDL renderer
+ *   Uses TFT fillScreen on teensy target
  */
 void Display::clear(uint16_t color)
 {

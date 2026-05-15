@@ -1,9 +1,6 @@
 /*****************************************************************************
  * Copyright (c) 2026 Jahan Addison
- *
- * This file is part of pulse2d.
- * This software is released under the MIT License. You may use,
- * distribute, and modify this code under the terms of the license.
+ * License: MIT
  *
  * See the LICENSE file in the project root for the full text.
  ****************************************************************************/
@@ -15,14 +12,12 @@
 #include <pulse2d/graphics/math.h>
 #include <pulse2d/graphics/world.h>
 
-using namespace pulse2d::graphics;
-
 // A dynamic box falling toward a static floor.
 struct World_Fixture
 {
-    Body floor;
-    Body box;
-    World world;
+    pulse2d::graphics::Body floor;
+    pulse2d::graphics::Body box;
+    pulse2d::graphics::World world;
 
     World_Fixture()
         : world({ 0.0f, -10.0f }, 10)
@@ -42,8 +37,8 @@ struct World_Fixture
 
 TEST_CASE("world.cc: World::add registers bodies")
 {
-    World world({ 0.0f, -10.0f }, 10);
-    Body a, b;
+    pulse2d::graphics::World world({ 0.0f, -10.0f }, 10);
+    pulse2d::graphics::Body a, b;
     world.add(&a);
     world.add(&b);
     CHECK(world.bodies.size() == 2);
@@ -51,14 +46,14 @@ TEST_CASE("world.cc: World::add registers bodies")
 
 TEST_CASE("world.cc: World::add registers joints")
 {
-    World world({ 0.0f, -10.0f }, 10);
-    Body a, b;
+    pulse2d::graphics::World world({ 0.0f, -10.0f }, 10);
+    pulse2d::graphics::Body a, b;
     a.set_mass({ 0.5f, 0.5f }, 1.0f);
     b.set_mass({ 0.5f, 0.5f }, 1.0f);
     b.position = { 2.0f, 0.0f };
     world.add(&a);
     world.add(&b);
-    Joint j;
+    pulse2d::graphics::Joint j;
     j.set(&a, &b, { 1.0f, 0.0f });
     world.add(&j);
     CHECK(world.joints.size() == 1);
@@ -66,9 +61,9 @@ TEST_CASE("world.cc: World::add registers joints")
 
 TEST_CASE("world.cc: World::clear empties bodies, joints, and arbiters")
 {
-    World world({ 0.0f, -10.0f }, 10);
+    pulse2d::graphics::World world({ 0.0f, -10.0f }, 10);
 
-    Body a, b;
+    pulse2d::graphics::Body a, b;
     a.set_mass({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
     b.set_mass({ 0.5f, 0.5f }, 1.0f);
@@ -144,7 +139,7 @@ TEST_CASE_FIXTURE(World_Fixture,
 TEST_CASE_FIXTURE(World_Fixture,
     "world.cc: World::step does not move static body")
 {
-    Vec2 pos_before = floor.position;
+    pulse2d::graphics::Vec2 pos_before = floor.position;
     world.step(1.0f / 60.0f);
     CHECK(floor.position.x == pos_before.x);
     CHECK(floor.position.y == pos_before.y);
@@ -155,10 +150,10 @@ TEST_CASE_FIXTURE(World_Fixture,
 TEST_CASE("world.cc: World::broad_phase produces arbiter for "
           "overlapping bodies")
 {
-    World world({ 0.0f, -10.0f }, 10);
+    pulse2d::graphics::World world({ 0.0f, -10.0f }, 10);
 
     // place two dynamic boxes on top of each other
-    Body a, b;
+    pulse2d::graphics::Body a, b;
     a.set_mass({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
     b.set_mass({ 0.5f, 0.5f }, 1.0f);
@@ -173,10 +168,10 @@ TEST_CASE("world.cc: World::broad_phase produces arbiter for "
 
 TEST_CASE("world.cc: World::broad_phase skips two static bodies")
 {
-    World world({ 0.0f, -10.0f }, 10);
+    pulse2d::graphics::World world({ 0.0f, -10.0f }, 10);
 
     // both bodies are default-constructed (static - inv_mass = 0)
-    Body wall, floor;
+    pulse2d::graphics::Body wall, floor;
     wall.width = { 0.5f, 5.0f };
     wall.position = { 0.0f, 0.0f };
     floor.width = { 5.0f, 0.5f };
@@ -191,9 +186,9 @@ TEST_CASE("world.cc: World::broad_phase skips two static bodies")
 
 TEST_CASE("world.cc: World::broad_phase removes arbiter when bodies separate")
 {
-    World world({ 0.0f, 0.0f }, 10); // no gravity
+    pulse2d::graphics::World world({ 0.0f, 0.0f }, 10); // no gravity
 
-    Body a, b;
+    pulse2d::graphics::Body a, b;
     a.set_mass({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
     b.set_mass({ 0.5f, 0.5f }, 1.0f);
@@ -215,14 +210,14 @@ TEST_CASE("world.cc: World::step produces arbiters when bodies collide")
 {
     // drop a dynamic box directly onto a static floor that it is already
     // touching so contact is detected on the first step
-    World world({ 0.0f, -10.0f }, 10);
+    pulse2d::graphics::World world({ 0.0f, -10.0f }, 10);
 
-    Body floor;
+    pulse2d::graphics::Body floor;
     floor.width = { 10.0f, 0.5f };
     floor.position = { 0.0f,
         -0.4f }; // h_y=0.25 → top at -0.15; box bottom at -0.25 → 0.1 overlap
 
-    Body box;
+    pulse2d::graphics::Body box;
     box.set_mass({ 0.5f, 0.5f }, 1.0f);
     box.position = { 0.0f, 0.0f }; // resting on the floor
 
@@ -238,13 +233,13 @@ TEST_CASE("world.cc: World::step - dynamic box does not sink through "
 {
     // Run the simulation long enough for a falling box to land and settle.
     // The box's final y position should be above the floor surface.
-    World world({ 0.0f, -10.0f }, 10);
+    pulse2d::graphics::World world({ 0.0f, -10.0f }, 10);
 
-    Body floor;
+    pulse2d::graphics::Body floor;
     floor.width = { 10.0f, 0.5f };
     floor.position = { 0.0f, -5.0f };
 
-    Body box;
+    pulse2d::graphics::Body box;
     box.set_mass({ 0.5f, 0.5f }, 1.0f);
     box.position = { 0.0f, 0.0f };
 

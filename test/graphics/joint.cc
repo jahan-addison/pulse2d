@@ -1,9 +1,6 @@
 /*****************************************************************************
  * Copyright (c) 2026 Jahan Addison
- *
- * This file is part of pulse2d.
- * This software is released under the MIT License. You may use,
- * distribute, and modify this code under the terms of the license.
+ * License: MIT
  *
  * See the LICENSE file in the project root for the full text.
  ****************************************************************************/
@@ -17,16 +14,14 @@
 
 #include <math.h>
 
-using namespace pulse2d::graphics;
-
 // Two dynamic boxes placed symmetrically around a pin at the origin.
 // With no gravity, only the joint acts.
 struct Joint_Fixture
 {
-    Body a;
-    Body b;
-    Joint pin;
-    World world;
+    pulse2d::graphics::Body a;
+    pulse2d::graphics::Body b;
+    pulse2d::graphics::Joint pin;
+    pulse2d::graphics::World world;
 
     Joint_Fixture()
         : world({ 0.0f, 0.0f }, 10)
@@ -84,13 +79,13 @@ TEST_CASE_FIXTURE(Joint_Fixture,
     "joint.cc: Joint::set local anchors are in body-local space")
 {
     // rotate a by 90 degrees and re-set; the local anchor should change
-    Joint pin2;
-    Body c;
+    pulse2d::graphics::Joint pin2;
+    pulse2d::graphics::Body c;
     c.set_mass({ 0.5f, 0.5f }, 1.0f);
     c.position = { -1.0f, 0.0f };
-    c.rotation = k_pi / 2.0f;
+    c.rotation = pulse2d::graphics::k_pi / 2.0f;
 
-    Body d;
+    pulse2d::graphics::Body d;
     d.set_mass({ 0.5f, 0.5f }, 1.0f);
     d.position = { 1.0f, 0.0f };
 
@@ -133,7 +128,7 @@ TEST_CASE_FIXTURE(Joint_Fixture,
 {
     // At construction both anchor points are already coincident at the origin,
     // so dp = p2 - p1 = 0 and bias should be zero
-    World::position_correction = true;
+    pulse2d::graphics::World::position_correction = true;
     pin.pre_step(60.0f);
     CHECK(pin.bias.x == doctest::Approx(0.0f).epsilon(1e-6f));
     CHECK(pin.bias.y == doctest::Approx(0.0f).epsilon(1e-6f));
@@ -142,16 +137,16 @@ TEST_CASE_FIXTURE(Joint_Fixture,
 TEST_CASE("joint.cc: Joint::pre_step bias is non-zero when anchor "
           "points have drifted")
 {
-    World::position_correction = true;
+    pulse2d::graphics::World::position_correction = true;
 
-    Body a, b;
+    pulse2d::graphics::Body a, b;
     a.set_mass({ 0.5f, 0.5f }, 1.0f);
     a.position = { -2.0f, 0.0f }; // further from anchor than at set() time
 
     b.set_mass({ 0.5f, 0.5f }, 1.0f);
     b.position = { 2.0f, 0.0f };
 
-    Joint pin;
+    pulse2d::graphics::Joint pin;
     // set with a and b at their current positions, then move a to drift
     pin.set(&a, &b, { 0.0f, 0.0f });
     a.position = { -3.0f, 0.0f }; // drift a 1 unit further
@@ -172,15 +167,15 @@ TEST_CASE("joint.cc: Joint constraint keeps anchor points close after "
     // corrected most of the drift - the two world-space anchor points should
     // still be close to each other.
 
-    World world({ 0.0f, 0.0f }, 20);
+    pulse2d::graphics::World world({ 0.0f, 0.0f }, 20);
 
-    Body a, b;
+    pulse2d::graphics::Body a, b;
     a.set_mass({ 0.5f, 0.5f }, 1.0f);
     a.position = { -1.0f, 0.0f };
     b.set_mass({ 0.5f, 0.5f }, 1.0f);
     b.position = { 1.0f, 0.0f };
 
-    Joint pin;
+    pulse2d::graphics::Joint pin;
     pin.set(&a, &b, { 0.0f, 0.0f });
 
     world.add(&a);
@@ -197,10 +192,10 @@ TEST_CASE("joint.cc: Joint constraint keeps anchor points close after "
     // compute the world-space pin point on each body
     // rotation should be small after a pure x-velocity push so local frame
     // is approximately the world frame
-    Mat22 rot_a(a.rotation);
-    Mat22 rot_b(b.rotation);
-    Vec2 p1 = a.position + rot_a * pin.local_anchor1;
-    Vec2 p2 = b.position + rot_b * pin.local_anchor2;
+    pulse2d::graphics::Mat22 rot_a(a.rotation);
+    pulse2d::graphics::Mat22 rot_b(b.rotation);
+    pulse2d::graphics::Vec2 p1 = a.position + rot_a * pin.local_anchor1;
+    pulse2d::graphics::Vec2 p2 = b.position + rot_b * pin.local_anchor2;
 
     float error = (p2 - p1).length();
     CHECK(error < 1.0f); // constraint pulled them back - error is bounded
@@ -215,14 +210,14 @@ TEST_CASE("joint.cc: Joint with stiffer bias_factor corrects drift faster")
     //   factor=0.1: error * (0.9)^5 ≈ 59 %
 
     auto run = [](float factor) -> float {
-        World world({ 0.0f, 0.0f }, 10);
-        Body a, b;
+        pulse2d::graphics::World world({ 0.0f, 0.0f }, 10);
+        pulse2d::graphics::Body a, b;
         a.set_mass({ 0.5f, 0.5f }, 1.0f);
         a.position = { -1.0f, 0.0f };
         b.set_mass({ 0.5f, 0.5f }, 1.0f);
         b.position = { 1.0f, 0.0f };
 
-        Joint pin;
+        pulse2d::graphics::Joint pin;
         pin.set(&a, &b, { 0.0f, 0.0f }); // local_anchor2 = {-1, 0}
         pin.bias_factor = factor;
 
@@ -237,10 +232,10 @@ TEST_CASE("joint.cc: Joint with stiffer bias_factor corrects drift faster")
         for (int i = 0; i < 5; ++i)
             world.step(1.0f / 60.0f);
 
-        Mat22 rot_a(a.rotation);
-        Mat22 rot_b(b.rotation);
-        Vec2 p1 = a.position + rot_a * pin.local_anchor1;
-        Vec2 p2 = b.position + rot_b * pin.local_anchor2;
+        pulse2d::graphics::Mat22 rot_a(a.rotation);
+        pulse2d::graphics::Mat22 rot_b(b.rotation);
+        pulse2d::graphics::Vec2 p1 = a.position + rot_a * pin.local_anchor1;
+        pulse2d::graphics::Vec2 p2 = b.position + rot_b * pin.local_anchor2;
         return (p2 - p1).length();
     };
 

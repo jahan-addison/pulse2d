@@ -1,9 +1,6 @@
 /*****************************************************************************
  * Copyright (c) 2026 Jahan Addison
- *
- * This file is part of pulse2d.
- * This software is released under the MIT License. You may use,
- * distribute, and modify this code under the terms of the license.
+ * License: MIT
  *
  * See the LICENSE file in the project root for the full text.
  ****************************************************************************/
@@ -19,17 +16,15 @@
 #include <algorithm>
 #include <cstdint>
 
-using namespace pulse2d;
-
 // Helper: read the framebuffer via PULSE2D_PRIVATE access
-static frame_buffer_t const& framebuffer(Renderer const& r)
+static pulse2d::frame_buffer_t const& framebuffer(pulse2d::Renderer const& r)
 {
     return *r.framebuffer_;
 }
 
 struct Renderer_Fixture
 {
-    Renderer renderer;
+    pulse2d::Renderer renderer;
 
     Renderer_Fixture() { renderer.init(); }
 };
@@ -38,8 +33,8 @@ TEST_CASE("renderer.cc: Renderer::project_coordinates origin")
 {
     Renderer_Fixture f;
     auto s = f.renderer.project_coordinates(0.0f, 0.0f);
-    CHECK(s.x == config::width / 2);
-    CHECK(s.y == config::height / 2);
+    CHECK(s.x == pulse2d::config::width / 2);
+    CHECK(s.y == pulse2d::config::height / 2);
 }
 
 TEST_CASE("renderer.cc: Renderer::project_coordinates positive x")
@@ -112,13 +107,14 @@ TEST_CASE("renderer.cc: Renderer::render calls blit")
     // render() must not crash and framebuffer must be reachable afterwards
     f.renderer.render();
     CHECK(framebuffer(f.renderer).size() ==
-          static_cast<std::size_t>(config::width * config::height));
+          static_cast<std::size_t>(
+              pulse2d::config::width * pulse2d::config::height));
 }
 
 TEST_CASE("renderer.cc: Renderer::add_sprite null pointer")
 {
     Renderer_Fixture f;
-    graphics::World world({ 0.0f, 0.0f }, 0);
+    pulse2d::graphics::World world({ 0.0f, 0.0f }, 0);
 
     f.renderer.clear();
     f.renderer.add_sprite(nullptr, 0, 0);
@@ -126,19 +122,20 @@ TEST_CASE("renderer.cc: Renderer::add_sprite null pointer")
 
     f.renderer.render();
     CHECK(framebuffer(f.renderer).size() ==
-          static_cast<std::size_t>(config::width * config::height));
+          static_cast<std::size_t>(
+              pulse2d::config::width * pulse2d::config::height));
 }
 
 TEST_CASE("renderer.cc: Renderer::add_sprite axis-aligned visible pixel")
 {
     Renderer_Fixture f;
-    graphics::World world({ 0.0f, 0.0f }, 0);
+    pulse2d::graphics::World world({ 0.0f, 0.0f }, 0);
 
     // 2x2 sprite, top-left pixel is a visible red, rest are transparent
     constexpr uint16_t red = 0xF800;
     constexpr uint16_t transparent = 0xF81F;
     const uint16_t pixels[4] = { red, transparent, transparent, transparent };
-    Sprite sprite{ pixels, 2, 2 };
+    pulse2d::Sprite sprite{ pixels, 2, 2 };
 
     f.renderer.clear();
     f.renderer.add_sprite(&sprite, 5, 7); // place at screen (5, 7)
@@ -146,18 +143,18 @@ TEST_CASE("renderer.cc: Renderer::add_sprite axis-aligned visible pixel")
     f.renderer.render();
 
     // pixel at (5, 7) must equal red
-    CHECK(framebuffer(f.renderer)[7 * config::width + 5] == red);
+    CHECK(framebuffer(f.renderer)[7 * pulse2d::config::width + 5] == red);
 }
 
 TEST_CASE("renderer.cc: Renderer::add_sprite axis-aligned transparent pixels")
 {
     Renderer_Fixture f;
-    graphics::World world({ 0.0f, 0.0f }, 0);
+    pulse2d::graphics::World world({ 0.0f, 0.0f }, 0);
 
     constexpr uint16_t red = 0xF800;
     constexpr uint16_t transparent = 0xF81F;
     const uint16_t pixels[4] = { red, transparent, transparent, transparent };
-    Sprite sprite{ pixels, 2, 2 };
+    pulse2d::Sprite sprite{ pixels, 2, 2 };
 
     f.renderer.clear(0x0000);
     f.renderer.add_sprite(&sprite, 5, 7);
@@ -165,18 +162,18 @@ TEST_CASE("renderer.cc: Renderer::add_sprite axis-aligned transparent pixels")
     f.renderer.render();
 
     // pixel at (6, 7) is the transparent texel — framebuffer must stay 0
-    CHECK(framebuffer(f.renderer)[7 * config::width + 6] == 0x0000);
+    CHECK(framebuffer(f.renderer)[7 * pulse2d::config::width + 6] == 0x0000);
 }
 
 TEST_CASE("renderer.cc: Renderer::draw drains sprite queue")
 {
     Renderer_Fixture f;
-    graphics::World world({ 0.0f, 0.0f }, 0);
+    pulse2d::graphics::World world({ 0.0f, 0.0f }, 0);
 
     constexpr uint16_t red = 0xF800;
     constexpr uint16_t transparent = 0xF81F;
     const uint16_t pixels[4] = { red, transparent, transparent, transparent };
-    Sprite sprite{ pixels, 2, 2 };
+    pulse2d::Sprite sprite{ pixels, 2, 2 };
 
     f.renderer.clear();
     f.renderer.add_sprite(&sprite, 5, 7);
@@ -188,7 +185,7 @@ TEST_CASE("renderer.cc: Renderer::draw drains sprite queue")
     f.renderer.render();
 
     // the sprite must not appear in this second frame
-    CHECK(framebuffer(f.renderer)[7 * config::width + 5] == 0x0000);
+    CHECK(framebuffer(f.renderer)[7 * pulse2d::config::width + 5] == 0x0000);
 }
 
 TEST_CASE("renderer.cc: Renderer::show_debug_rects default")
@@ -200,9 +197,9 @@ TEST_CASE("renderer.cc: Renderer::show_debug_rects default")
 TEST_CASE("renderer.cc: Renderer::show_debug_rects false")
 {
     Renderer_Fixture f;
-    graphics::World world({ 0.0f, -10.0f }, 10);
+    pulse2d::graphics::World world({ 0.0f, -10.0f }, 10);
 
-    graphics::Body box;
+    pulse2d::graphics::Body box;
     box.set_mass({ 1.0f, 1.0f }, 1.0f); // centered at origin → screen center
     world.add(&box);
 
@@ -221,9 +218,9 @@ TEST_CASE("renderer.cc: Renderer::show_debug_rects false")
 TEST_CASE("renderer.cc: Renderer::show_debug_rects true")
 {
     Renderer_Fixture f;
-    graphics::World world({ 0.0f, -10.0f }, 10);
+    pulse2d::graphics::World world({ 0.0f, -10.0f }, 10);
 
-    graphics::Body box;
+    pulse2d::graphics::Body box;
     box.set_mass(
         { 2.0f, 2.0f }, 1.0f); // large body at origin → fills screen center
     world.add(&box);
@@ -234,7 +231,7 @@ TEST_CASE("renderer.cc: Renderer::show_debug_rects true")
     f.renderer.render();
 
     // the center pixel must have been painted white (0xFFFF)
-    const int cx = config::width / 2;
-    const int cy = config::height / 2;
-    CHECK(framebuffer(f.renderer)[cy * config::width + cx] == 0xFFFF);
+    const int cx = pulse2d::config::width / 2;
+    const int cy = pulse2d::config::height / 2;
+    CHECK(framebuffer(f.renderer)[cy * pulse2d::config::width + cx] == 0xFFFF);
 }
