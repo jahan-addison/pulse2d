@@ -1,6 +1,13 @@
-/*********************************************************
- * box2d-lite - Heavily modified for ETL and Teensy 4.1
- *********************************************************/
+/*****************************************************************************
+ * Copyright (c) 2026 Jahan Addison
+ * License: MIT
+ *
+ * See the LICENSE file in the project root for the full text.
+ ****************************************************************************/
+
+//////////////////////////////////////////////////////////
+// box2d-lite - Heavily modified for ETL and Teensy 4.1 //
+//////////////////////////////////////////////////////////
 
 /*
  * Copyright (c) 2006-2007 Erin Catto http://www.gphysics.com
@@ -13,10 +20,9 @@
  * It is provided "as is" without express or implied warranty.
  */
 
-#include <pulse2d/graphics/body.h>
-
-#include <float.h>                 // for FLT_MAX
-#include <pulse2d/graphics/math.h> // for Vec2
+#include "body.h"
+#include "math.h"  // for Vec2
+#include <float.h> // for FLT_MAX
 
 /****************************************************************************
  * Body
@@ -131,6 +137,19 @@ void Body::set_mass(const Vec2& w, float m)
     width = w;
     mass = m;
 
+    if (mass < FLT_MAX) {
+        inv_mass = 1.0f / mass;
+        I = mass * (width.x * width.x + width.y * width.y) / 12.0f;
+        inv_i = 1.0f / I;
+    } else {
+        inv_mass = 0.0f;
+        I = FLT_MAX;
+        inv_i = 0.0f;
+    }
+}
+
+void Body::set_motion()
+{
     if (mass < FLT_MAX) {
         inv_mass = 1.0f / mass;
         I = mass * (width.x * width.x + width.y * width.y) / 12.0f;

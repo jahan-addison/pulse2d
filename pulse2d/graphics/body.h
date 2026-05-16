@@ -23,6 +23,10 @@
 #pragma once
 
 #include "math.h"
+#include "types.h"
+#include <concepts>
+#include <type_traits>
+#include <utility>
 
 /****************************************************************************
  * Body
@@ -75,7 +79,33 @@
  *
  ****************************************************************************/
 
+#define SET_BODY_DESCRIPTOR(name) detail::assign(&name, &desc.name)
+
 namespace pulse2d::graphics {
+
+namespace detail {
+
+/**
+ * @brief
+ *  The descriptor pattern
+ */
+struct Body_Descriptor
+{
+    Vec2 position = { 0.0f, 0.0f };
+    float rotation = 0.0f;
+    Vec2 velocity = { 0.0f, 0.0f };
+    float angular_velocity = 0.0f;
+    Vec2 force = { 0.0f, 0.0f };
+    float torque = 0.0f;
+    Vec2 width = { 1.0f, 1.0f };
+    float friction = 0.2f;
+    float mass = FLT_MAX;
+    float inv_mass = 0.0f;
+    float I = FLT_MAX;
+    float inv_i = 0.0f;
+};
+
+} // namespace detail
 
 /**
  * @brief
@@ -142,6 +172,40 @@ class Body
      * clang-format on
      */
     void set_mass(Vec2 const& w, float m);
+
+    void set_motion();
+
+  public:
+    /**
+     * @brief
+     * Set the world object using the descriptor pattern:
+     *
+     * Example:
+     *
+     *   my_body.set({
+     *    .velocity = {0.1f, 0.0f},
+     *    .rotation = 0.5f,
+     *    .mass = 5.0f
+     *    .width = {1.0f, 0.0f}
+     *    // ...
+     *   });
+     *
+     */
+    inline void set(detail::Body_Descriptor const& desc)
+    {
+        SET_BODY_DESCRIPTOR(position);
+        SET_BODY_DESCRIPTOR(rotation);
+        SET_BODY_DESCRIPTOR(velocity);
+        SET_BODY_DESCRIPTOR(angular_velocity);
+        SET_BODY_DESCRIPTOR(force);
+        SET_BODY_DESCRIPTOR(torque);
+        SET_BODY_DESCRIPTOR(width);
+        SET_BODY_DESCRIPTOR(friction);
+        SET_BODY_DESCRIPTOR(mass);
+        SET_BODY_DESCRIPTOR(inv_mass);
+        SET_BODY_DESCRIPTOR(I);
+        SET_BODY_DESCRIPTOR(inv_i);
+    }
 
     inline void add_force(Vec2 const& f) { force += f; }
 
@@ -282,7 +346,7 @@ class Body
      * @brief
      * Total mass in kg.
      *
-     * Set by set(). FLT_MAX means the body is static - it never moves
+     * FLT_MAX means the body is static - it never moves
      * regardless of forces applied. Read-only after set().
      */
     float mass = FLT_MAX;

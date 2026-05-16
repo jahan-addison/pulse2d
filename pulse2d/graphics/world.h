@@ -24,9 +24,11 @@
 
 #include "arbiter.h"    // for Arbiter_Key, operator<
 #include "math.h"       // for Vec2
+#include "types.h"      // for assign
 #include <cstddef>      // for size_t
 #include <etl/map.h>    // for map
 #include <etl/vector.h> // for vector
+#include <span>         // for span
 
 #ifndef MAX_PHYSICS_BODIES
 #define MAX_PHYSICS_BODIES 256
@@ -72,6 +74,23 @@ namespace pulse2d::graphics {
 class Body;
 class Joint;
 
+namespace detail {
+/**
+ * @brief
+ *  The descriptor pattern
+ */
+struct World_Descriptor
+{
+    std::span<Body*> bodies{};
+    std::span<Joint*> joints{};
+    int iterations{ 10 };
+    bool accumulate_impulses{ true };
+    bool warm_starting{ true };
+    bool position_correction{ true };
+};
+
+} // namespace detail
+
 /**
  * @brief
  * The simulation context. Stores all bodies, joints, and active contact
@@ -115,6 +134,31 @@ class World
     void clear();
     void step(float dt);
     void broad_phase();
+
+  public:
+    /**
+     * @brief
+     * Set the world object using the descriptor pattern:
+     *
+     * Example:
+     *
+     *   my_world.set({
+     *    .iterations = 5,
+     *    .accumulate_impulses = true,
+     *    .bodies = {&obj1, &obj2}
+     *   });
+     *
+     */
+    inline void set(detail::World_Descriptor const& desc)
+    {
+        detail::assign(&iterations, &desc.iterations);
+        detail::assign(&accumulate_impulses, &desc.accumulate_impulses);
+        detail::assign(&warm_starting, &desc.warm_starting);
+        if (desc.bodies.size())
+            bodies.assign(desc.bodies.begin(), desc.bodies.end());
+        if (desc.joints.size())
+            joints.assign(desc.joints.begin(), desc.joints.end());
+    }
 
   public:
     /**

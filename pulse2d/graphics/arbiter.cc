@@ -20,12 +20,12 @@
  * It is provided "as is" without express or implied warranty.
  */
 
-#include <pulse2d/graphics/arbiter.h>
+#include "arbiter.h"
 
-#include <math.h>                  // for sqrtf
-#include <pulse2d/graphics/body.h> // for Body
-#include <pulse2d/graphics/math.h> // for Vec2, cross, dot, operator*, operator-
-#include <pulse2d/graphics/world.h> // for World
+#include "body.h"  // for Body
+#include "math.h"  // for Vec2, cross, dot, operator*, operator-
+#include "world.h" // for World
+#include <math.h>  // for sqrtf
 
 /****************************************************************************
  * Arbiter

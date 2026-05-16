@@ -1,6 +1,13 @@
-/*********************************************************
- * box2d-lite - Heavily modified for ETL and Teensy 4.1
- *********************************************************/
+/*****************************************************************************
+ * Copyright (c) 2026 Jahan Addison
+ * License: MIT
+ *
+ * See the LICENSE file in the project root for the full text.
+ ****************************************************************************/
+
+//////////////////////////////////////////////////////////
+// box2d-lite - Heavily modified for ETL and Teensy 4.1 //
+//////////////////////////////////////////////////////////
 
 /*
  * Copyright (c) 2006-2007 Erin Catto http://www.gphysics.com
@@ -13,11 +20,11 @@
  * It is provided "as is" without express or implied warranty.
  */
 
-#include <pulse2d/graphics/joint.h>
+#include "joint.h"
 
-#include <pulse2d/graphics/body.h>  // for Body
-#include <pulse2d/graphics/math.h>  // for Vec2, Mat22, operator*, operator-
-#include <pulse2d/graphics/world.h> // for World
+#include "body.h"  // for Body
+#include "math.h"  // for Vec2, Mat22, operator*, operator-
+#include "world.h" // for World
 
 /****************************************************************************
  * Joint

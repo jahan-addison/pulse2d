@@ -26,12 +26,19 @@ PULSE2D_ON_GAMESTART()
 
     PULSE2D_INIT(0.0f, 0.0f, 10);
 
-    // TODO: pipe operator or builder pattern
-    planet.position = { 3.5f, 0.0f };
-    planet.width = { 1.0f, 1.0f };
-    spell.set_mass({ 1.0f, 0.5f }, 1.0f);
-    spell.position = { -5.0f, -0.1111f };
-    spell.velocity = { 0.5f, 0.0f };
+    planet.set({
+        .position = { 3.5f, 0.0f },
+          .width = { 1.0f, 1.0f }
+    });
+
+    spell.set({
+        .position = { -5.0f, -0.1111f },
+        .velocity = { 0.5f,  0.0f     },
+        .width = { 1.0f,  0.5f     },
+        .mass = 1.0f,
+    });
+
+    spell.set_motion();
 
     PULSE2D_ADD_BODY(planet);
     PULSE2D_ADD_BODY(spell);
@@ -58,6 +65,5 @@ PULSE2D_ON_GAMELOOP()
         PULSE2D_DRAW(planet_sprite);
 
     PULSE2D_DRAW(spell_sprite);
-
     PULSE2D_TICK_PULSE();
 }

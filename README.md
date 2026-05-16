@@ -104,7 +104,7 @@ make flash
 
 The included sample game `shift` targets both SDL2 and Teensy 4.1:
 
-**Host:**
+### Host
 
 ```bash
 cmake -Bbuild -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DSDL2_DIR=$(brew --prefix sdl2)/lib/cmake/SDL2
@@ -112,7 +112,7 @@ cmake --build build
 ./build/shift_game
 ```
 
-**Teensy 4.1:**
+### Teensy
 
 ```bash
 make -f Makefile.teensy -j

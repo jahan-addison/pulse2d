@@ -11,4 +11,5 @@
 #include "body.h"
 #include "joint.h"
 #include "math.h"
+#include "types.h"
 #include "world.h"

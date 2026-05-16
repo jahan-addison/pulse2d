@@ -20,9 +20,9 @@
  * It is provided "as is" without express or implied warranty.
  */
 
-#include <pulse2d/graphics/arbiter.h> // for Feature_Pair, Contact, Arbiter, collide
-#include <pulse2d/graphics/body.h> // for Body
-#include <pulse2d/graphics/math.h> // for Vec2, Mat22, operator*, dot, opera...
+#include "arbiter.h" // for Feature_Pair, Contact, Arbiter, collide
+#include "body.h"    // for Body
+#include "math.h"    // for Vec2, Mat22, operator*, dot, opera...
 
 /****************************************************************************
  * Collide

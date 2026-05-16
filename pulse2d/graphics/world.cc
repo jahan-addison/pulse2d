@@ -20,15 +20,15 @@
  * It is provided "as is" without express or implied warranty.
  */
 
-#include <pulse2d/graphics/world.h>
+#include "world.h"
 
-#include <etl/map.h>                  // for map, operator!=, operator==
-#include <etl/utility.h>              // for pair
-#include <etl/vector.h>               // for vector
-#include <pulse2d/graphics/arbiter.h> // for Arbiter_Key, operator<, Arbiter
-#include <pulse2d/graphics/body.h>    // for Body
-#include <pulse2d/graphics/joint.h>   // for Joint
-#include <pulse2d/graphics/math.h>    // for Vec2, operator*, operator+
+#include "arbiter.h"     // for Arbiter_Key, operator<, Arbiter
+#include "body.h"        // for Body
+#include "joint.h"       // for Joint
+#include "math.h"        // for Vec2, operator*, operator+
+#include <etl/map.h>     // for map, operator!=, operator==
+#include <etl/utility.h> // for pair
+#include <etl/vector.h>  // for vector
 
 /****************************************************************************
  * World

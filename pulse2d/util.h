@@ -85,6 +85,8 @@
 
 #define PULSE2D_ON_COLLISION() if (!world->arbiters.empty())
 
+#define PULSE2D_ON_COLLISION_WITH(with) if (world->arbiters.contains("with"))
+
 #define PULSE2D_DRAW(sprite)                                             \
     do {                                                                 \
         static_assert(std::is_same_v<decltype(sprite), pulse2d::Sprite>, \
@@ -99,20 +101,31 @@
 
 #define PULSE2D_ADD_BODY(name) world->add(&name)
 
-#define PULSE2D_ADD_SPRITE(to, path, x, y)                   \
-    to = engine->storage().load_sprite(path, x, y);          \
-    Serial.printf("[DEBUG]: SPRITE %s: data=%p w=%u h=%u\n", \
-        path,                                                \
-        to.data,                                             \
-        to.width,                                            \
+#define PULSE2D_SET_SPRITE(to, path, x, y)                       \
+    static_assert(std::is_same_v<decltype(to), pulse2d::Sprite>, \
+        "Parameter must be defined with PULSE2D_SPRITE!");       \
+    to = engine->storage().load_sprite(path, x, y);              \
+    Serial.printf("[DEBUG]: SPRITE %s: data=%p w=%u h=%u\n",     \
+        path,                                                    \
+        to.data,                                                 \
+        to.width,                                                \
         to.height)
 
-#define PULSE2D_INIT(gravity_1, gravity_2, solver)                    \
-    do {                                                              \
-        engine.emplace();                                             \
-        world.emplace(                                                \
-            pulse2d::graphics::Vec2{ gravity_1, gravity_2 }, solver); \
-        engine->init();                                               \
+#define PULSE2D_INIT(gravity_1, gravity_2, solver)                            \
+    do {                                                                      \
+        static_assert(std::is_same_v<decltype(engine),                        \
+                          pulse2d::HARDWARE_Deferred_Init<pulse2d::Pulse2d>>, \
+            "Pulse2d Engine not defined, did you call "                       \
+            "PULSE2D_START_PULSE()?");                                        \
+        static_assert(                                                        \
+            std::is_same_v<decltype(world),                                   \
+                pulse2d::HARDWARE_Deferred_Init<pulse2d::graphics::World>>,   \
+            "Pulse2d World not defined, did you call "                        \
+            "PULSE2D_START_PULSE()?");                                        \
+        engine.emplace();                                                     \
+        world.emplace(                                                        \
+            pulse2d::graphics::Vec2{ gravity_1, gravity_2 }, solver);         \
+        engine->init();                                                       \
     } while (0)
 
 #if defined(DEBUG)

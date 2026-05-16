@@ -1,6 +1,13 @@
-/*********************************************************
- * box2d-lite - Heavily modified for ETL and Teensy 4.1
- *********************************************************/
+/*****************************************************************************
+ * Copyright (c) 2026 Jahan Addison
+ * License: MIT
+ *
+ * See the LICENSE file in the project root for the full text.
+ ****************************************************************************/
+
+//////////////////////////////////////////////////////////
+// box2d-lite - Heavily modified for ETL and Teensy 4.1 //
+//////////////////////////////////////////////////////////
 
 /*
  * Copyright (c) 2006-2009 Erin Catto http://www.gphysics.com
@@ -185,7 +192,7 @@ struct Arbiter
 };
 
 // This is used by std::set
-inline bool operator<(const Arbiter_Key& a1, const Arbiter_Key& a2)
+constexpr inline bool operator<(const Arbiter_Key& a1, const Arbiter_Key& a2)
 {
     if (a1.body1 < a2.body1)
         return true;
