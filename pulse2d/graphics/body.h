@@ -79,7 +79,12 @@
  *
  ****************************************************************************/
 
-#define SET_BODY_DESCRIPTOR(name) detail::assign(&name, &desc.name)
+#define BODY_FIELD_BUILDER(NAME, type) \
+    inline Body& set_##NAME(type& to)  \
+    {                                  \
+        this->NAME = to;               \
+        return *this;                  \
+    }
 
 namespace pulse2d::graphics {
 
@@ -153,7 +158,7 @@ class Body
      * Configure this body with a box size and mass, then derive all the
      * internal values the solver needs. Also resets all motion state -
      * position, velocity, forces - back to zero, so it is safe to call
-     * set_mass() more than once to reinitialize the body between levels.
+     * set_motion() more than once to reinitialize the body between levels.
      *
      * The parameter `w` is the full dimensions of the box. A value of
      * { 1.0, 1.0 } makes a 1x1 unit square; { 2.0, 0.5 } makes a 2x0.5
@@ -171,9 +176,9 @@ class Body
      *
      * clang-format on
      */
-    void set_mass(Vec2 const& w, float m);
+    void set_motion(Vec2 const& w, float m);
 
-    void set_motion();
+    Body& set_motion();
 
   public:
     /**
@@ -183,29 +188,42 @@ class Body
      * Example:
      *
      *   my_body.set({
-     *    .velocity = {0.1f, 0.0f},
      *    .rotation = 0.5f,
-     *    .mass = 5.0f
+     *    .velocity = {0.1f, 0.0f},
      *    .width = {1.0f, 0.0f}
+     *    .mass = 5.0f
      *    // ...
      *   });
      *
      */
     inline void set(detail::Body_Descriptor const& desc)
     {
-        SET_BODY_DESCRIPTOR(position);
-        SET_BODY_DESCRIPTOR(rotation);
-        SET_BODY_DESCRIPTOR(velocity);
-        SET_BODY_DESCRIPTOR(angular_velocity);
-        SET_BODY_DESCRIPTOR(force);
-        SET_BODY_DESCRIPTOR(torque);
-        SET_BODY_DESCRIPTOR(width);
-        SET_BODY_DESCRIPTOR(friction);
-        SET_BODY_DESCRIPTOR(mass);
-        SET_BODY_DESCRIPTOR(inv_mass);
-        SET_BODY_DESCRIPTOR(I);
-        SET_BODY_DESCRIPTOR(inv_i);
+        detail::assign(&position, &desc.position);
+        detail::assign(&rotation, &desc.rotation);
+        detail::assign(&velocity, &desc.velocity);
+        detail::assign(&angular_velocity, &desc.angular_velocity);
+        detail::assign(&force, &desc.force);
+        detail::assign(&torque, &desc.torque);
+        detail::assign(&width, &desc.width);
+        detail::assign(&friction, &desc.friction);
+        detail::assign(&mass, &desc.mass);
+        detail::assign(&inv_mass, &desc.inv_mass);
+        detail::assign(&I, &desc.I);
+        detail::assign(&inv_i, &desc.inv_i);
     }
+
+    BODY_FIELD_BUILDER(position, Vec2)
+    BODY_FIELD_BUILDER(rotation, float)
+    BODY_FIELD_BUILDER(velocity, Vec2)
+    BODY_FIELD_BUILDER(angular_velocity, float)
+    BODY_FIELD_BUILDER(force, Vec2)
+    BODY_FIELD_BUILDER(torque, float)
+    BODY_FIELD_BUILDER(width, Vec2)
+    BODY_FIELD_BUILDER(friction, float)
+    BODY_FIELD_BUILDER(mass, float)
+    BODY_FIELD_BUILDER(inv_mass, float)
+    BODY_FIELD_BUILDER(I, float)
+    BODY_FIELD_BUILDER(inv_i, float)
 
     inline void add_force(Vec2 const& f) { force += f; }
 

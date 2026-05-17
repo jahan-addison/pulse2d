@@ -23,10 +23,10 @@
 /****************************************************************************
  * Storage
  *
- * Fixed-pool sprite loader. On host, uses stb_image to decode any supported
- * format and converts RGBA8 to RGB565 with nearest-neighbour scaling.
+ * Uses stb_image to decode any supported format and converts RGBA8 to
+ * RGB565 with nearest-neighbour scaling.
  *
- * On Teensy, reads raw binary (uint16_t width, height, then pixels) from
+ * On Teensy, reads .bin (uint16_t width, height, then pixels) from
  * the built-in SDIO SD card via SdFat.
  *
  ****************************************************************************/
@@ -37,11 +37,11 @@ namespace pulse2d {
  * @brief
  *   Storage component - sprite loader
  *
- *   Manages a fixed pool of RGB565 pixel buffers. Sprites are loaded from
+ *   A fixed pool of RGB565 pixel buffers. Sprites are loaded from
  *   disk on host or from the built-in SDIO SD card slot via SdFat on
  *   Teensy 4.1.
  *
- *   Sprite file format (raw binary):
+ *   Sprite file format:
  *     uint16_t  width
  *     uint16_t  height
  *     uint16_t  pixels[width * height]
@@ -75,7 +75,7 @@ class Storage
 
   private:
     using Pixel_Buffer = etl::array<uint16_t, k_max_sprite_pixels>;
-    etl::array<Pixel_Buffer, k_max_loaded_sprites> pool_{};
+    etl::array<Pixel_Buffer, MAX_LOADED_SPRITES> pool_{};
     size_t next_slot_{ 0 };
 
 #if defined(PULSE2D_TEENSY)

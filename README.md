@@ -74,7 +74,225 @@ target_link_libraries(my_game PRIVATE pulse2d::pulse2d)
 
 ### DSL
 
-TODO: description for the DSL
+The DSL is a set of macros in `pulse2d/dsl.h` inspired by the [Catch2](https://github.com/catchorg/Catch2/blob/85eb4652b46cc69c4ad7915c9fd3b009d99e9fb7/examples/120-Bdd-ScenarioGivenWhenThen.cpp#L15) library that enable development of a Teensy game. It wraps the engine, physics world, scene management, and render pipeline into a "fantasy" scripting language, without the need to understand bare-metal embedded programming.
+
+A minimal game that spawns a couple of physics bodies and loads a few sprites:
+
+```cpp
+#include PULSE2D_HEADER
+#include PULSE2D_GRAPHICS
+
+PULSE2D_START_PULSE();
+
+PULSE2D_DEFINE_LEVEL(Sample_Level, 2, 3);
+
+PULSE2D_GAME_LEVELS(Sample_Level);
+
+PULSE2D_DEFINE bool exploded = false;
+
+PULSE2D_ON_GAMESCENE_START(Sample_Level)
+{
+    PULSE2D_SPAWN_STATIC_BODY("planet",
+        {
+            .position = { 3.5f, 0.0f },
+            .width    = { 1.0f, 1.0f }
+    });
+
+    PULSE2D_SPAWN_BODY("spell",
+        {
+            .position = { -5.0f, -0.1111f },
+            .velocity = {  3.5f,  0.0f    },
+            .width    = {  1.0f,  0.5f    },
+            .mass     = 1.0f
+    });
+
+    PULSE2D_SET_SPRITE(planet_sprite, "planet.bin", 96, 96);
+    PULSE2D_SET_SPRITE(spell_sprite, "spell.bin", 64, 36);
+    PULSE2D_SET_SPRITE(explode_sprite, "explosion.bin", 96, 96);
+}
+
+PULSE2D_ON_GAMESCENE(Sample_Level)
+{
+    PULSE2D_TICK_WORLD(Sample_Level);
+    PULSE2D_ON_COLLISION()
+    {
+        if (!exploded)
+            exploded = true;
+    }
+
+    PULSE2D_PRINT_STACKSIZE();
+
+    if (exploded)
+        PULSE2D_DRAW("planet", explode_sprite);
+    else
+        PULSE2D_DRAW("planet", planet_sprite);
+
+    PULSE2D_DRAW("spell", spell_sprite, 3.111f);
+    PULSE2D_RENDER(active_scene);
+}
+
+PULSE2D_ON_GAMESTART()
+{
+    Serial.begin(115200);
+    PULSE2D_POLL_SERIAL_CONNECTION();
+    PULSE2D_INIT(0.0f, 0.0f, 10);
+    PULSE2D_SET_SCENE(Sample_Level);
+}
+
+PULSE2D_ON_GAMELOOP()
+{
+    PULSE2D_TICK_GAMESCENE();
+}
+```
+
+Check out the result [here](/docs/palse2d-sample-bodies.gif).
+
+#### Setup
+
+- **`PULSE2D_START_PULSE()`** — declares the engine, physics world, and two pointers that control scene dispatch. Place this at file scope, once per translation unit.
+  ```cpp
+  PULSE2D_START_PULSE();
+  ```
+
+- **`PULSE2D_DEFINE_LEVEL(name, bodies, sprites[, joints])`** — declares a scene struct with fixed-size body, sprite, and optional joint pools. Capacities are checked at compile time against the hardware limits. The optional fourth argument sets the joint pool size (default: 0).
+  ```cpp
+  PULSE2D_DEFINE_LEVEL(Game_Level, 4, 3);      // 4 bodies, 3 sprites
+  PULSE2D_DEFINE_LEVEL(Boss_Level, 8, 5, 2);   // explicit joint pool of 2
+  ```
+
+- **`PULSE2D_GAME_LEVELS(...)`** — declares the `variant` that holds the current scene. Takes a comma-separated list of all scene types used in the game.
+  ```cpp
+  PULSE2D_GAME_LEVELS(Menu_Level, Game_Level, Boss_Level);
+  ```
+
+- **`PULSE2D_DEFINE`** — Use for any game state variables, allocates in the correct section of memory.
+
+  ```cpp
+  PULSE2D_DEFINE bool player_dead = false;
+  PULSE2D_DEFINE int score = 0;
+  ```
+
+#### Scene lifecycle
+
+- **`PULSE2D_ON_GAMESCENE_START(SceneName)`** — defines the function entry for a scene. Called automatically by `PULSE2D_SET_SCENE`. Spawn bodies and load sprites here.
+  ```cpp
+  PULSE2D_ON_GAMESCENE_START(Game_Level) {
+      PULSE2D_SPAWN_BODY("player", { .position={0.f,0.f}, .mass=1.f });
+  }
+  ```
+
+- **`PULSE2D_ON_GAMESCENE(SceneName)`** — defines the per-frame function for a scene. Registered as the active tick function by `PULSE2D_SET_SCENE`.
+  ```cpp
+  PULSE2D_ON_GAMESCENE(Game_Level) {
+      PULSE2D_TICK_WORLD(Game_Level);
+      PULSE2D_DRAW("player", player_sprite);
+      PULSE2D_RENDER(active_scene);
+  }
+  ```
+
+- **`PULSE2D_SET_SCENE(scene)`** — transitions to a scene. Clears the physics world, resets storage, resets the global body and sprite counters, and then calls the scene's entry function before registering its tick function.
+  ```cpp
+  PULSE2D_SET_SCENE(Game_Level);
+  ```
+
+- **`PULSE2D_TICK_GAMESCENE()`** — calls the active scene's tick function, then resolves any pending transition. This is the only call needed in the game loop.
+  ```cpp
+  PULSE2D_ON_GAMELOOP() { PULSE2D_TICK_GAMESCENE(); }
+  ```
+
+To trigger a scene transition from inside a scene function, assign to `pending_transition`:
+
+```cpp
+pending_transition = []() { PULSE2D_SET_SCENE(Level_2); };
+```
+
+The transition runs at the end of the current frame, so the rest of the frame finishes cleanly first.
+
+#### Physics and rendering
+
+- **`PULSE2D_INIT(gx, gy, solver_iterations)`** — initializes the engine and physics world. `gx` and `gy` are the gravity vector components; the third argument is the solver iteration count.
+  ```cpp
+  PULSE2D_INIT(0.0f, -9.8f, 10);   // gravity pulls down
+  PULSE2D_INIT(0.0f,  0.0f, 10);   // zero gravity
+  ```
+
+- **`PULSE2D_SPAWN_BODY(name, {...})`** — allocates a **dynamic** body in the current scene's pool, calls `set_motion()` to enable full physics simulation, and registers it with the world. The second argument is a `Body_Descriptor` aggregate with fields `position`, `velocity`, `width`, and `mass`.
+  ```cpp
+  PULSE2D_SPAWN_BODY("ball", { .position={0.f,2.f}, .velocity={1.f,0.f}, .mass=1.f });
+  ```
+
+- **`PULSE2D_SPAWN_STATIC_BODY(name, {...})`** — allocates a **static** body in the current scene's pool and registers it with the world. `set_motion()` is not called, so the body is treated as an immovable obstacle by the solver.
+  ```cpp
+  PULSE2D_SPAWN_STATIC_BODY("floor", { .position={0.f,-5.f}, .width={10.f,0.5f} });
+  ```
+
+- **`PULSE2D_TICK_WORLD(SceneName)`** — steps the physics simulation one frame and brings `active_scene` and `renderer` into scope for the rest of the scene function. Call this at the top of `PULSE2D_ON_GAMESCENE`.
+  ```cpp
+  PULSE2D_ON_GAMESCENE(Game_Level) {
+      PULSE2D_TICK_WORLD(Game_Level);
+      // active_scene and renderer now in scope
+  }
+  ```
+
+- **`PULSE2D_SET_SPRITE(name, path, w, h)`** — loads a raw sprite file from the SD card into the current scene's sprite pool. `path` is relative to the SD root; `w` and `h` are pixel dimensions.
+  ```cpp
+  PULSE2D_SET_SPRITE(hero_sprite, "hero.bin", 32, 32);
+  ```
+
+- **`PULSE2D_DRAW(body_name, sprite_name[, angle_rad])`** — projects a body's world-space position to screen coordinates and queues the sprite for rendering. An optional third argument sets a fixed rotation in radians. Requires `active_scene` and `renderer` in scope (after `PULSE2D_TICK_WORLD`).
+  ```cpp
+  PULSE2D_DRAW("planet", planet_sprite);           // no rotation
+  PULSE2D_DRAW("comet",  comet_sprite, 1.5708f);   // fixed 90° rotation
+  ```
+
+- **`PULSE2D_RENDER(active_scene)`** — flushes the renderer's sprite queue to the display.
+  ```cpp
+  PULSE2D_RENDER(active_scene);
+  ```
+
+- **`PULSE2D_GET_BODY(name)`** — returns a reference to a named body from `active_scene`. Available after `PULSE2D_TICK_WORLD`.
+  ```cpp
+  auto& ship = PULSE2D_GET_BODY("ship");
+  ship.velocity.x += thrust;
+  ```
+
+#### Collision
+
+- **`PULSE2D_ON_COLLISION()`** — a conditional block that runs when at least one collision is active in the world.
+  ```cpp
+  PULSE2D_ON_COLLISION() { game_over = true; }
+  ```
+
+- **`PULSE2D_ON_COLLISION_WITH(name)`** — a conditional block that runs when a specific named arbiter is present.
+  ```cpp
+  PULSE2D_ON_COLLISION_WITH(wall) { bounce_count++; }
+  ```
+
+#### Utilities
+
+- **`PULSE2D_ON_GAMESTART()`** — maps to Arduino `setup()`.
+  ```cpp
+  PULSE2D_ON_GAMESTART() { Serial.begin(115200); PULSE2D_INIT(0.f, 0.f, 10); }
+  ```
+
+- **`PULSE2D_ON_GAMELOOP()`** — maps to Arduino `loop()`.
+  ```cpp
+  PULSE2D_ON_GAMELOOP() { PULSE2D_TICK_GAMESCENE(); }
+  ```
+
+- **`PULSE2D_POLL_SERIAL_CONNECTION()`** — blocks until a serial connection is established. Useful during development.
+  ```cpp
+  PULSE2D_ON_GAMESTART() { Serial.begin(115200); PULSE2D_POLL_SERIAL_CONNECTION(); ... }
+  ```
+
+- **`PULSE2D_PRINT_STACKSIZE()`** — prints stack usage to serial every 300 frames. Compiled away in non-debug builds.
+  ```cpp
+  PULSE2D_ON_GAMESCENE(Game_Level) {
+      PULSE2D_TICK_WORLD(Game_Level);
+      PULSE2D_PRINT_STACKSIZE();   // prints ~every 5 s at 60 fps
+      ...
+  }
+  ```
 
 ---
 

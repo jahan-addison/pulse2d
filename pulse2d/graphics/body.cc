@@ -82,7 +82,7 @@ namespace pulse2d::graphics {
  * Configure this body with a box size and mass, then derive all the
  * internal values the solver needs. Also resets all motion state -
  * position, velocity, forces - back to zero, so it is safe to call
- * set_mass() more than once to reinitialize the body between levels.
+ * set_motion() more than once to reinitialize the body between levels.
  *
  * The parameter `w` is the full dimensions of the box. A value of
  * { 1.0, 1.0 } makes a 1x1 unit square; { 2.0, 0.5 } makes a 2x0.5
@@ -125,7 +125,7 @@ namespace pulse2d::graphics {
  * rotate, or respond to forces - use this for walls, floors, and
  * any fixed platform.
  */
-void Body::set_mass(const Vec2& w, float m)
+void Body::set_motion(const Vec2& w, float m)
 {
     position.set(0.0f, 0.0f);
     rotation = 0.0f;
@@ -148,7 +148,7 @@ void Body::set_mass(const Vec2& w, float m)
     }
 }
 
-void Body::set_motion()
+Body& Body::set_motion()
 {
     if (mass < FLT_MAX) {
         inv_mass = 1.0f / mass;
@@ -159,6 +159,7 @@ void Body::set_motion()
         I = FLT_MAX;
         inv_i = 0.0f;
     }
+    return *this;
 }
 
 } // namespace pulse2d

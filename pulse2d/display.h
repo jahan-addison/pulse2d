@@ -50,19 +50,6 @@ using Frame_Buffer = etl::array<uint16_t, x * y>;
 using frame_buffer_t = Frame_Buffer<>;
 
 #if defined(PULSE2D_TEENSY)
-/**
- * @brief ILI9341 pin assignments for the Teensy 4.1 SPI0 bus
- *
- *  | Display pin | Teensy 4.1 pin |
- *  |-------------|---------------|
- *  | CS          | 10            |
- *  | D/C         | 9             |
- *  | RESET       | 3.3V (hardwired, not a GPIO — pass 255 to ILI9341_t3) |
- *  | MOSI/SDI    | 11            |
- *  | SCK         | 13            |
- *  | MISO/SDO    | 12            |
- *  | T_CS        | 8  (touch CS — driven HIGH to keep XPT2046 off the bus) |
- */
 namespace pins {
 inline constexpr uint8_t tft_cs = 10;
 inline constexpr uint8_t tft_dc = 9;

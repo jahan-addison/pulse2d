@@ -10,47 +10,40 @@
 
 PULSE2D_START_PULSE();
 
-PULSE2D_BODY planet;
-PULSE2D_BODY spell;
-PULSE2D_SPRITE planet_sprite;
-PULSE2D_SPRITE spell_sprite;
-PULSE2D_SPRITE explode_sprite;
+/*
+ * Level:
+ * 2 Entities
+ * 3 Sprites
+ */
+PULSE2D_DEFINE_LEVEL(Sample_Level, 2, 3);
+
+PULSE2D_GAME_LEVELS(Sample_Level);
 
 PULSE2D_DEFINE bool exploded = false;
 
-PULSE2D_ON_GAMESTART()
+PULSE2D_ON_GAMESCENE_START(Sample_Level)
 {
-    Serial.begin(115200);
-
-    PULSE2D_POLL_SERIAL_CONNECTION();
-
-    PULSE2D_INIT(0.0f, 0.0f, 10);
-
-    planet.set({
-        .position = { 3.5f, 0.0f },
-          .width = { 1.0f, 1.0f }
+    PULSE2D_SPAWN_STATIC_BODY("planet",
+        {
+            .position = { 3.5f, 0.0f },
+              .width = { 1.0f, 1.0f }
     });
 
-    spell.set({
-        .position = { -5.0f, -0.1111f },
-        .velocity = { 0.5f,  0.0f     },
-        .width = { 1.0f,  0.5f     },
-        .mass = 1.0f,
+    PULSE2D_SPAWN_BODY("spell",
+        {
+            .position = { -3.5f, -0.1111f },
+            .velocity = { 5.22f, 0.0f     },
+            .width = { 1.0f,  0.5f     },
+            .mass = 1.0f
     });
-
-    spell.set_motion();
-
-    PULSE2D_ADD_BODY(planet);
-    PULSE2D_ADD_BODY(spell);
-
     PULSE2D_SET_SPRITE(planet_sprite, "planet.bin", 96, 96);
     PULSE2D_SET_SPRITE(spell_sprite, "spell.bin", 64, 36);
     PULSE2D_SET_SPRITE(explode_sprite, "explosion.bin", 96, 96);
 }
 
-PULSE2D_ON_GAMELOOP()
+PULSE2D_ON_GAMESCENE(Sample_Level)
 {
-    PULSE2D_TICK_WORLD();
+    PULSE2D_TICK_WORLD(Sample_Level);
     PULSE2D_ON_COLLISION()
     {
         if (!exploded)
@@ -60,10 +53,26 @@ PULSE2D_ON_GAMELOOP()
     PULSE2D_PRINT_STACKSIZE();
 
     if (exploded)
-        PULSE2D_DRAW(explode_sprite);
+        PULSE2D_DRAW("planet", explode_sprite);
     else
-        PULSE2D_DRAW(planet_sprite);
+        PULSE2D_DRAW("planet", planet_sprite);
 
-    PULSE2D_DRAW(spell_sprite);
-    PULSE2D_TICK_PULSE();
+    PULSE2D_DRAW("spell", spell_sprite, 3.111f);
+    PULSE2D_RENDER(active_scene);
+}
+
+PULSE2D_ON_GAMESTART()
+{
+    Serial.begin(115200);
+
+    PULSE2D_POLL_SERIAL_CONNECTION();
+
+    PULSE2D_INIT(0.0f, 0.0f, 10);
+
+    PULSE2D_SET_SCENE(Sample_Level);
+}
+
+PULSE2D_ON_GAMELOOP()
+{
+    PULSE2D_TICK_GAMESCENE();
 }

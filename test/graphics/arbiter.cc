@@ -22,9 +22,9 @@ struct Arbiter_Fixture
 
     Arbiter_Fixture()
     {
-        a.set_mass({ 0.5f, 0.5f }, 1.0f);
+        a.set_motion({ 0.5f, 0.5f }, 1.0f);
         a.position = { 0.0f, 0.0f };
-        b.set_mass({ 0.5f, 0.5f }, 1.0f);
+        b.set_motion({ 0.5f, 0.5f }, 1.0f);
         b.position = { 0.0f, 0.0f }; // fully overlapping - always has contacts
     }
 
@@ -70,9 +70,9 @@ TEST_CASE_FIXTURE(Arbiter_Fixture,
 TEST_CASE("arbiter.cc: Arbiter separated bodies produce zero contacts")
 {
     pulse2d::graphics::Body a, b;
-    a.set_mass({ 0.5f, 0.5f }, 1.0f);
+    a.set_motion({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
-    b.set_mass({ 0.5f, 0.5f }, 1.0f);
+    b.set_motion({ 0.5f, 0.5f }, 1.0f);
     b.position = { 5.0f, 0.0f }; // clearly separated
     pulse2d::graphics::Arbiter arb(&a, &b);
     CHECK(arb.num_contacts == 0);
@@ -196,9 +196,9 @@ TEST_CASE("arbiter.cc: Arbiter::apply_impulse separates overlapping "
     pulse2d::graphics::World world({ 0.0f, 0.0f }, 20); // no gravity
 
     pulse2d::graphics::Body a, b;
-    a.set_mass({ 0.5f, 0.5f }, 1.0f);
+    a.set_motion({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
-    b.set_mass({ 0.5f, 0.5f }, 1.0f);
+    b.set_motion({ 0.5f, 0.5f }, 1.0f);
     b.position = { 0.0f, 0.0f };
 
     world.add(&a);
@@ -219,9 +219,9 @@ TEST_CASE("arbiter.cc: Arbiter::apply_impulse normal impulse is non-negative")
     // The normal impulse constraint (pn >= 0) means bodies can only push,
     // never pull. After pre_step and apply_impulse, pn must be >= 0.
     pulse2d::graphics::Body a, b;
-    a.set_mass({ 0.5f, 0.5f }, 1.0f);
+    a.set_motion({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
-    b.set_mass({ 0.5f, 0.5f }, 1.0f);
+    b.set_motion({ 0.5f, 0.5f }, 1.0f);
     b.position = { 0.4f, 0.0f };
 
     pulse2d::graphics::Arbiter arb(&a, &b);

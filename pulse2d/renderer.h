@@ -54,8 +54,9 @@ static PULSE2D_EXTMEM frame_buffer_t s_framebuffer;
 class Renderer
 {
   public:
-    explicit Renderer()
-        : framebuffer_(nullptr)
+    explicit Renderer(Display& display)
+        : display_(display)
+        , framebuffer_(nullptr)
         , sprite_queue_()
     {
     }
@@ -133,7 +134,7 @@ class Renderer
         float angle_rad;
     };
   PULSE2D_PRIVATE:
-    Display display_;
+    Display& display_;
     frame_buffer_t* framebuffer_;
     etl::vector<Entry, k_max_sprites> sprite_queue_;
 };

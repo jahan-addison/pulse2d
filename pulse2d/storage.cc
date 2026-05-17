@@ -17,10 +17,10 @@
 /****************************************************************************
  * Storage
  *
- * Fixed-pool sprite loader. On host, uses stb_image to decode any supported
- * format and converts RGBA8 to RGB565 with nearest-neighbour scaling.
+ * Uses stb_image to decode any supported format and converts RGBA8 to
+ * RGB565 with nearest-neighbour scaling.
  *
- * On Teensy, reads raw binary (uint16_t width, height, then pixels) from
+ * On Teensy, reads .bin (uint16_t width, height, then pixels) from
  * the built-in SDIO SD card via SdFat.
  *
  ****************************************************************************/
@@ -42,16 +42,14 @@ bool Storage::init()
 
 /**
  * @brief Load a sprite from disk or SD card into the pool
- *
- * Reads a raw binary file: uint16_t width, uint16_t height, then
- * width * height uint16_t RGB565 pixels. Returns a Sprite with a nullptr
- * data pointer on any failure (pool exhausted, file not found, too large).
  */
 Sprite Storage::load_sprite(const char* path,
     uint16_t target_w,
     uint16_t target_h)
 {
     if (next_slot_ >= k_max_loaded_sprites) {
+        PULSE2D_DEBUG_SERIAL(
+            "[WARN] storage: slot pool full, cannot load '%s'\n", path);
         return { nullptr, 0, 0 };
     }
 
@@ -80,6 +78,11 @@ Sprite Storage::load_sprite(const char* path,
         return { nullptr, 0, 0 };
     }
     file.close();
+    PULSE2D_DEBUG_SERIAL("storage: loaded '%s' %ux%u at slot %u\n",
+        path,
+        w,
+        h,
+        (unsigned)next_slot_);
     (void)target_w;
     (void)target_h;
 #else

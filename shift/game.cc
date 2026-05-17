@@ -162,7 +162,7 @@ void on_throw_fireball(Object_Pool& objects,
         objects.get("fireball").position.y = y_pos;
     if (*action != Action::Shoot)
         return;
-    fireball.set_mass({ 1.0f, 0.5f }, 1.0f);
+    fireball.set_motion({ 1.0f, 0.5f }, 1.0f);
     fireball.position = { -4.333f, y_pos };
     fireball.velocity = { 1.611f, 0.0f };
     state.fired = true;

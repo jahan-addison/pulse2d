@@ -26,10 +26,10 @@ struct Joint_Fixture
     Joint_Fixture()
         : world({ 0.0f, 0.0f }, 10)
     {
-        a.set_mass({ 0.5f, 0.5f }, 1.0f);
+        a.set_motion({ 0.5f, 0.5f }, 1.0f);
         a.position = { -1.0f, 0.0f };
 
-        b.set_mass({ 0.5f, 0.5f }, 1.0f);
+        b.set_motion({ 0.5f, 0.5f }, 1.0f);
         b.position = { 1.0f, 0.0f };
 
         // anchor at origin: 1 unit from each body's center
@@ -81,12 +81,12 @@ TEST_CASE_FIXTURE(Joint_Fixture,
     // rotate a by 90 degrees and re-set; the local anchor should change
     pulse2d::graphics::Joint pin2;
     pulse2d::graphics::Body c;
-    c.set_mass({ 0.5f, 0.5f }, 1.0f);
+    c.set_motion({ 0.5f, 0.5f }, 1.0f);
     c.position = { -1.0f, 0.0f };
     c.rotation = pulse2d::graphics::k_pi / 2.0f;
 
     pulse2d::graphics::Body d;
-    d.set_mass({ 0.5f, 0.5f }, 1.0f);
+    d.set_motion({ 0.5f, 0.5f }, 1.0f);
     d.position = { 1.0f, 0.0f };
 
     pin2.set(&c, &d, { 0.0f, 0.0f });
@@ -140,10 +140,10 @@ TEST_CASE("joint.cc: Joint::pre_step bias is non-zero when anchor "
     pulse2d::graphics::World::position_correction = true;
 
     pulse2d::graphics::Body a, b;
-    a.set_mass({ 0.5f, 0.5f }, 1.0f);
+    a.set_motion({ 0.5f, 0.5f }, 1.0f);
     a.position = { -2.0f, 0.0f }; // further from anchor than at set() time
 
-    b.set_mass({ 0.5f, 0.5f }, 1.0f);
+    b.set_motion({ 0.5f, 0.5f }, 1.0f);
     b.position = { 2.0f, 0.0f };
 
     pulse2d::graphics::Joint pin;
@@ -170,9 +170,9 @@ TEST_CASE("joint.cc: Joint constraint keeps anchor points close after "
     pulse2d::graphics::World world({ 0.0f, 0.0f }, 20);
 
     pulse2d::graphics::Body a, b;
-    a.set_mass({ 0.5f, 0.5f }, 1.0f);
+    a.set_motion({ 0.5f, 0.5f }, 1.0f);
     a.position = { -1.0f, 0.0f };
-    b.set_mass({ 0.5f, 0.5f }, 1.0f);
+    b.set_motion({ 0.5f, 0.5f }, 1.0f);
     b.position = { 1.0f, 0.0f };
 
     pulse2d::graphics::Joint pin;
@@ -212,9 +212,9 @@ TEST_CASE("joint.cc: Joint with stiffer bias_factor corrects drift faster")
     auto run = [](float factor) -> float {
         pulse2d::graphics::World world({ 0.0f, 0.0f }, 10);
         pulse2d::graphics::Body a, b;
-        a.set_mass({ 0.5f, 0.5f }, 1.0f);
+        a.set_motion({ 0.5f, 0.5f }, 1.0f);
         a.position = { -1.0f, 0.0f };
-        b.set_mass({ 0.5f, 0.5f }, 1.0f);
+        b.set_motion({ 0.5f, 0.5f }, 1.0f);
         b.position = { 1.0f, 0.0f };
 
         pulse2d::graphics::Joint pin;

@@ -24,9 +24,13 @@ static pulse2d::frame_buffer_t const& framebuffer(pulse2d::Renderer const& r)
 
 struct Renderer_Fixture
 {
+    Renderer_Fixture()
+        : renderer(display)
+    {
+        renderer.init();
+    }
+    pulse2d::Display display;
     pulse2d::Renderer renderer;
-
-    Renderer_Fixture() { renderer.init(); }
 };
 
 TEST_CASE("renderer.cc: Renderer::project_coordinates origin")
@@ -200,7 +204,7 @@ TEST_CASE("renderer.cc: Renderer::show_debug_rects false")
     pulse2d::graphics::World world({ 0.0f, -10.0f }, 10);
 
     pulse2d::graphics::Body box;
-    box.set_mass({ 1.0f, 1.0f }, 1.0f); // centered at origin → screen center
+    box.set_motion({ 1.0f, 1.0f }, 1.0f); // centered at origin → screen center
     world.add(&box);
 
     f.renderer.clear(0x0000);
@@ -221,7 +225,7 @@ TEST_CASE("renderer.cc: Renderer::show_debug_rects true")
     pulse2d::graphics::World world({ 0.0f, -10.0f }, 10);
 
     pulse2d::graphics::Body box;
-    box.set_mass(
+    box.set_motion(
         { 2.0f, 2.0f }, 1.0f); // large body at origin → fills screen center
     world.add(&box);
 

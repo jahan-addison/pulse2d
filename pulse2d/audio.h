@@ -17,10 +17,7 @@
 
 /****************************************************************************
  * Audio
- *
  * Teensy audio library memory blocks and enables the SGTL5000
- * codec at 50% volume. Both calls do nothing in host builds.
- *
  ****************************************************************************/
 
 namespace pulse2d {

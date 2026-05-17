@@ -25,7 +25,7 @@ struct World_Fixture
         floor.width = { 10.0f, 0.5f };
         floor.position = { 0.0f, -5.0f }; // static - default-constructed
 
-        box.set_mass({ 0.5f, 0.5f }, 1.0f);
+        box.set_motion({ 0.5f, 0.5f }, 1.0f);
         box.position = { 0.0f, 3.0f }; // well above the floor
 
         world.add(&floor);
@@ -48,8 +48,8 @@ TEST_CASE("world.cc: World::add registers joints")
 {
     pulse2d::graphics::World world({ 0.0f, -10.0f }, 10);
     pulse2d::graphics::Body a, b;
-    a.set_mass({ 0.5f, 0.5f }, 1.0f);
-    b.set_mass({ 0.5f, 0.5f }, 1.0f);
+    a.set_motion({ 0.5f, 0.5f }, 1.0f);
+    b.set_motion({ 0.5f, 0.5f }, 1.0f);
     b.position = { 2.0f, 0.0f };
     world.add(&a);
     world.add(&b);
@@ -64,9 +64,9 @@ TEST_CASE("world.cc: World::clear empties bodies, joints, and arbiters")
     pulse2d::graphics::World world({ 0.0f, -10.0f }, 10);
 
     pulse2d::graphics::Body a, b;
-    a.set_mass({ 0.5f, 0.5f }, 1.0f);
+    a.set_motion({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
-    b.set_mass({ 0.5f, 0.5f }, 1.0f);
+    b.set_motion({ 0.5f, 0.5f }, 1.0f);
     b.position = { 0.0f, 0.0f }; // overlapping - forces a contact
 
     world.add(&a);
@@ -154,9 +154,9 @@ TEST_CASE("world.cc: World::broad_phase produces arbiter for "
 
     // place two dynamic boxes on top of each other
     pulse2d::graphics::Body a, b;
-    a.set_mass({ 0.5f, 0.5f }, 1.0f);
+    a.set_motion({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
-    b.set_mass({ 0.5f, 0.5f }, 1.0f);
+    b.set_motion({ 0.5f, 0.5f }, 1.0f);
     b.position = { 0.0f, 0.0f };
 
     world.add(&a);
@@ -189,9 +189,9 @@ TEST_CASE("world.cc: World::broad_phase removes arbiter when bodies separate")
     pulse2d::graphics::World world({ 0.0f, 0.0f }, 10); // no gravity
 
     pulse2d::graphics::Body a, b;
-    a.set_mass({ 0.5f, 0.5f }, 1.0f);
+    a.set_motion({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
-    b.set_mass({ 0.5f, 0.5f }, 1.0f);
+    b.set_motion({ 0.5f, 0.5f }, 1.0f);
     b.position = { 0.5f, 0.0f }; // overlapping
 
     world.add(&a);
@@ -218,7 +218,7 @@ TEST_CASE("world.cc: World::step produces arbiters when bodies collide")
         -0.4f }; // h_y=0.25 → top at -0.15; box bottom at -0.25 → 0.1 overlap
 
     pulse2d::graphics::Body box;
-    box.set_mass({ 0.5f, 0.5f }, 1.0f);
+    box.set_motion({ 0.5f, 0.5f }, 1.0f);
     box.position = { 0.0f, 0.0f }; // resting on the floor
 
     world.add(&floor);
@@ -240,7 +240,7 @@ TEST_CASE("world.cc: World::step - dynamic box does not sink through "
     floor.position = { 0.0f, -5.0f };
 
     pulse2d::graphics::Body box;
-    box.set_mass({ 0.5f, 0.5f }, 1.0f);
+    box.set_motion({ 0.5f, 0.5f }, 1.0f);
     box.position = { 0.0f, 0.0f };
 
     world.add(&floor);

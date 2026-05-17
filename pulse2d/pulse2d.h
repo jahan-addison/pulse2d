@@ -9,6 +9,7 @@
 
 #include <pulse2d/audio.h>    // for Audio
 #include <pulse2d/display.h>  // for Display
+#include <pulse2d/dsl.h>      // for dsl
 #include <pulse2d/renderer.h> // for Renderer
 #include <pulse2d/storage.h>  // for Storage
 #include <pulse2d/util.h>     // for utilities
@@ -29,7 +30,10 @@ namespace pulse2d {
 class Pulse2d
 {
   public:
-    Pulse2d() = default;
+    Pulse2d()
+        : renderer_(display_)
+    {
+    }
     Pulse2d(Pulse2d const&) = delete;
     Pulse2d& operator=(Pulse2d const&) = delete;
 

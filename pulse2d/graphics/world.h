@@ -22,16 +22,20 @@
 
 #pragma once
 
-#include "arbiter.h"    // for Arbiter_Key, operator<
-#include "math.h"       // for Vec2
-#include "types.h"      // for assign
-#include <cstddef>      // for size_t
-#include <etl/map.h>    // for map
-#include <etl/vector.h> // for vector
-#include <span>         // for span
+#include "arbiter.h"      // for Arbiter_Key, operator<
+#include "math.h"         // for Vec2
+#include "types.h"        // for assign
+#include <cstddef>        // for size_t
+#include <etl/map.h>      // for map
+#include <etl/vector.h>   // for vector
+#include <pulse2d/util.h> // PULSE2D_TEENSY
+#include <span>           // for span
 
 #ifndef MAX_PHYSICS_BODIES
 #define MAX_PHYSICS_BODIES 256
+#endif
+#ifndef MAX_PHYSICS_JOINTS
+#define MAX_PHYSICS_JOINTS 32
 #endif
 
 /****************************************************************************
@@ -81,8 +85,6 @@ namespace detail {
  */
 struct World_Descriptor
 {
-    std::span<Body*> bodies{};
-    std::span<Joint*> joints{};
     int iterations{ 10 };
     bool accumulate_impulses{ true };
     bool warm_starting{ true };
@@ -145,7 +147,7 @@ class World
      *   my_world.set({
      *    .iterations = 5,
      *    .accumulate_impulses = true,
-     *    .bodies = {&obj1, &obj2}
+     *    .position_correction = false
      *   });
      *
      */
@@ -154,49 +156,13 @@ class World
         detail::assign(&iterations, &desc.iterations);
         detail::assign(&accumulate_impulses, &desc.accumulate_impulses);
         detail::assign(&warm_starting, &desc.warm_starting);
-        if (desc.bodies.size())
-            bodies.assign(desc.bodies.begin(), desc.bodies.end());
-        if (desc.joints.size())
-            joints.assign(desc.joints.begin(), desc.joints.end());
+        detail::assign(&position_correction, &desc.position_correction);
     }
 
   public:
-    /**
-     * @brief
-     * All bodies registered with add(Body*).
-     *
-     * step() iterates this vector every frame. Order does not matter.
-     * Do not remove entries manually - use clear() to reset the world.
-     */
-    etl::vector<Body*, MAX_PHYSICS_BODIES> bodies;
-
-    /**
-     * @brief
-     * All joints registered with add(Joint*).
-     *
-     * step() runs pre_step() and apply_impulse() on every joint each frame,
-     * after contacts. Do not remove entries manually - use clear().
-     */
-    etl::vector<Joint*, MAX_PHYSICS_BODIES> joints;
-
-    /**
-     * @brief
-     * Active contact arbiters for this step, keyed by body pair.
-     *
-     * broad_phase() (called from step()) populates this map: one Arbiter
-     * per touching pair, removed when the pair separates. Check emptiness
-     * to detect any collision this frame:
-     *
-     *   if (!world.arbiters.empty()) { ... }
-     *
-     * Iterate to inspect individual contacts:
-     *
-     *   for (auto& [key, arb] : world.arbiters)
-     *       // key.body1, key.body2 - the two bodies
-     *       // arb.num_contacts     - 1 or 2
-     *       // arb.contacts[i].normal - push direction
-     */
     etl::map<Arbiter_Key, Arbiter, MAX_PHYSICS_BODIES> arbiters;
+    etl::vector<Body*, MAX_PHYSICS_BODIES> bodies;
+    etl::vector<Joint*, MAX_PHYSICS_JOINTS> joints;
 
     /**
      * @brief

@@ -10,10 +10,7 @@
 
 /****************************************************************************
  * Audio
- *
- * Allocates Teensy audio library memory blocks and enables the SGTL5000
- * codec at 50% volume. Both calls do nothing in SDL2 (host) builds.
- *
+ * Teensy audio library memory blocks and enables the SGTL5000
  ****************************************************************************/
 
 namespace pulse2d {
