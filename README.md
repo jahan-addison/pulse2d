@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/logo/pulse-2d-final-final-final.png" width="800" alt="pulse2d"> </img>
+  <img src="docs/logo/pulse2d-sleek-final-final-final.png" width="800" alt="pulse2d"> </img>
 </div>
 
 <h5 align="center">
@@ -10,26 +10,27 @@
 ## Overview
 
 
-The Teensy 4.1 is a microcontroller development board based on the NXP i.MX RT1062, an ARM Cortex-M7 running at up to 600 MHz. pulse2d enables you to turn the microcontroller into a 2D game platform with a display and controller, as it has hardware floating-point, a dedicated SPI bus, and a built-in SDIO SD card slot. 🎮
+The Teensy 4.1 is a microcontroller development board based on the NXP i.MX RT1062, an ARM Cortex-M7 running at up to 600 MHz. `pulse2d` enables you to turn the microcontroller into a 2D game platform with a display and controller, as it has hardware floating-point, a dedicated SPI bus, and a built-in SDIO SD card slot. 🎮
 
 The project builds a sample game for desktop and the teensy hardware called `shift`.
 
 ### Demo:
 
-<video src="/docs/demo/pulse2d-game-engine-demo.mp4" width="800" controls></video>
+
+
+https://github.com/user-attachments/assets/c17d19ef-d7f9-45c4-8563-98ffed3ee73e
+
+
 
 ## Hardware
 
-Below is the recommended hardware for game development with **no soldering required**:
+The recommended hardware for game development with **no soldering required**:
 
-* [Teensy 4.1](https://www.pjrc.com/store/teensy41.html): Primary microcontroller
-* [ILI9341 TFT Display](https://www.pjrc.com/store/display_ili9341_touch.html): 320x240 RGB565 display via SPI
-* [Adafruit Seesaw Gamepad QT](https://www.adafruit.com/product/5743): I2C gamepad with analog thumbstick and 6 buttons
-* MicroSD card: Sprite and asset storage via the Teensy's built-in SDIO slot
-
-
-* Solderless breadboard: Holds all components without soldering
-* Male-to-male jumper wires
+- [Solderless breadboard](https://www.amazon.com/dp/B08Y59P6D1?ref_=ppx_hzsearch_conn_dt_b_fed_asin_title_5): Holds all components
+- [Teensy 4.1](https://www.pjrc.com/store/teensy41.html): Primary microcontroller
+- [ILI9341 TFT Display](https://www.pjrc.com/store/display_ili9341_touch.html): 320x240 RGB565 display via SPI
+- [MicroSD card](https://www.amazon.com/dp/B0B7NV73PJ?ref_=ppx_hzsearch_conn_dt_b_fed_asin_title_4): Sprite and asset storage via the built-in SDIO slot
+- [Adafruit Seesaw Gamepad QT](https://www.adafruit.com/product/5743): I2C gamepad with analog thumbstick and 6 buttons
 
 ---
 
@@ -163,7 +164,7 @@ PULSE2D_ON_GAMELOOP()
   PULSE2D_DEFINE_SCENE(Boss_Level, 8, 5, 2);   // explicit joint pool of 2
   ```
 
-- **`PULSE2D_GAME_SCENES(...)`** — declares the `variant` that holds the current scene. Takes a comma-separated list of all scene types used in the game.
+- **`PULSE2D_GAME_SCENES(...)`** — Takes a comma-separated list of all scene types used in the game.
   ```cpp
   PULSE2D_GAME_SCENES(Menu_Level, Game_Level, Boss_Level);
   ```
@@ -219,12 +220,12 @@ The transition runs at the end of the current frame, so the rest of the frame fi
   PULSE2D_INIT(0.0f,  0.0f, 10);   // zero gravity
   ```
 
-- **`PULSE2D_SPAWN_BODY(name, {...})`** — allocates a **dynamic** body in the current scene's pool, calls `set_motion()` to enable full physics simulation, and registers it with the world. The second argument is a `Body_Descriptor` aggregate with fields `position`, `velocity`, `width`, and `mass`.
+- **`PULSE2D_SPAWN_BODY(name, {...})`** — allocates a **dynamic** body in the current scene's pool, calls `set_motion()` to enable full physics simulation, and registers it with the world. The second argument is a `Body` aggregate with fields from the physics body.
   ```cpp
   PULSE2D_SPAWN_BODY("ball", { .position={0.f,2.f}, .velocity={1.f,0.f}, .mass=1.f });
   ```
 
-- **`PULSE2D_SPAWN_STATIC_BODY(name, {...})`** — allocates a **static** body in the current scene's pool and registers it with the world. `set_motion()` is not called, so the body is treated as an immovable obstacle by the solver.
+- **`PULSE2D_SPAWN_STATIC_BODY(name, {...})`** — allocates a body in the current scene's pool and registers it with the world. `set_motion()` is not called, so the body is treated as an immovable obstacle by the solver.
   ```cpp
   PULSE2D_SPAWN_STATIC_BODY("floor", { .position={0.f,-5.f}, .width={10.f,0.5f} });
   ```
@@ -332,17 +333,17 @@ The transition runs at the end of the current frame, so the rest of the frame fi
   SEESAW_ARCADE_DIRECTIONAL_MOVEMENT("player", 3.0f);
   ```
 
-- **`SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED(body_name, max_speed)`** — Profile A, inverted. Same as above with the Y axis negated.
+- **`SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED(body_name, max_speed)`** — Profile A, inverted: Same as above with the X and Y axis inverted.
   ```cpp
   SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED("ship", 3.0f);
   ```
 
-- **`SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT(body_name, acceleration)`** — Profile B: The Momentum Controller (Asteroids, Mario). Applies a thrust force scaled by `acceleration` each frame; velocity builds up over time.
+- **`SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT(body_name, acceleration)`** — Profile B: The Momentum Controller (Asteroids, Mario). Applies a thrust force scaled by `acceleration` each frame - velocity builds up over time.
   ```cpp
   SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT("ship", 0.8f);
   ```
 
-- **`SEESAW_SLIDING_FRICTION_DIRECTIONAL_MOVEMENT(body_name, drag_amount)`** — Profile C: Top-Down Friction. Applies linear drag each frame. Pair with `SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT` so the body doesn't slide forever.
+- **`SEESAW_SLIDING_FRICTION_DIRECTIONAL_MOVEMENT(body_name, drag_amount)`** — Profile C: Top-Down Friction, applies linear drag each frame. Pair with `SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT` so the body doesn't slide forever.
   ```cpp
   SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT("ship", 0.8f);
   SEESAW_SLIDING_FRICTION_DIRECTIONAL_MOVEMENT("ship", 0.92f);
