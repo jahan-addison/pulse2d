@@ -7,6 +7,8 @@
 
 #include "seesaw.h"
 
+#if defined(PULSE2D_TEENSY)
+
 #include <pulse2d/util.h>
 
 #include <cstdint>
@@ -250,3 +252,5 @@ void Teensy_I2CDriver::delay_us(uint32_t microseconds)
 }
 
 } // gamepad
+
+#endif

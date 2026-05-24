@@ -16,7 +16,7 @@ The project builds a sample game for desktop and the teensy hardware called `shi
 
 ### Demo:
 
-<video src="docs/demo/pulse2d-game-engine-demo.mp4" width="800" controls></video>
+<video src="/docs/demo/pulse2d-game-engine-demo.mp4" width="800" controls></video>
 
 ## Hardware
 

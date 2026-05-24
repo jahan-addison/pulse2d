@@ -36,6 +36,8 @@
  *
  ****************************************************************************/
 
+#if defined(PULSE2D_TEENSY)
+
 #include <Wire.h>
 
 namespace pulse2d::gamepad {
@@ -250,3 +252,5 @@ inline void apply_linear_drag(T& body, float drag_coefficient)
 } // namespace util
 
 } // namespace gamepad
+
+#endif
