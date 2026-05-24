@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/pulse2d-logo-white.png" width="800px" alt="pulse2d"> </img>
+  <img src="docs/logo/pulse-2d-final-final-final.png" width="800" alt="pulse2d"> </img>
 </div>
 
 <h5 align="center">
@@ -9,28 +9,29 @@
 
 ## Overview
 
-<table border="0">
-  <tr>
-    <td width="320">
-      <img src="/docs/teensy-front.png" width="300">
-    </td>
-    <td>
-      <p>
-      The Teensy 4.1 is a microcontroller development board based on the NXP i.MX RT1062, an ARM Cortex-M7 running at up to 600 MHz. pulse2d enables you to turn the microcontroller into a 2D game platform with a display and controller, as it has hardware floating-point, a dedicated SPI bus, and a built-in SDIO SD card slot. 🎮
-      </p>
-    </td>
-  </tr>
-</table>
+
+The Teensy 4.1 is a microcontroller development board based on the NXP i.MX RT1062, an ARM Cortex-M7 running at up to 600 MHz. pulse2d enables you to turn the microcontroller into a 2D game platform with a display and controller, as it has hardware floating-point, a dedicated SPI bus, and a built-in SDIO SD card slot. 🎮
 
 The project builds a sample game for desktop and the teensy hardware called `shift`.
 
-You can use the `Makefile.teensy` to build and flash the sample game:
+### Demo:
 
-```bash
-make -f Makefile.teensy -j     # build
-make -f Makefile.teensy clean  # remove build-teensy/
-make -f Makefile.teensy flash  # flash with teensy_loader_cli
-```
+<video src="docs/demo/pulse2d-game-engine-demo.mp4" width="800" controls></video>
+
+## Hardware
+
+Below is the recommended hardware for game development with **no soldering required**:
+
+* [Teensy 4.1](https://www.pjrc.com/store/teensy41.html): Primary microcontroller
+* [ILI9341 TFT Display](https://www.pjrc.com/store/display_ili9341_touch.html): 320x240 RGB565 display via SPI
+* [Adafruit Seesaw Gamepad QT](https://www.adafruit.com/product/5743): I2C gamepad with analog thumbstick and 6 buttons
+* MicroSD card: Sprite and asset storage via the Teensy's built-in SDIO slot
+
+
+* Solderless breadboard: Holds all components without soldering
+* Male-to-male jumper wires
+
+---
 
 ## Requirements
 
@@ -57,8 +58,6 @@ sudo apt install gcc-arm-none-eabi
 
 ## Building
 
-### C++
-
 Link against `pulse2d::pulse2d` in your `CMakeLists.txt`:
 
 ```cmake
@@ -66,15 +65,21 @@ add_subdirectory(pulse2d)          # or use CPM, FetchContent
 target_link_libraries(my_game PRIVATE pulse2d::pulse2d)
 ```
 
-### NodeJS
+You can use the `Makefile.teensy` to build and flash the sample game:
 
-> NodeJS bindings coming soon.
+```bash
+make -f Makefile.teensy -j     # build
+make -f Makefile.teensy clean  # remove build-teensy/
+make -f Makefile.teensy flash  # flash with teensy_loader_cli
+```
 
 ## Game Development
 
 ### DSL
 
 The DSL is a set of macros in `pulse2d/dsl.h` inspired by the [Catch2](https://github.com/catchorg/Catch2/blob/85eb4652b46cc69c4ad7915c9fd3b009d99e9fb7/examples/120-Bdd-ScenarioGivenWhenThen.cpp#L15) library that enable development of a Teensy game. It wraps the engine, physics world, scene management, and render pipeline into a "fantasy" scripting language, without the need to understand bare-metal embedded programming.
+
+See [the source code of the shift game](/shift/game-teensy.cc) for a full example.
 
 A minimal game that spawns a couple of physics bodies and loads a few sprites:
 
@@ -84,9 +89,9 @@ A minimal game that spawns a couple of physics bodies and loads a few sprites:
 
 PULSE2D_START_PULSE();
 
-PULSE2D_DEFINE_LEVEL(Sample_Level, 2, 3);
+PULSE2D_DEFINE_SCENE(Sample_Level, 2, 3);
 
-PULSE2D_GAME_LEVELS(Sample_Level);
+PULSE2D_GAME_SCENES(Sample_Level);
 
 PULSE2D_DEFINE bool exploded = false;
 
@@ -145,8 +150,6 @@ PULSE2D_ON_GAMELOOP()
 }
 ```
 
-Check out the result [here](/docs/palse2d-sample-bodies.gif).
-
 #### Setup
 
 - **`PULSE2D_START_PULSE()`** — declares the engine, physics world, and two pointers that control scene dispatch. Place this at file scope, once per translation unit.
@@ -154,15 +157,15 @@ Check out the result [here](/docs/palse2d-sample-bodies.gif).
   PULSE2D_START_PULSE();
   ```
 
-- **`PULSE2D_DEFINE_LEVEL(name, bodies, sprites[, joints])`** — declares a scene struct with fixed-size body, sprite, and optional joint pools. Capacities are checked at compile time against the hardware limits. The optional fourth argument sets the joint pool size (default: 0).
+- **`PULSE2D_DEFINE_SCENE(name, bodies, sprites[, joints])`** — declares a scene struct with fixed-size body, sprite, and optional joint pools. Capacities are checked at compile time against the hardware limits. The optional fourth argument sets the joint pool size (default: 0).
   ```cpp
-  PULSE2D_DEFINE_LEVEL(Game_Level, 4, 3);      // 4 bodies, 3 sprites
-  PULSE2D_DEFINE_LEVEL(Boss_Level, 8, 5, 2);   // explicit joint pool of 2
+  PULSE2D_DEFINE_SCENE(Game_Level, 4, 3);      // 4 bodies, 3 sprites
+  PULSE2D_DEFINE_SCENE(Boss_Level, 8, 5, 2);   // explicit joint pool of 2
   ```
 
-- **`PULSE2D_GAME_LEVELS(...)`** — declares the `variant` that holds the current scene. Takes a comma-separated list of all scene types used in the game.
+- **`PULSE2D_GAME_SCENES(...)`** — declares the `variant` that holds the current scene. Takes a comma-separated list of all scene types used in the game.
   ```cpp
-  PULSE2D_GAME_LEVELS(Menu_Level, Game_Level, Boss_Level);
+  PULSE2D_GAME_SCENES(Menu_Level, Game_Level, Boss_Level);
   ```
 
 - **`PULSE2D_DEFINE`** — Use for any game state variables, allocates in the correct section of memory.
@@ -294,7 +297,70 @@ The transition runs at the end of the current frame, so the rest of the frame fi
   }
   ```
 
+#### Gamepad
+
+- **`PULSE2D_ENABLE_SEESAW_GAMEPAD()`** — declares the I2C driver and gamepad at file scope. Place this once alongside `PULSE2D_START_PULSE()`.
+  ```cpp
+  PULSE2D_START_PULSE();
+  PULSE2D_ENABLE_SEESAW_GAMEPAD();
+  ```
+
+- **`PULSE2D_START_SEESAW_GAMEPAD()`** — initializes the I2C bus and gamepad hardware. Call once in `PULSE2D_ON_GAMESTART()`.
+  ```cpp
+  PULSE2D_ON_GAMESTART() {
+      ...
+      PULSE2D_START_SEESAW_GAMEPAD();
+  }
+  ```
+
+- **`PULSE2D_POLL_SEESAW_GAMEPAD()`** — polls all inputs and brings `gamepad_state` into scope. Call at the top of each scene function.
+  ```cpp
+  PULSE2D_ON_GAMESCENE(Game_Level) {
+      PULSE2D_TICK_WORLD(Game_Level);
+      PULSE2D_POLL_SEESAW_GAMEPAD();
+      ...
+  }
+  ```
+
+- **`SEESAW_BUTTON_INPUT(name)`** — evaluates non-zero while the named button is held. Available names: `SEESAW_A`, `SEESAW_B`, `SEESAW_X`, `SEESAW_Y`, `SEESAW_START`, `SEESAW_SELECT`.
+  ```cpp
+  if (SEESAW_BUTTON_INPUT(SEESAW_A)) { fire(); }
+  ```
+
+- **`SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(body_name, max_speed)`** — Profile A: The Arcade Controller (Pokémon, Zelda, Pac-Man). Sets the body's velocity directly from stick position, clamped to `max_speed`. Instant response, instant stop.
+  ```cpp
+  SEESAW_ARCADE_DIRECTIONAL_MOVEMENT("player", 3.0f);
+  ```
+
+- **`SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED(body_name, max_speed)`** — Profile A, inverted. Same as above with the Y axis negated.
+  ```cpp
+  SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED("ship", 3.0f);
+  ```
+
+- **`SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT(body_name, acceleration)`** — Profile B: The Momentum Controller (Asteroids, Mario). Applies a thrust force scaled by `acceleration` each frame; velocity builds up over time.
+  ```cpp
+  SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT("ship", 0.8f);
+  ```
+
+- **`SEESAW_SLIDING_FRICTION_DIRECTIONAL_MOVEMENT(body_name, drag_amount)`** — Profile C: Top-Down Friction. Applies linear drag each frame. Pair with `SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT` so the body doesn't slide forever.
+  ```cpp
+  SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT("ship", 0.8f);
+  SEESAW_SLIDING_FRICTION_DIRECTIONAL_MOVEMENT("ship", 0.92f);
+  ```
+
+- **`SEESAW_DIRECTIONAL_X_INPUT()`** / **`SEESAW_DIRECTIONAL_Y_INPUT()`** — analog stick axes, normalized −1.0 to +1.0.
+  ```cpp
+  body.velocity.x = SEESAW_DIRECTIONAL_X_INPUT() * speed;
+  ```
+
+- **`SEESAW_DIRECTION_IS_LEFT()`** / **`SEESAW_DIRECTION_IS_RIGHT()`** / **`SEESAW_DIRECTION_IS_UP()`** / **`SEESAW_DIRECTION_IS_DOWN()`** — true when the stick is pushed more than halfway in the given direction.
+  ```cpp
+  if (SEESAW_DIRECTION_IS_UP()) { jump(); }
+  ```
+
 ---
+
+### Develop your own game
 
 Set three variables and include `Makefile.teensy` from your own Makefile:
 
@@ -318,7 +384,7 @@ make flash
 
 ---
 
-### Sample game
+### Shift game
 
 The included sample game `shift` targets both SDL2 and Teensy 4.1:
 
@@ -337,7 +403,7 @@ make -f Makefile.teensy -j
 make -f Makefile.teensy flash
 ```
 
-# Architecture
+# Drivers
 
 * [Display](#display): `pulse2d::Display`
   - The display adapter, with a host SDL2 interface
@@ -349,6 +415,8 @@ make -f Makefile.teensy flash
   - The RGB565 framebuffer, rasterization, blitting
 * [Audio](#audio): `pulse2d::Audio`
   - Audio interface via the Teensy audio library
+* [Gamepad](#gamepad): `pulse2d::gamepad::`
+  - Seesaw Gamepad QT I2C driver
 
 ## Display
 
@@ -360,10 +428,6 @@ Load sprites via `Storage::load_sprite()`. On the host any image format supporte
 
 On Teensy, `load_sprite` reads the raw binary format (`uint16_t` width, `uint16_t` height, then `width x height` RGB565 pixels) from the SD card.
 
-* TODO
-
-The storage component will also enable loading of sounds and audio files.
-
 ## Audio
 
 * TODO
@@ -372,14 +436,40 @@ The storage component will also enable loading of sounds and audio files.
 
 The physics component is a port of [box2d-lite](https://github.com/erincatto/box2d-lite) modified for embedded use: dynamic allocation replaced with fixed-size containers, all math in single-precision float, and the solver tuned for the Teensy 4.1's Cortex-M7.
 
-
 For more details, see the [physics readme](pulse2d/graphics/readme.md).
-
 
 ## Renderer
 
 The `Renderer` holds the full-screen RGB565 framebuffer for razterization and blitting. Each frame runs clear, draw, and render.
 
+## Gamepad
+
+The gamepad driver targets the [Adafruit Seesaw Gamepad QT](https://www.adafruit.com/product/5743) over I2C. The DSL wraps setup, polling, and input reads.
+
+A minimal setup:
+
+```
+PULSE2D_START_PULSE();
+PULSE2D_ENABLE_SEESAW_GAMEPAD();
+
+PULSE2D_ON_GAMESTART() {
+    ...
+    PULSE2D_START_SEESAW_GAMEPAD();
+    PULSE2D_SET_SCENE(Game_Level);
+}
+
+PULSE2D_ON_GAMESCENE(Game_Level) {
+    PULSE2D_TICK_WORLD(Game_Level);
+    PULSE2D_POLL_SEESAW_GAMEPAD();
+
+    SEESAW_ARCADE_DIRECTIONAL_MOVEMENT("player", 3.0f);
+
+    if (SEESAW_BUTTON_INPUT(SEESAW_A)) { fire(); }
+    if (SEESAW_BUTTON_INPUT(SEESAW_B)) { jump(); }
+
+    PULSE2D_RENDER(active_scene);
+}
+```
 
 ## Dependencies
 
