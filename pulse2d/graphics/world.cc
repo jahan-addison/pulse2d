@@ -26,6 +26,7 @@
 #include "body.h"        // for Body
 #include "joint.h"       // for Joint
 #include "math.h"        // for Vec2, operator*, operator+
+#include <cstddef>       // for size_t
 #include <etl/map.h>     // for map, operator!=, operator==
 #include <etl/utility.h> // for pair
 #include <etl/vector.h>  // for vector

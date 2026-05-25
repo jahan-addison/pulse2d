@@ -7,7 +7,8 @@
 
 #include <pulse2d/storage.h>
 
-#include <pulse2d/util.h> // for PULSE2D_TEENSY
+#include <pulse2d/sprite.h> // for Sprite
+#include <pulse2d/util.h>   // for PULSE2D_TEENSY
 
 #if !defined(PULSE2D_TEENSY)
 #define STB_IMAGE_IMPLEMENTATION

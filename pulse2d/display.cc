@@ -6,12 +6,13 @@
  ****************************************************************************/
 
 #include <pulse2d/display.h>
-#include <pulse2d/util.h> //  PULSE2D_TEENSY, PULSE2D_POLL_SERIAL...
 
-#include <cstdint> // for uint16_t, uint8_t
+#include <cstdint>        // for uint16_t, uint8_t
+#include <pulse2d/util.h> //  PULSE2D_TEENSY
 
 #if !defined(PULSE2D_TEENSY)
-#include <SDL2/SDL.h> // for SDL_Init, SDL_Quit, SDL_INIT_VIDEO
+#include <SDL2/SDL.h>   // for SDL_Init, SDL_Quit, SDL_INIT_VIDEO
+#include <SDL_pixels.h> // for SDL_PIXELFORMAT_RGB565
 #endif
 
 /****************************************************************************

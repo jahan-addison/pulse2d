@@ -22,11 +22,9 @@
 
 #pragma once
 
-#include "math.h"
-#include "types.h"
-#include <concepts>
-#include <type_traits>
-#include <utility>
+#include "math.h"  // for Vec2
+#include "types.h" // for assign
+#include <float.h> // for FLT_MAX
 
 /****************************************************************************
  * Body

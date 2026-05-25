@@ -9,10 +9,9 @@
 
 #if defined(PULSE2D_TEENSY)
 
-#include <pulse2d/util.h>
-
-#include <cstdint>
-#include <etl/array.h>
+#include <cstdint>        // for uint8_t
+#include <etl/array.h>    // for array
+#include <pulse2d/util.h> // for PULSE2D_DEBUG_SERIAL
 
 /****************************************************************************
  * Seesaw Gamepad

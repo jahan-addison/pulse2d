@@ -7,11 +7,6 @@
 
 #pragma once
 
-#include <cmath>
-#include <concepts>
-#include <cstdint>
-#include <etl/array.h>
-
 /****************************************************************************
  * Seesaw Gamepad
  *
@@ -38,7 +33,8 @@
 
 #if defined(PULSE2D_TEENSY)
 
-#include <Wire.h>
+#include <Wire.h>  // for Wire
+#include <cstdint> // for uint8_t
 
 namespace pulse2d::gamepad {
 
@@ -56,7 +52,7 @@ struct I2CDriver
     virtual bool read(uint8_t device_address,
         uint8_t* buffer,
         size_t length) = 0;
-    // The Seesaw chip physically requires a tiny pause to process commands
+    // the Seesaw chip physically requires a tiny pause to process commands
     virtual void delay_us(uint32_t microseconds) = 0;
 };
 

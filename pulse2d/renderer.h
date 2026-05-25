@@ -8,20 +8,20 @@
 #pragma once
 
 #include <cstddef>           // for size_t
-#include <cstdint>           // for uint16_t, int16_t
-#include <etl/array.h>       // for array
+#include <cstdint>           // for int16_t, uint16_t
 #include <etl/vector.h>      // for vector
-#include <pulse2d/display.h> // for Display, config::width, config::height
-#include <pulse2d/sprite.h>  // for Sprite
-#include <pulse2d/util.h>    // for PULSE2D_PRIVATE
-
-#include <pulse2d/graphics/world.h> // for World
+#include <pulse2d/display.h> // for frame_buffer_t, Display, height, width
+#include <pulse2d/util.h>    // for PULSE2D_EXTMEM, PULSE2D_PRIVATE
 
 namespace pulse2d {
-
-namespace pulse2d {
+struct Sprite;
+namespace graphics {
 class Body;
-} // namespace pulse2d
+class World;
+}
+}
+
+namespace pulse2d {
 
 /****************************************************************************
  * Renderer

@@ -7,11 +7,12 @@
 
 #include <pulse2d/renderer.h>
 
-#include <cmath>                    // for cosf, sinf
-#include <cstring>                  // for memset
+#include <cmath>                    // for cosf, sinf, sqrtf
+#include <etl/utility.h>            // for forward
 #include <pulse2d/graphics/body.h>  // for Body
 #include <pulse2d/graphics/math.h>  // for Vec2
 #include <pulse2d/graphics/world.h> // for World
+#include <pulse2d/sprite.h>         // for Sprite
 
 /****************************************************************************
  * Renderer

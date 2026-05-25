@@ -5,20 +5,23 @@
  * See the LICENSE file in the project root for the full text.
  ****************************************************************************/
 
-#include <SDL2/SDL.h>               // for SDL_PollEvent, SDL_QUIT, SDL_Event
-#include <cstdio>                   // for fprintf
-#include <cstdlib>                  // for abort
-#include <cxxabi.h>                 // for abi::__cxa_demangle
-#include <etl/error_handler.h>      // for error_handler::set_callback
-#include <etl/exception.h>          // for exception
-#include <etl/map.h>                // for map
-#include <execinfo.h>               // for backtrace, backtrace_symbols
-#include <pulse2d/graphics/body.h>  // for Body
-#include <pulse2d/graphics/math.h>  // for Vec2
-#include <pulse2d/graphics/world.h> // for World
-#include <pulse2d/pulse2d.h>        // for Pulse2d
-#include <string>                   // for string
-#include <string_view>              // for string_view
+#include <SDL_events.h>               // for SDL_Event, SDL_EventType, SDL_...
+#include <SDL_keycode.h>              // for SDL_KeyCode
+#include <compare>                    // for operator<
+#include <etl/map.h>                  // for map
+#include <float.h>                    // for FLT_MAX
+#include <pulse2d/graphics/arbiter.h> // for Arbiter_Key, operator<
+#include <pulse2d/graphics/body.h>    // for Body
+#include <pulse2d/graphics/math.h>    // for Vec2
+#include <pulse2d/graphics/world.h>   // for World
+#include <pulse2d/pulse2d.h>          // for Pulse2d
+#include <pulse2d/renderer.h>         // for Renderer
+#include <pulse2d/sprite.h>           // for Sprite
+#include <pulse2d/storage.h>          // for Storage
+#include <stdint.h>                   // for int16_t, uint16_t
+#include <string>                     // for basic_string, operator<=>, string
+#include <string_view>                // for basic_string_view, string_view
+#include <utility>                    // for move
 
 enum class Action
 {

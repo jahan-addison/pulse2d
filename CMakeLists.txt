@@ -117,10 +117,14 @@ if(IWYU)
   find_program(IWYU_EXECUTABLE include-what-you-use)
   if(IWYU_EXECUTABLE)
     if(APPLE)
+      execute_process(
+        COMMAND xcrun --sdk macosx --show-sdk-path
+        OUTPUT_VARIABLE _macos_sdk_path
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
       set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE
-          "${IWYU_EXECUTABLE};;-isysroot $(xcrun --sdk macosx --show-sdk-path)")
+          "${IWYU_EXECUTABLE};-isysroot;${_macos_sdk_path}")
     else()
-      set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE "${IWYU_EXECUTABLE};;")
+      set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE "${IWYU_EXECUTABLE}")
     endif()
     message(STATUS "IWYU enabled for C++ targets.")
   else()
