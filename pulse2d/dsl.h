@@ -193,20 +193,19 @@
 
 // Steps the physics simulation one frame. Brings active_scene and renderer into
 // scope
-#define PULSE2D_TICK_WORLD(SceneName)                        \
-    auto& active_scene = std::get<SceneName>(current_scene); \
-    world->step(PULSE);                                      \
+#define PULSE2D_TICK_WORLD(scene)                        \
+    auto& active_scene = std::get<scene>(current_scene); \
+    world->step(PULSE);                                  \
     auto& renderer = engine->renderer()
 
 // Flush renderer's sprite queue to the display
 #define PULSE2D_RENDER(active_scene) engine->tick(*world)
 
 // Define the entry function for a scene. Called once by PULSE2D_SET_SCENE
-#define PULSE2D_ON_GAMESCENE_START(SceneName) \
-    void pulse2d_scene_enter_##SceneName()
+#define PULSE2D_ON_GAMESCENE_START(scene) void pulse2d_scene_enter_##scene()
 
 // Define the per-frame function for a scene
-#define PULSE2D_ON_GAMESCENE(SceneName) void pulse2d_scene_fn_##SceneName()
+#define PULSE2D_ON_GAMESCENE(scene) void pulse2d_scene_fn_##scene()
 
 // Call the active scene's per-frame function, then resolve any pending
 // transition. Note: This is the only call needed in PULSE2D_ON_GAMELOOP

@@ -5,12 +5,6 @@
  * See the LICENSE file in the project root for the full text.
  ****************************************************************************/
 
-/****************************************************************************
- * Sample Game - Hit the planet with a fireball
- *
- * Use your Keyboard to cast a fireball spell at the planet body.
- ****************************************************************************/
-
 #include <SDL2/SDL.h>               // for SDL_PollEvent, SDL_QUIT, SDL_Event
 #include <cstdio>                   // for fprintf
 #include <cstdlib>                  // for abort
@@ -25,17 +19,6 @@
 #include <pulse2d/pulse2d.h>        // for Pulse2d
 #include <string>                   // for string
 #include <string_view>              // for string_view
-
-// ETL error callback
-static void on_etl_error(const etl::exception& e)
-{
-    std::fprintf(stderr,
-        "ETL error: %s (%s:%d)\n",
-        e.what(),
-        e.file_name(),
-        e.line_number());
-    std::abort();
-}
 
 enum class Action
 {
@@ -234,8 +217,6 @@ inline void on_reset(Object_Pool& objects,
 
 int main()
 {
-    etl::error_handler::set_callback<&on_etl_error>();
-
     pulse2d::Pulse2d engine{};
     State state{};
     Sprite_Pool sprites{};
