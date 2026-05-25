@@ -2,6 +2,7 @@
   <img src="docs/logo/pulse2d-sleek-final-final-final.png" width="800" alt="pulse2d"> </img>
 </div>
 
+
 <h5 align="center">
   Teensy 4.1 2D Game Engine 🎮
 </h5>
@@ -66,7 +67,9 @@ add_subdirectory(pulse2d)          # or use CPM, FetchContent
 target_link_libraries(my_game PRIVATE pulse2d::pulse2d)
 ```
 
-### Sample game: `shift`
+---
+
+### Build sample game: `shift`
 
 The included sample game `shift` targets both SDL2 and Teensy 4.1:
 
@@ -80,7 +83,7 @@ cmake -Bbuild -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER="Address;Undefined" -DCMA
 cmake --build build
 ./build/shift_game
 
-# ubuntu
+# Ubuntu
 sudo apt update
 sudo apt install libsdl2-dev
 
@@ -101,7 +104,9 @@ make -f Makefile.teensy clean  # remove build-teensy/
 make -f Makefile.teensy flash  # flash with teensy_loader_cli
 ```
 
-### Develop your own game
+---
+
+### Build your own game
 
 Set three variables and include `Makefile.teensy` from your own Makefile:
 
@@ -123,7 +128,6 @@ make flash
 
 `TEENSY_HW` is auto-detected from the Arduino package directory, see [Makefile.teensy](Makefile.teensy) for all configurable variables.
 
----
 
 ## Game Development
 
