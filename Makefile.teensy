@@ -118,8 +118,10 @@ SYS_INC :=                    \
 PROJ_INC := -I$(PULSE2D_ROOT) -I$(ETL_INCLUDE)
 INC      := $(SYS_INC) $(PROJ_INC)
 
-CXXFLAGS     := $(MCU) -O2 -Wall -std=gnu++23 \
+CXXFLAGS     := $(MCU) -O2 -Wall -Wextra -Wshadow -Wdouble-promotion -Wconversion \
+                -std=gnu++23 \
                 -felide-constructors -fno-exceptions -fno-rtti -fpermissive \
+                -MMD -MP \
                 $(DEFS) $(INC)
 CFLAGS       := $(MCU) -O2 -Wall $(DEFS) $(INC)
 ASFLAGS      := $(MCU) $(DEFS) $(INC)
@@ -435,8 +437,47 @@ $(OUT)/$(GAME_NAME).hex: $(OUT)/$(GAME_NAME).elf
 size: $(OUT)/$(GAME_NAME).elf
 	@$(SIZE) $<
 
+# Print a sorted section table — region, VMA, LMA, size, type.
+# Sections < 64 bytes are hidden by default; pass SECTIONS_ALL=1 to show all.
+# Usage:  make sections
+#         make sections SECTIONS_ALL=1
+.PHONY: sections
+sections: $(OUT)/$(GAME_NAME).elf
+	$(call _step,Section map for $(GAME_NAME).elf)
+	@python3 $(PULSE2D_ROOT)/tools/sections $(OUT)/$(GAME_NAME).elf \
+	  $(if $(SECTIONS_ALL),--all,)
+
+# Print the Teensy linker script memory regions and output section → region map.
+# Usage:  make ldscript
+.PHONY: ldscript
+ldscript:
+	$(call _step,Linker script memory layout)
+	@python3 $(PULSE2D_ROOT)/tools/ldscript
+
 flash: $(OUT)/$(GAME_NAME).hex
 	@teensy_loader_cli --mcu=TEENSY41 -w -s $<
 
+# Compile game sources to ARM assembly listings for inspection.
+# Output: build-teensy/game/<name>.s
+# Usage:  make -f Makefile.teensy asm
+ASM_OUT := $(GAME_OBJ:.o=.s)
+
+define ASM_RULE
+$(OUT)/game/$(notdir $(1:.cc=.s)): $(1)
+	@mkdir -p $$(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "ASM" "$$(notdir $$(1))"
+	@$$(CXX) $$(CXXFLAGS) -S -fverbose-asm -g0 $$< -o $$@
+endef
+$(foreach src,$(GAME_SRCS),$(eval $(call ASM_RULE,$(src))))
+
+.PHONY: asm
+asm: $(ASM_OUT)
+	$(call _step,Assembly listings written to $(OUT)/game/)
+
 clean:
 	rm -rf $(OUT)
+
+# Auto-generated header dependency files (produced by -MMD -MP).
+# Only pulse2d engine and game objects emit these; vendored libs do not.
+DEPS := $(PULSE2D_OBJ:.o=.d) $(GAME_OBJ:.o=.d)
+-include $(DEPS)

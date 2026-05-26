@@ -126,9 +126,9 @@ struct World_Descriptor
 class World
 {
   public:
-    World(Vec2 gravity, int iterations)
-        : gravity(gravity)
-        , iterations(iterations)
+    World(Vec2 gravity_, int iterations_)
+        : gravity(gravity_)
+        , iterations(iterations_)
     {
     }
 

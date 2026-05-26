@@ -7,6 +7,11 @@
 
 #pragma once
 
-#define ETL_THROW_EXCEPTIONS
+// ETL_NO_EXCEPTIONS: use error handler callbacks instead of throw.
+// Required when building with -fno-exceptions (Teensyduino default).
+// With ETL_THROW_EXCEPTIONS + -fno-exceptions, throw compiles to
+// std::terminate() with no message — ETL errors are completely silent.
+#define ETL_NO_EXCEPTIONS
 #define ETL_VERBOSE_ERRORS
 #define ETL_CHECK_PUSH_POP
+#define ETL_LOG_ERRORS

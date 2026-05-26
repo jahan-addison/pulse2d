@@ -8,11 +8,13 @@
 #pragma once
 
 #include <etl/array.h>
+#include <etl/error_handler.h>
 #include <etl/map.h>
 #include <etl/vector.h>
 #include <pulse2d/gamepad/seesaw.h>
 #include <pulse2d/graphics/body.h>
 #include <pulse2d/graphics/world.h>
+#include <pulse2d/renderer.h>
 #include <pulse2d/sprite.h>
 #include <pulse2d/storage.h>
 #include <pulse2d/util.h>
@@ -193,10 +195,10 @@
 
 // Steps the physics simulation one frame. Brings active_scene and renderer into
 // scope
-#define PULSE2D_TICK_WORLD(scene)                        \
-    auto& active_scene = std::get<scene>(current_scene); \
-    world->step(PULSE);                                  \
-    auto& renderer = engine->renderer()
+#define PULSE2D_TICK_WORLD(scene)                                         \
+    [[maybe_unused]] auto& active_scene = std::get<scene>(current_scene); \
+    world->step(PULSE);                                                   \
+    [[maybe_unused]] auto& renderer = engine->renderer()
 
 // Flush renderer's sprite queue to the display
 #define PULSE2D_RENDER(active_scene) engine->tick(*world)
@@ -233,9 +235,54 @@
 // Conditional block that executes when a specific named arbiter is active
 #define PULSE2D_ON_COLLISION_WITH(with) if (world->arbiters.contains(#with))
 
+////////////////
+// Background //
+////////////////
+
+// Add parallax background scrolling layer
+#define PULSE2D_ADD_SCROLLING_LAYER(sprite_name, width, speed)               \
+    do {                                                                     \
+        std::visit(                                                          \
+            [](auto& scene) {                                                \
+                if constexpr (!std::is_same_v<std::decay_t<decltype(scene)>, \
+                                  std::monostate>) {                         \
+                    scene.background_layers.push_back(                       \
+                        { (#sprite_name), (width), (speed), 0.0f });         \
+                }                                                            \
+            },                                                               \
+            current_scene);                                                  \
+    } while (0)
+
+// Ticks and renders all backgrounds directly to the screen
+#define PULSE2D_RENDER_BACKGROUNDS()                                         \
+    do {                                                                     \
+        std::visit(                                                          \
+            [](auto& scene) {                                                \
+                if constexpr (!std::is_same_v<std::decay_t<decltype(scene)>, \
+                                  std::monostate>) {                         \
+                    auto& _bg_renderer = engine->renderer();                 \
+                    scene.update_and_draw_parallax(_bg_renderer, PULSE);     \
+                }                                                            \
+            },                                                               \
+            current_scene);                                                  \
+    } while (0)
+
 /////////////
 // Sprites //
 /////////////
+
+// Set a sprite from flash memory
+#define PULSE2D_SET_SPRITE_FLASH(name, data_ptr, w, h)                       \
+    do {                                                                     \
+        std::visit(                                                          \
+            [](auto& scene) {                                                \
+                if constexpr (!std::is_same_v<std::decay_t<decltype(scene)>, \
+                                  std::monostate>) {                         \
+                    scene.set_from_flash(#name, data_ptr, w, h);             \
+                }                                                            \
+            },                                                               \
+            current_scene);                                                  \
+    } while (0)
 
 // Project a body's world-space position to screen coordinates and queue its
 // sprite. Note: optional third argument to set a fixed rotation in radians
@@ -287,7 +334,6 @@
     } while (0)
 
 // Return a reference to a named body from active_scene
-// Note: Available after PULSE2D_TICK_WORLD
 #define PULSE2D_GET_BODY(name) active_scene.get_body(name)
 
 // Load a sprite into the current scene's pool from the SD card
@@ -307,6 +353,24 @@
 // Debug //
 ///////////
 
+// Named free function required by etl::error_handler::set_callback<F>().
+#if defined(DEBUG) && defined(PULSE2D_TEENSY)
+namespace pulse2d::debug {
+inline void etl_serial_error_handler(const etl::exception& e)
+{
+    if (Serial) {
+        Serial.print("[ETL ERROR] ");
+        Serial.print(e.file_name());
+        Serial.print(":");
+        Serial.print(e.line_number());
+        Serial.print(" ");
+        Serial.println(e.what());
+        Serial.flush();
+    }
+}
+} // namespace pulse2d::debug
+#endif
+
 #if defined(DEBUG)
 // Print stack usage to serial every 300 frames
 #define PULSE2D_PRINT_STACKSIZE()                                          \
@@ -316,8 +380,13 @@
             Serial.printf(                                                 \
                 "stack used: %lu bytes\n", pulse2d::teensy::stack_used()); \
     } while (0)
+
+// Register a Serial error handler for ETL assertion failures.
+#define PULSE2D_REGISTER_ETL_ERROR_HANDLER() \
+    etl::error_handler::set_callback<pulse2d::debug::etl_serial_error_handler>()
 #else
 #define PULSE2D_PRINT_STACKSIZE()
+#define PULSE2D_REGISTER_ETL_ERROR_HANDLER()
 #endif
 #endif
 
@@ -333,6 +402,14 @@ struct CStrLess
     {
         return __builtin_strcmp(a, b) < 0;
     }
+};
+
+struct Parallax_Layer
+{
+    const char* sprite_name;
+    float width;
+    float scroll_speed;
+    float current_offset = 0.0f;
 };
 
 struct Pulse2d_Scene_Base
@@ -393,8 +470,64 @@ struct Pulse2d_Scene : Pulse2d_Scene_Base
                 sprites[active_sprites - 1].height);
         }
     }
+
+    inline void set_from_flash(const char* name,
+        uint16_t const* flash_data,
+        uint16_t w,
+        uint16_t h)
+    {
+        if (total_sprites >= pulse2d::Storage::k_max_loaded_sprites ||
+            active_sprites >= T_Sprite) {
+            PULSE2D_DEBUG_SERIAL(
+                "[WARN] sprite pool full, cannot load flash sprite '%s'\n",
+                name);
+            return;
+        }
+        sprite_pool[name] = active_sprites;
+
+        sprites.at(active_sprites).data = flash_data;
+        sprites.at(active_sprites).width = w;
+        sprites.at(active_sprites).height = h;
+
+        ++active_sprites;
+        ++total_sprites;
+
+        PULSE2D_DEBUG_SERIAL("flash sprite '%s' ready: %ux%u\n", name, w, h);
+    }
+
+    inline void update_and_draw_parallax(pulse2d::Renderer& renderer,
+        float delta_time)
+    {
+        for (auto& layer : background_layers) {
+            // Skip any layer whose sprite was not registered (e.g. because
+            // T_Sprite in PULSE2D_DEFINE_SCENE is fewer than the number of
+            // PULSE2D_ADD_SCROLLING_LAYER calls, or set_from_flash was never
+            // called for it). Without this guard, sprite_pool.at() would hit
+            // an ETL assertion and hard-fault the board on the first loop tick.
+            auto it = sprite_pool.find(layer.sprite_name);
+            if (it == sprite_pool.end()) {
+                PULSE2D_DEBUG_SERIAL(
+                    "[WARN] parallax: sprite '%s' not registered, skipping\n",
+                    layer.sprite_name);
+                continue;
+            }
+
+            layer.current_offset += layer.scroll_speed * delta_time;
+            layer.current_offset = std::fmod(layer.current_offset, layer.width);
+
+            float draw_x = -layer.current_offset;
+
+            const pulse2d::Sprite& _spr = sprites.at(it->second);
+
+            renderer.add_sprite(&_spr, static_cast<int16_t>(draw_x), 0);
+            renderer.add_sprite(
+                &_spr, static_cast<int16_t>(draw_x + layer.width), 0);
+        }
+    }
+
     etl::array<pulse2d::graphics::Body, T_Body> bodies;
     etl::array<pulse2d::graphics::Joint, T_Joint> joints;
+    etl::vector<Parallax_Layer, 8> background_layers;
     etl::array<pulse2d::Sprite, T_Sprite> sprites;
 
     etl::map<const char*, std::size_t, T_Body, CStrLess> body_pool;

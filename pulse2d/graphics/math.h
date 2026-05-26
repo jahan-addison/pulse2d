@@ -63,9 +63,9 @@ class Vec2
         , y(0.0f)
     {
     }
-    Vec2(float x, float y)
-        : x(x)
-        , y(y)
+    Vec2(float x_, float y_)
+        : x(x_)
+        , y(y_)
     {
     }
 
@@ -133,9 +133,9 @@ class Mat22
         col2.y = c;
     }
 
-    explicit Mat22(const Vec2& col1, const Vec2& col2)
-        : col1(col1)
-        , col2(col2)
+    explicit Mat22(const Vec2& col1_, const Vec2& col2_)
+        : col1(col1_)
+        , col2(col2_)
     {
     }
 

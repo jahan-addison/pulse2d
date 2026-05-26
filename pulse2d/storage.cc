@@ -50,7 +50,7 @@ Sprite Storage::load_sprite(const char* path,
 {
     if (next_slot_ >= k_max_loaded_sprites) {
         PULSE2D_DEBUG_SERIAL(
-            "[WARN] storage: slot pool full, cannot load '%s'\n", path);
+            "[WARN] storage: sprite slot pool full, cannot load '%s'\n", path);
         return { nullptr, 0, 0 };
     }
 
@@ -64,17 +64,28 @@ Sprite Storage::load_sprite(const char* path,
     }
     if (file.read(&w, sizeof(w)) != sizeof(w) or
         file.read(&h, sizeof(h)) != sizeof(h)) {
+        PULSE2D_DEBUG_SERIAL(
+            "[WARN] storage: sprite '%s' target size of %ux%u is too large",
+            path,
+            w,
+            h);
+
         file.close();
         return { nullptr, 0, 0 };
     }
     const size_t pixel_count = static_cast<size_t>(w) * h;
     if (pixel_count == 0 or pixel_count > k_max_sprite_pixels) {
+        PULSE2D_DEBUG_SERIAL(
+            "[WARN] storage: sprite '%s' pixel size is zero or too large",
+            path);
         file.close();
         return { nullptr, 0, 0 };
     }
     auto& buf = pool_[next_slot_];
     if (file.read(buf.data(), pixel_count * sizeof(uint16_t)) !=
         static_cast<int>(pixel_count * sizeof(uint16_t))) {
+        PULSE2D_DEBUG_SERIAL(
+            "[WARN] storage: sprite '%s' pixel count exceeds limit", path);
         file.close();
         return { nullptr, 0, 0 };
     }

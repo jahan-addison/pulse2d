@@ -51,10 +51,7 @@ namespace pulse2d {
 class Storage
 {
   public:
-    // maximum number of sprites that can be resident at once
     static constexpr size_t k_max_loaded_sprites = MAX_LOADED_SPRITES;
-    // maximum pixels per sprite - sized for the host display; Teensy games
-    // should use smaller sprites and tune this for available SRAM.
 #if defined(PULSE2D_TEENSY)
     static constexpr size_t k_max_sprite_pixels = 96 * 96;
 #else

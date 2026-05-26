@@ -13,7 +13,9 @@
 #include <utility>     // for std::forward
 
 #ifdef __IMXRT1062__
+#ifndef PULSE2D_TEENSY
 #define PULSE2D_TEENSY __IMXRT1062__
+#endif
 #endif
 
 #ifdef PULSE2D_TESTING
@@ -32,8 +34,22 @@
  *  i.MX RT1062)
  */
 #define PULSE2D_EXTMEM __attribute__((section(".dmabuffers"), used))
+/**
+ * @brief Keep a constant in FLASH (never copied to DTCM at boot).
+ *
+ * The Teensy 4.x linker script merges .rodata into the .data output
+ * section which is bulk-copied from FLASH to DTCM at startup. Large
+ * read-only tables (palettes, sprite sheets, background images) would
+ * exhaust DTCM immediately. Placing them in .progmem keeps them in
+ * the 8 MB QSPI flash where they are accessed via the hardware cache.
+ *
+ * Usage:
+ *   PULSE2D_FLASHMEM static constexpr uint16_t my_image[W * H] = { ... };
+ */
+#define PULSE2D_FLASHMEM __attribute__((section(".progmem")))
 #else
 #define PULSE2D_EXTMEM
+#define PULSE2D_FLASHMEM
 #endif
 #if defined(PULSE2D_TEENSY) && defined(DEBUG)
 #define PULSE2D_DEBUG_SERIAL(...)       \

@@ -16,7 +16,7 @@ namespace pulse2d {
  *   RGB565 sprite descriptor
  *
  *   A non-owning view into pixel data managed by the Storage pool. The
- *   pixel data is row-major RGB565. On Teensy the pool lives in DMAMEM;
+ *   pixel data is row-major RGB565. On Teensy the pool lives in DMAMEM,
  *   on host it is a plain static array.
  *
  *   Sprite file format (raw binary):
@@ -26,7 +26,7 @@ namespace pulse2d {
  */
 struct Sprite
 {
-    uint16_t const* data; // row-major RGB565 pixels; nullptr on load failure
+    uint16_t const* data; // row-major RGB565 pixels, nullptr on load failure
     uint16_t width;
     uint16_t height;
 };

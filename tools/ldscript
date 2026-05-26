@@ -1,0 +1,224 @@
+##############################################################################
+# Copyright (c) 2026 Jahan Addison
+# Licensed under the MIT License (https://opensource.org/license/mit)
+##############################################################################
+
+#!/usr/bin/env python3
+# ldscript — summarise the Teensy 4.x linker script memory layout
+#
+# Reads imxrt1062_t41.ld from the active Teensyduino install (or a path you
+# supply) and prints two tables:
+#
+#   1. MEMORY REGIONS — name, origin, length, and permissions
+#   2. OUTPUT SECTIONS — name, the input patterns it collects, and the region
+#      it maps to, so you can answer "which section attribute do I need to keep
+#      this table in flash?" without grepping the raw ld file by hand.
+#
+# Example:
+# How .progmem was found:
+#   The Teensy linker script groups .rodata* inside the .data output section
+#   (region: DTCM, copied from flash at boot). That means every constexpr
+#   array ends up in DTCM regardless of the C++ storage class. Running this
+#   tool reveals that .progmem* and .flashmem* are separate output sections
+#   that map directly to FLASH.
+#
+# Usage:
+#   ldscript  [--ld /path/to/imxrt1062_t41.ld]
+
+import argparse
+import re
+import sys
+from pathlib import Path
+
+
+_LD_SEARCH = [
+    Path.home() / "Library/Arduino15/packages/teensy/hardware/avr/1.60.0/cores/teensy4/imxrt1062_t41.ld",
+    Path.home() / ".arduino15/packages/teensy/hardware/avr/1.60.0/cores/teensy4/imxrt1062_t41.ld",
+]
+
+_RESET  = "\033[0m"
+_BOLD   = "\033[1m"
+_DIM    = "\033[2m"
+_CYAN   = "\033[1;36m"
+_GREEN  = "\033[1;32m"
+_YELLOW = "\033[1;33m"
+
+_REGION_COLOR = {
+    "FLASH": _GREEN,
+    "DTCM":  _YELLOW,
+    "RAM":   _CYAN,
+    "ERAM":  _DIM,
+    "ITCM":  _CYAN,
+}
+
+
+class Parse_Error(Exception):
+    __module__ = "ldscript"
+
+
+class Linker_Script:
+    """Teensy 4.x linker script parser and formatter.
+
+    Reads imxrt1062_t41.ld and extracts MEMORY region declarations and
+    output section → region mappings, then renders them as ANSI-coloured
+    tables to stdout.
+
+    Args:
+        path: Path to the imxrt1062_t41.ld linker script.
+
+    Attributes:
+        path: The linker script file path.
+        text: Raw file contents.
+
+    """
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self.text = path.read_text()
+
+    @staticmethod
+    def find() -> Path:
+        """Locate the Teensyduino linker script on disk.
+
+        Returns:
+            Path to imxrt1062_t41.ld.
+
+        """
+        for p in _LD_SEARCH:
+            if p.exists():
+                return p
+        raise Parse_Error(
+            "imxrt1062_t41.ld not found in the default Teensyduino locations.\n"
+            "Pass the path explicitly with --ld /path/to/imxrt1062_t41.ld"
+        )
+
+    def _parse_size(self, s: str) -> int:
+        """Parse a linker script size value (e.g. 512K, 8M).
+
+        Args:
+            s: Size string from the MEMORY block.
+
+        Returns:
+            Size in bytes.
+
+        """
+        s = s.strip()
+        if s.endswith("K"): return int(s[:-1]) * 1024
+        if s.endswith("M"): return int(s[:-1]) * 1024 * 1024
+        if s.endswith("G"): return int(s[:-1]) * 1024 * 1024 * 1024
+        return int(s, 0)
+
+    def memory_regions(self) -> list[dict]:
+        """Extract MEMORY { } block entries.
+
+        Returns:
+            List of dicts with keys: name, perms, origin, length.
+
+        """
+        block = re.search(r"MEMORY\s*\{([^}]+)\}", self.text, re.DOTALL)
+        if not block:
+            return []
+        regions = []
+        for m in re.finditer(
+            r"(\w+)\s*\(([^)]+)\)\s*:\s*ORIGIN\s*=\s*(0x[0-9a-fA-F]+)\s*,"
+            r"\s*LENGTH\s*=\s*([0-9a-fA-F]+[KMG]?)",
+            block.group(1),
+        ):
+            name, perms, origin, length = m.groups()
+            regions.append({
+                "name":   name,
+                "perms":  perms.strip(),
+                "origin": int(origin, 16),
+                "length": self._parse_size(length),
+            })
+        return regions
+
+    def output_sections(self) -> list[dict]:
+        """Extract output sections and their target regions.
+
+        Returns:
+            List of dicts with keys: name, region, patterns.
+
+        """
+        sections = []
+        for m in re.finditer(
+            r"^\s+(\.\S+)\s[^:]*:\s*\{([^}]*)\}\s*(?:>|>)\s*(\w+)",
+            self.text,
+            re.MULTILINE | re.DOTALL,
+        ):
+            sec_name, body, region = m.groups()
+            patterns = re.findall(r"\*\(([^)]+)\)", body)
+            flat: list[str] = []
+            seen: set[str] = set()
+            for p in patterns:
+                for tok in p.split():
+                    tok = tok.strip(",")
+                    if tok and tok not in seen:
+                        flat.append(tok)
+                        seen.add(tok)
+            sections.append({"name": sec_name, "region": region, "patterns": flat})
+        return sections
+
+    def print_memory(self) -> None:
+        """Print the MEMORY regions table.
+
+        Returns:
+            None
+
+        """
+        print(f"\n{_BOLD}── MEMORY REGIONS{_RESET}")
+        print(f"  {_DIM}{'NAME':<8}  {'PERMS':<6}  {'ORIGIN':>12}  {'LENGTH':>12}  KB{_RESET}")
+        print(f"  {_DIM}{'-'*8}  {'-'*6}  {'------------':>12}  {'------------':>12}  ------{_RESET}")
+        for r in self.memory_regions():
+            color = _REGION_COLOR.get(r["name"], "")
+            print(f"  {color}{r['name']:<8}{_RESET}  {r['perms']:<6}  "
+                  f"0x{r['origin']:010x}  {r['length']:>12,}  {r['length']//1024:>5} KB")
+
+    def print_sections(self) -> None:
+        """Print the output sections to regions table.
+
+        Returns:
+            None
+
+        """
+        print(f"\n{_BOLD}── OUTPUT SECTIONS → REGIONS{_RESET}")
+        print(f"  {_DIM}{'SECTION':<24}  {'REGION':<8}  INPUT PATTERNS{_RESET}")
+        print(f"  {_DIM}{'-'*24}  {'-'*8}  {'-'*40}{_RESET}")
+        for s in self.output_sections():
+            color  = _REGION_COLOR.get(s["region"], "")
+            pats   = "  ".join(s["patterns"]) if s["patterns"] else "(none listed)"
+            region = f"{color}{s['region']:<8}{_RESET}"
+            print(f"  {_CYAN}{s['name']:<24}{_RESET}  {region}  {_DIM}{pats}{_RESET}")
+
+
+def main() -> None:
+    sys.tracebacklimit = 0
+    try:
+        """Summarise the Teensy 4.x linker script memory layout.
+
+        Args:
+            argv: [--ld PATH]
+
+        """
+        ap = argparse.ArgumentParser(
+            description="Summarise the Teensy 4.x linker script memory layout."
+        )
+        ap.add_argument("--ld", metavar="PATH",
+                        help="path to imxrt1062_t41.ld (auto-detected if omitted)")
+        args = ap.parse_args()
+
+        ld_path = Path(args.ld) if args.ld else Linker_Script.find()
+        if not ld_path.exists():
+            raise Parse_Error(f"linker script not found: {ld_path}")
+
+        script = Linker_Script(ld_path)
+        print(f"{_DIM}{ld_path}{_RESET}")
+        script.print_memory()
+        script.print_sections()
+
+    except Parse_Error as e:
+        sys.exit(f"error: {e}")
+
+
+if __name__ == "__main__":
+    main()

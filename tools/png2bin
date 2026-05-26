@@ -1,0 +1,124 @@
+##############################################################################
+# Copyright (c) 2026 Jahan Addison
+# Licensed under the MIT License (https://opensource.org/license/mit)
+##############################################################################
+
+#!/usr/bin/env python3
+# png2bin — convert a PNG to the Pulse2D RGB565 sprite binary format
+#
+# Format written:
+#   uint16_t width   (little-endian)
+#   uint16_t height  (little-endian)
+#   uint16_t pixels[width * height]  (RGB565, row-major)
+#
+# Pixels with alpha < 16 are written as 0xF81F (magenta chroma-key),
+# matching the transparent sentinel used by the pulse2d renderer.
+#
+# Usage:
+#   png2bin <input.png> <output.bin> <width> <height>
+
+import struct
+import sys
+
+try:
+    from PIL import Image
+except ImportError:
+    sys.exit("error: Pillow is not installed — run: pip3 install Pillow")
+
+
+class Conversion_Error(Exception):
+    __module__ = "png2bin"
+
+
+class Converter:
+    """PNG to Luya RGB565 binary sprite converter.
+
+    Opens, resizes, and encodes a source image as packed RGB565 pixel
+    data with a two-byte width/height header.
+
+    Args:
+        src: Path to the input PNG file.
+        dst: Path to the output binary file.
+        width: Target width in pixels.
+        height: Target height in pixels.
+
+    Attributes:
+        src: Input file path.
+        dst: Output file path.
+        width: Target width.
+        height: Target height.
+
+    """
+
+    def __init__(self, src: str, dst: str, width: int, height: int) -> None:
+        self.src    = src
+        self.dst    = dst
+        self.width  = width
+        self.height = height
+
+    def convert(self) -> None:
+        """Encode the image and write the binary output.
+
+        Returns:
+            None
+
+        """
+        try:
+            img = Image.open(self.src).convert("RGBA").resize(
+                (self.width, self.height), Image.NEAREST
+            )
+        except FileNotFoundError:
+            raise Conversion_Error(f"input file not found: {self.src}") from None
+        except Exception as e:
+            raise Conversion_Error(f"could not open image: {e}") from None
+
+        with open(self.dst, "wb") as f:
+            f.write(struct.pack("<HH", self.width, self.height))
+            for y in range(self.height):
+                for x in range(self.width):
+                    r, g, b, a = img.getpixel((x, y))
+                    if a < 16:
+                        pixel = 0xF81F
+                    else:
+                        pixel = ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)
+                    f.write(struct.pack("<H", pixel))
+
+        print(
+            f"{self.src} → {self.dst}  ({self.width}×{self.height}, "
+            f"{4 + self.width * self.height * 2} bytes)"
+        )
+
+
+def main() -> None:
+    sys.tracebacklimit = 0
+    try:
+        """Convert a PNG to Pulse2D RGB565 binary format.
+
+        Args:
+            argv: <input.png> <output.bin> <width> <height>
+
+        """
+        if len(sys.argv) != 5:
+            sys.exit(
+                "usage: png2bin <input.png> <output.bin> <width> <height>\n"
+                "  e.g. png2bin sprite.png sprite.bin 96 96"
+            )
+
+        _, src, dst, w_str, h_str = sys.argv
+
+        try:
+            w, h = int(w_str), int(h_str)
+        except ValueError:
+            raise Conversion_Error("width and height must be integers") from None
+
+        if w <= 0 or h <= 0:
+            raise Conversion_Error("width and height must be positive")
+
+        Converter(src, dst, w, h).convert()
+
+    except Conversion_Error as e:
+        sys.exit(f"error: {e}")
+
+
+if __name__ == "__main__":
+    main()
