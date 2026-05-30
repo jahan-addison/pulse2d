@@ -240,7 +240,7 @@
 ////////////////
 
 // Add parallax background scrolling layer
-#define PULSE2D_ADD_SCROLLING_LAYER(sprite_name, width, speed)               \
+#define PULSE2D_ADD_PARALLAX_LAYER(sprite_name, width, speed)                \
     do {                                                                     \
         std::visit(                                                          \
             [](auto& scene) {                                                \
@@ -248,6 +248,20 @@
                                   std::monostate>) {                         \
                     scene.background_layers.push_back(                       \
                         { (#sprite_name), (width), (speed), 0.0f });         \
+                }                                                            \
+            },                                                               \
+            current_scene);                                                  \
+    } while (0)
+
+// Add background layer
+#define PULSE2D_ADD_BACKGROUND_LAYER(sprite_name, width)                     \
+    do {                                                                     \
+        std::visit(                                                          \
+            [](auto& scene) {                                                \
+                if constexpr (!std::is_same_v<std::decay_t<decltype(scene)>, \
+                                  std::monostate>) {                         \
+                    scene.background_layers.push_back(                       \
+                        { (#sprite_name), (width), 0.0f, 0.0f });            \
                 }                                                            \
             },                                                               \
             current_scene);                                                  \
@@ -501,7 +515,7 @@ struct Pulse2d_Scene : Pulse2d_Scene_Base
         for (auto& layer : background_layers) {
             // Skip any layer whose sprite was not registered (e.g. because
             // T_Sprite in PULSE2D_DEFINE_SCENE is fewer than the number of
-            // PULSE2D_ADD_SCROLLING_LAYER calls, or set_from_flash was never
+            // PULSE2D_ADD_PARALLAX_LAYER calls, or set_from_flash was never
             // called for it). Without this guard, sprite_pool.at() would hit
             // an ETL assertion and hard-fault the board on the first loop tick.
             auto it = sprite_pool.find(layer.sprite_name);
