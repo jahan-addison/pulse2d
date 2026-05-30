@@ -132,7 +132,7 @@ make flash
 
 `TEENSY_HW` is auto-detected from the Arduino package directory, see [Makefile.teensy](Makefile.teensy) for all configurable variables.
 
-**Note**: Check the [tools](#tools) section for additional asset and debugging tools during game development:
+#### Note: Check the [tools](#tools) section for additional asset and debugging tools during game development:
 
 ```bash
 make asm
