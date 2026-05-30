@@ -1,9 +1,9 @@
+#!/usr/bin/env python3
 ##############################################################################
 # Copyright (c) 2026 Jahan Addison
 # Licensed under the MIT License (https://opensource.org/license/mit)
 ##############################################################################
 
-#!/usr/bin/env python3
 # png2bin — convert a PNG to the Pulse2D RGB565 sprite binary format
 #
 # Format written:

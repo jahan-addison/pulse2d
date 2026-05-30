@@ -15,6 +15,8 @@ The Teensy 4.1 is a microcontroller development board based on the NXP i.MX RT10
 
 The project builds a sample game for desktop and the teensy hardware called `shift`.
 
+Check out the [blog series](https://soliloq.uy/tag/pulse2d/)!
+
 ### Demo:
 
 
