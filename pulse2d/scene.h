@@ -86,18 +86,17 @@ struct Pulse2d_Scene : Pulse2d_Scene_Base
     static_assert(T_Joint <= MAX_PHYSICS_JOINTS,
         "T_Joint exceeds MAX_PHYSICS_JOINTS");
 
-    inline graphics::Body& get_body(const char* name)
+    graphics::Body& get_body(const char* name)
     {
         return bodies.at(body_pool.at(name));
     }
 
-    inline Sprite& get_sprite(const char* name)
+    Sprite& get_sprite(const char* name)
     {
         return sprites.at(sprite_pool.at(name));
     }
 
-    inline void set(const char* name,
-        pulse2d::graphics::detail::Body_Descriptor& body)
+    void set(const char* name, pulse2d::graphics::detail::Body_Descriptor& body)
     {
         if (total_bodies >= MAX_PHYSICS_BODIES) {
             PULSE2D_DEBUG_SERIAL(
@@ -109,7 +108,7 @@ struct Pulse2d_Scene : Pulse2d_Scene_Base
         ++total_bodies;
     }
 
-    inline void set(const char* name,
+    void set(const char* name,
         pulse2d::Storage& storage,
         const char* path,
         uint16_t x,
@@ -134,13 +133,12 @@ struct Pulse2d_Scene : Pulse2d_Scene_Base
         }
     }
 
-    inline void set_from_flash(const char* name,
+    void set_from_flash(const char* name,
         uint16_t const* flash_data,
         uint16_t w,
         uint16_t h)
     {
-        if (total_sprites >= pulse2d::Storage::k_max_loaded_sprites ||
-            active_sprites >= T_Sprite) {
+        if (total_sprites >= pulse2d::Storage::k_max_loaded_sprites) {
             PULSE2D_DEBUG_SERIAL(
                 "[WARN] sprite pool full, cannot load flash sprite '%s'\n",
                 name);
@@ -158,7 +156,7 @@ struct Pulse2d_Scene : Pulse2d_Scene_Base
         PULSE2D_DEBUG_SERIAL("flash sprite '%s' ready: %ux%u\n", name, w, h);
     }
 
-    inline void tick_and_draw_animations(pulse2d::Renderer& renderer, float dt)
+    void tick_and_draw_animations(pulse2d::Renderer& renderer, float dt)
     {
         auto it = active_animations.begin();
 
@@ -194,8 +192,7 @@ struct Pulse2d_Scene : Pulse2d_Scene_Base
         }
     }
 
-    inline void update_and_draw_parallax(pulse2d::Renderer& renderer,
-        float delta_time)
+    void update_and_draw_parallax(pulse2d::Renderer& renderer, float delta_time)
     {
         for (auto& layer : background_layers) {
             // Skip any layer whose sprite was not registered (e.g. because

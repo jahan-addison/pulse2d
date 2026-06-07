@@ -135,6 +135,7 @@ class World
   public:
     void add(Body* body);
     void add(Joint* joint);
+    void remove(Body* body);
     void clear();
     void step(float dt);
     void broad_phase();

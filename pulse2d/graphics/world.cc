@@ -26,6 +26,7 @@
 #include "body.h"        // for Body
 #include "joint.h"       // for Joint
 #include "math.h"        // for Vec2, operator*, operator+
+#include <algorithm>     // for range::contains
 #include <cstddef>       // for size_t
 #include <etl/map.h>     // for map, operator!=, operator==
 #include <etl/utility.h> // for pair
@@ -130,6 +131,20 @@ void World::clear()
     bodies.clear();
     joints.clear();
     arbiters.clear();
+}
+
+/**
+ * @brief
+ * Remove a body by pointer in the physics world
+ *
+ * Useful for temporary bodies like projectiles, lasers, etc.
+ */
+
+void World::remove(Body* body)
+{
+    auto it = std::ranges::find(bodies, body);
+    if (it != bodies.end())
+        bodies.erase(it);
 }
 
 /**

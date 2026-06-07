@@ -91,19 +91,21 @@ SIZE    := arm-none-eabi-size
 
 MCU := -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb
 
-DEFS :=               \
-  -D__IMXRT1062__     \
-  -DF_CPU=600000000   \
-  -DTEENSYDUINO=160   \
-  -DDEBUG             \
-  -DPULSE2D_TEENSY    \
+DEFS :=                \
+  -D__IMXRT1062__      \
+  -DF_CPU=600000000    \
+  -DTEENSYDUINO=160    \
+  -DDEBUG              \
+  -DPULSE2D_TEENSY     \
 	-DPULSE2D_HEADER=\"pulse2d/pulse2d.h\"        \
 	-DPULSE2D_GRAPHICS=\"pulse2d/graphics/all.h\" \
-  -DARDUINO=10819     \
-  -DARDUINO_TEENSY41  \
-  -DUSB_SERIAL        \
-  -DLAYOUT_US_ENGLISH \
-  -DETL_LOG_ERRORS
+  -DARDUINO=10819      \
+  -DARDUINO_TEENSY41   \
+  -DUSB_SERIAL         \
+  -DLAYOUT_US_ENGLISH  \
+  -DETL_LOG_ERRORS     \
+	-DETL_VERBOSE_ERRORS
+
 
 SYS_INC :=                    \
   -isystem$(CORE)              \

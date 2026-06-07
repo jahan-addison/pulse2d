@@ -363,7 +363,7 @@
 #define PULSE2D_SPAWN_BODY(name, ...)                                        \
     do {                                                                     \
         std::visit(                                                          \
-            [](auto& scene) {                                                \
+            [&](auto& scene) {                                               \
                 if constexpr (!std::is_same_v<std::decay_t<decltype(scene)>, \
                                   std::monostate>) {                         \
                     pulse2d::graphics::detail::Body_Descriptor desc =        \
@@ -399,15 +399,13 @@
 // Named free function required by etl::error_handler::set_callback<F>().
 #if defined(DEBUG) && defined(PULSE2D_TEENSY)
 namespace pulse2d::debug {
-inline void etl_serial_error_handler(const etl::exception& e)
+inline void etl_serial_error_handler(etl::exception const& e)
 {
     if (Serial) {
-        Serial.print("[ETL ERROR] ");
-        Serial.print(e.file_name());
-        Serial.print(":");
-        Serial.print(e.line_number());
-        Serial.print(" ");
-        Serial.println(e.what());
+        Serial.printf("[ETL] Error in %s:%d with '%s'\n",
+            e.file_name(),
+            e.line_number(),
+            e.what());
         Serial.flush();
     }
 }
