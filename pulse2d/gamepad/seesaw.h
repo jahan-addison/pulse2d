@@ -206,22 +206,30 @@ struct Normalized_Input
 template<Physics_Body T>
 inline void apply_arcade_movement(T& body,
     Seesaw_State const& input,
-    float max_speed)
+    float max_speed,
+    bool vertical_only = false,
+    bool horizontal_only = false)
 {
     auto stick = get_clamped_stick(input);
-    body.velocity.x = stick.x * max_speed;
-    body.velocity.y = stick.y * max_speed;
+    if (!vertical_only)
+        body.velocity.x = stick.x * max_speed;
+    if (!horizontal_only)
+        body.velocity.y = stick.y * max_speed;
 }
 
 // Profile A-Inverse: The Inverted Arcade Controller
 template<Physics_Body T>
 inline void apply_inverted_arcade_movement(T& body,
     Seesaw_State const& input,
-    float max_speed)
+    float max_speed,
+    bool vertical_only = false,
+    bool horizontal_only = false)
 {
     auto stick = get_clamped_stick(input);
-    body.velocity.x = stick.x * -max_speed;
-    body.velocity.y = stick.y * -max_speed;
+    if (!vertical_only)
+        body.velocity.x = stick.x * -max_speed;
+    if (!horizontal_only)
+        body.velocity.y = stick.y * -max_speed;
 }
 
 // Profile B: The Momentum Controller (Asteroids, Mario)

@@ -15,6 +15,7 @@
 #include <pulse2d/graphics/body.h>
 #include <pulse2d/graphics/world.h>
 #include <pulse2d/renderer.h>
+#include <pulse2d/scene.h>
 #include <pulse2d/sprite.h>
 #include <pulse2d/storage.h>
 #include <pulse2d/util.h>
@@ -117,23 +118,21 @@
 // Profile A: The Arcade Controller (Pokemon, Zelda, Pac-Man)
 // Sets velocity directly from stick position for instant response and instant
 // stops.
+// Note: Enable "vertical only" or "horizontal only" movement by the third and
+// forth boolean arguments
 ////////////////////////////////////////////////////////////////////////////////
-#define SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(body_name, max_speed) \
-    do {                                                         \
-        auto& _body = active_scene.get_body(body_name);          \
-        pulse2d::gamepad::util::apply_arcade_movement(           \
-            (_body), pad.get_state(), (max_speed));              \
+#define SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(body_name, max_speed, ...)         \
+    do {                                                                      \
+        auto& _body = active_scene.get_body(body_name);                       \
+        pulse2d::gamepad::util::apply_arcade_movement(                        \
+            (_body), pad.get_state(), (max_speed)__VA_OPT__(, ) __VA_ARGS__); \
     } while (0)
 
-////////////////////////////////////////////////////////////////////////////////
-// Profile A, inverted: Same as SEESAW_ARCADE_DIRECTIONAL_MOVEMENT with the Y
-// and X axis inverted.
-////////////////////////////////////////////////////////////////////////////////
-#define SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED(body_name, max_speed) \
-    do {                                                                  \
-        auto& _body = active_scene.get_body(body_name);                   \
-        pulse2d::gamepad::util::apply_inverted_arcade_movement(           \
-            (_body), pad.get_state(), (max_speed));                       \
+#define SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED(body_name, max_speed, ...) \
+    do {                                                                       \
+        auto& _body = active_scene.get_body(body_name);                        \
+        pulse2d::gamepad::util::apply_inverted_arcade_movement(                \
+            (_body), pad.get_state(), (max_speed)__VA_OPT__(, ) __VA_ARGS__);  \
     } while (0)
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -169,23 +168,22 @@
 ////////////
 
 // Declare a scene with body, sprite, and joint pool sizes
-#define PULSE2D_DEFINE_SCENE(name, bodies, sprites, ...) \
-    struct name                                          \
-        : pulse2d::teensy::Pulse2d_Level<bodies,         \
-              sprites __VA_OPT__(, ) __VA_ARGS__>        \
+#define PULSE2D_DEFINE_SCENE(name, bodies, sprites, ...)                     \
+    struct name                                                              \
+        : pulse2d::Pulse2d_Level<bodies, sprites __VA_OPT__(, ) __VA_ARGS__> \
     {}
 
 // Clear the physics world and storage, then enters and registers the given
 // scene.
-#define PULSE2D_SET_SCENE(scene)                                \
-    do {                                                        \
-        world->clear();                                         \
-        engine->storage().reset();                              \
-        pulse2d::teensy::Pulse2d_Scene_Base::total_bodies = 0;  \
-        pulse2d::teensy::Pulse2d_Scene_Base::total_sprites = 0; \
-        current_scene.emplace<scene>();                         \
-        pulse2d_scene_enter_##scene();                          \
-        active_scene_fn = pulse2d_scene_fn_##scene;             \
+#define PULSE2D_SET_SCENE(scene)                        \
+    do {                                                \
+        world->clear();                                 \
+        engine->storage().reset();                      \
+        pulse2d::Pulse2d_Scene_Base::total_bodies = 0;  \
+        pulse2d::Pulse2d_Scene_Base::total_sprites = 0; \
+        current_scene.emplace<scene>();                 \
+        pulse2d_scene_enter_##scene();                  \
+        active_scene_fn = pulse2d_scene_fn_##scene;     \
     } while (0)
 
 // Declare the all scene types used in the game.
@@ -223,6 +221,37 @@
 
 // Tick the game engine
 #define PULSE2D_TICK_PULSE() engine->tick(*world)
+
+///////////////
+// Animation //
+///////////////
+
+// Register an animation in the active scene
+#define PULSE2D_REGISTER_ANIMATION(name, data_ptr, w, h, frames, fps) \
+    do {                                                              \
+        active_scene.anim_defs[#name] = {                             \
+            data_ptr, w, h, frames, (1.0f / (float)fps)               \
+        };                                                            \
+    } while (0)
+
+// Spawns a new instance of an animation at a specific coordinate
+#define PULSE2D_PLAY_ANIMATION(anim_name, pos_x, pos_y) \
+    do {                                                \
+        if (!active_scene.active_animations.full()) {   \
+            active_scene.active_animations.push_back(   \
+                { &active_scene.anim_defs[#anim_name],  \
+                    (float)(pos_x),                     \
+                    (float)(pos_y),                     \
+                    0.0f,                               \
+                    0 });                               \
+        }                                               \
+    } while (0)
+
+// Ticks and draws all active animations
+#define PULSE2D_TICK_ANIMATIONS()                               \
+    do {                                                        \
+        active_scene.tick_and_draw_animations(renderer, PULSE); \
+    } while (0)
 
 ///////////////
 // Collision //
@@ -387,12 +416,11 @@ inline void etl_serial_error_handler(const etl::exception& e)
 
 #if defined(DEBUG)
 // Print stack usage to serial every 300 frames
-#define PULSE2D_PRINT_STACKSIZE()                                          \
-    do {                                                                   \
-        static uint32_t frame = 0;                                         \
-        if (++frame % 300 == 0)                                            \
-            Serial.printf(                                                 \
-                "stack used: %lu bytes\n", pulse2d::teensy::stack_used()); \
+#define PULSE2D_PRINT_STACKSIZE()                                            \
+    do {                                                                     \
+        static uint32_t frame = 0;                                           \
+        if (++frame % 300 == 0)                                              \
+            Serial.printf("stack used: %lu bytes\n", pulse2d::stack_used()); \
     } while (0)
 
 // Register a Serial error handler for ETL assertion failures.
@@ -403,165 +431,3 @@ inline void etl_serial_error_handler(const etl::exception& e)
 #define PULSE2D_REGISTER_ETL_ERROR_HANDLER()
 #endif
 #endif
-
-namespace pulse2d::teensy {
-
-#if defined(PULSE2D_TEENSY)
-extern "C" uint32_t _ebss;
-extern "C" uint32_t _estack;
-
-struct CStrLess
-{
-    bool operator()(const char* a, const char* b) const noexcept
-    {
-        return __builtin_strcmp(a, b) < 0;
-    }
-};
-
-struct Parallax_Layer
-{
-    const char* sprite_name;
-    float width;
-    float scroll_speed;
-    float current_offset = 0.0f;
-};
-
-struct Pulse2d_Scene_Base
-{
-    inline static std::size_t total_bodies = 0;
-    inline static std::size_t total_sprites = 0;
-};
-
-template<std::size_t T_Body, std::size_t T_Sprite, std::size_t T_Joint = 0>
-struct Pulse2d_Scene : Pulse2d_Scene_Base
-{
-    static_assert(T_Body <= MAX_PHYSICS_BODIES,
-        "T_Body exceeds MAX_PHYSICS_BODIES");
-    static_assert(T_Joint <= MAX_PHYSICS_JOINTS,
-        "T_Joint exceeds MAX_PHYSICS_JOINTS");
-
-    inline graphics::Body& get_body(const char* name)
-    {
-        return bodies.at(body_pool.at(name));
-    }
-    inline Sprite& get_sprite(const char* name)
-    {
-        return sprites.at(sprite_pool.at(name));
-    }
-    inline void set(const char* name,
-        pulse2d::graphics::detail::Body_Descriptor& body)
-    {
-        if (total_bodies >= MAX_PHYSICS_BODIES) {
-            PULSE2D_DEBUG_SERIAL(
-                "[WARN] body pool full, cannot spawn '%s'\n", name);
-            return;
-        }
-        body_pool[name] = active_bodies;
-        bodies.at(active_bodies++).set(body);
-        ++total_bodies;
-    }
-    inline void set(const char* name,
-        pulse2d::Storage& storage,
-        const char* path,
-        uint16_t x,
-        uint16_t y)
-    {
-        if (total_sprites >= pulse2d::Storage::k_max_loaded_sprites) {
-            PULSE2D_DEBUG_SERIAL(
-                "[WARN] sprite pool full, cannot load '%s'\n", path);
-            return;
-        }
-        sprite_pool[name] = active_sprites;
-        sprites.at(active_sprites++) = storage.load_sprite(path, x, y);
-        ++total_sprites;
-        if (sprites[active_sprites - 1].data == nullptr) {
-            PULSE2D_DEBUG_SERIAL(
-                "[WARN] sprite load failed: '%s' -> '%s'\n", name, path);
-        } else {
-            PULSE2D_DEBUG_SERIAL("sprite '%s' ready: %ux%u\n",
-                name,
-                sprites[active_sprites - 1].width,
-                sprites[active_sprites - 1].height);
-        }
-    }
-
-    inline void set_from_flash(const char* name,
-        uint16_t const* flash_data,
-        uint16_t w,
-        uint16_t h)
-    {
-        if (total_sprites >= pulse2d::Storage::k_max_loaded_sprites ||
-            active_sprites >= T_Sprite) {
-            PULSE2D_DEBUG_SERIAL(
-                "[WARN] sprite pool full, cannot load flash sprite '%s'\n",
-                name);
-            return;
-        }
-        sprite_pool[name] = active_sprites;
-
-        sprites.at(active_sprites).data = flash_data;
-        sprites.at(active_sprites).width = w;
-        sprites.at(active_sprites).height = h;
-
-        ++active_sprites;
-        ++total_sprites;
-
-        PULSE2D_DEBUG_SERIAL("flash sprite '%s' ready: %ux%u\n", name, w, h);
-    }
-
-    inline void update_and_draw_parallax(pulse2d::Renderer& renderer,
-        float delta_time)
-    {
-        for (auto& layer : background_layers) {
-            // Skip any layer whose sprite was not registered (e.g. because
-            // T_Sprite in PULSE2D_DEFINE_SCENE is fewer than the number of
-            // PULSE2D_ADD_PARALLAX_LAYER calls, or set_from_flash was never
-            // called for it). Without this guard, sprite_pool.at() would hit
-            // an ETL assertion and hard-fault the board on the first loop tick.
-            auto it = sprite_pool.find(layer.sprite_name);
-            if (it == sprite_pool.end()) {
-                PULSE2D_DEBUG_SERIAL(
-                    "[WARN] parallax: sprite '%s' not registered, skipping\n",
-                    layer.sprite_name);
-                continue;
-            }
-
-            layer.current_offset += layer.scroll_speed * delta_time;
-            layer.current_offset = std::fmod(layer.current_offset, layer.width);
-
-            float draw_x = -layer.current_offset;
-
-            const pulse2d::Sprite& _spr = sprites.at(it->second);
-
-            renderer.add_sprite(&_spr, static_cast<int16_t>(draw_x), 0);
-            renderer.add_sprite(
-                &_spr, static_cast<int16_t>(draw_x + layer.width), 0);
-        }
-    }
-
-    etl::array<pulse2d::graphics::Body, T_Body> bodies;
-    etl::array<pulse2d::graphics::Joint, T_Joint> joints;
-    etl::vector<Parallax_Layer, 8> background_layers;
-    etl::array<pulse2d::Sprite, T_Sprite> sprites;
-
-    etl::map<const char*, std::size_t, T_Body, CStrLess> body_pool;
-    etl::map<const char*, std::size_t, T_Sprite, CStrLess> sprite_pool;
-
-    std::size_t active_bodies{ 0 };
-    std::size_t active_sprites{ 0 };
-};
-
-template<std::size_t T_Body, std::size_t T_Sprite, std::size_t T_Joint = 0>
-using Pulse2d_Level = Pulse2d_Scene<T_Body, T_Sprite, T_Joint>;
-
-uint32_t inline stack_used()
-{
-    const uint32_t* p = (const uint32_t*)&_ebss;
-    uint32_t count = 0;
-    while (*p++ == 0xA5A5A5A5)
-        count += 4;
-    return (uint32_t)&_estack - (uint32_t)&_ebss - count; // bytes consumed
-}
-#endif
-
-} // namespace teensy
