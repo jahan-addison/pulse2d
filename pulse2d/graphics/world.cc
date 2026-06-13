@@ -143,8 +143,10 @@ void World::clear()
 void World::remove(Body* body)
 {
     auto it = std::ranges::find(bodies, body);
-    if (it != bodies.end())
-        bodies.erase(it);
+    if (it != bodies.end()) {
+        std::iter_swap(it, bodies.end() - 1);
+        bodies.pop_back();
+    }
 }
 
 /**

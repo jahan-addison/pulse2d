@@ -24,10 +24,6 @@
 #define PULSE2D_PRIVATE private
 #endif
 
-//////////////////////
-// Teensy Debugging //
-//////////////////////
-
 #if defined(PULSE2D_TEENSY)
 /**
  * @brief Place a variable in OCRAM (the secondary 512 KB RAM bank on the
@@ -51,6 +47,7 @@
 #define PULSE2D_EXTMEM
 #define PULSE2D_FLASHMEM
 #endif
+
 #if defined(PULSE2D_TEENSY) && defined(DEBUG)
 #define PULSE2D_DEBUG_SERIAL(...)       \
     do {                                \
@@ -75,13 +72,12 @@ namespace pulse2d {
 
 /**
  * @brief
- * Deferred in-place construction for objects with non-trivial
- * constructors that must not run before the runtime is ready
- * (e.g. Teensy hardware objects constructed before setup()).
+ * Deferred in-place construction for objects that require the Arduino
+ * runtime. I.e. access to various hardware states, Such as the TFT display
+ * or sd storage.
  *
- *   Declare as a static global — T's constructor is never invoked at
- *   static-init time. Call emplace() once the runtime is ready to
- *   construct T in-place inside the internal aligned storage.
+ * Declare as a static global, then call emplace() once the runtime is ready
+ * to construct T in-place inside the internal aligned storage.
  *
  *   Example:
  *

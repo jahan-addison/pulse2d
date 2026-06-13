@@ -7,11 +7,13 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cmath>
 #include <etl/array.h>
 #include <etl/error_handler.h>
 #include <etl/map.h>
 #include <etl/vector.h>
+#include <pulse2d/config.h>
 #include <pulse2d/graphics/body.h>
 #include <pulse2d/graphics/world.h>
 #include <pulse2d/renderer.h>
@@ -20,21 +22,11 @@
 #include <pulse2d/util.h>
 #include <string>
 
-#define MAX_PARALLAX_LAYERS 8
-
-#ifndef MAX_ANIMATION_DEFINITION
-#define MAX_ANIMATION_DEFINITION 16
-#endif
-
-#ifndef MAX_ACTIVE_ANIMATION
-#define MAX_ACTIVE_ANIMATION 32
-#endif
-
 namespace pulse2d {
 
 namespace assets {
 
-struct Parallax_Layer
+struct Background_Layer
 {
     char const* sprite_name;
     float width;
@@ -62,12 +54,6 @@ struct Animation_Instance
 
 } // namespace assets
 
-struct Pulse2d_Scene_Base
-{
-    inline static std::size_t total_bodies = 0;
-    inline static std::size_t total_sprites = 0;
-};
-
 #if defined(PULSE2D_TEENSY)
 struct CStrLess
 {
@@ -78,84 +64,8 @@ struct CStrLess
 };
 #endif
 
-template<std::size_t T_Body, std::size_t T_Sprite, std::size_t T_Joint = 0>
-struct Pulse2d_Scene : Pulse2d_Scene_Base
+struct Pulse2d_Scene_Animation
 {
-    static_assert(T_Body <= MAX_PHYSICS_BODIES,
-        "T_Body exceeds MAX_PHYSICS_BODIES");
-    static_assert(T_Joint <= MAX_PHYSICS_JOINTS,
-        "T_Joint exceeds MAX_PHYSICS_JOINTS");
-
-    graphics::Body& get_body(const char* name)
-    {
-        return bodies.at(body_pool.at(name));
-    }
-
-    Sprite& get_sprite(const char* name)
-    {
-        return sprites.at(sprite_pool.at(name));
-    }
-
-    void set(const char* name, pulse2d::graphics::detail::Body_Descriptor& body)
-    {
-        if (total_bodies >= MAX_PHYSICS_BODIES) {
-            PULSE2D_DEBUG_SERIAL(
-                "[WARN] body pool full, cannot spawn '%s'\n", name);
-            return;
-        }
-        body_pool[name] = active_bodies;
-        bodies.at(active_bodies++).set(body);
-        ++total_bodies;
-    }
-
-    void set(const char* name,
-        pulse2d::Storage& storage,
-        const char* path,
-        uint16_t x,
-        uint16_t y)
-    {
-        if (total_sprites >= pulse2d::Storage::k_max_loaded_sprites) {
-            PULSE2D_DEBUG_SERIAL(
-                "[WARN] sprite pool full, cannot load '%s'\n", path);
-            return;
-        }
-        sprite_pool[name] = active_sprites;
-        sprites.at(active_sprites++) = storage.load_sprite(path, x, y);
-        ++total_sprites;
-        if (sprites[active_sprites - 1].data == nullptr) {
-            PULSE2D_DEBUG_SERIAL(
-                "[WARN] sprite load failed: '%s' -> '%s'\n", name, path);
-        } else {
-            PULSE2D_DEBUG_SERIAL("sprite '%s' ready: %ux%u\n",
-                name,
-                sprites[active_sprites - 1].width,
-                sprites[active_sprites - 1].height);
-        }
-    }
-
-    void set_from_flash(const char* name,
-        uint16_t const* flash_data,
-        uint16_t w,
-        uint16_t h)
-    {
-        if (total_sprites >= pulse2d::Storage::k_max_loaded_sprites) {
-            PULSE2D_DEBUG_SERIAL(
-                "[WARN] sprite pool full, cannot load flash sprite '%s'\n",
-                name);
-            return;
-        }
-        sprite_pool[name] = active_sprites;
-
-        sprites.at(active_sprites).data = flash_data;
-        sprites.at(active_sprites).width = w;
-        sprites.at(active_sprites).height = h;
-
-        ++active_sprites;
-        ++total_sprites;
-
-        PULSE2D_DEBUG_SERIAL("flash sprite '%s' ready: %ux%u\n", name, w, h);
-    }
-
     void tick_and_draw_animations(pulse2d::Renderer& renderer, float dt)
     {
         auto it = active_animations.begin();
@@ -192,7 +102,105 @@ struct Pulse2d_Scene : Pulse2d_Scene_Base
         }
     }
 
-    void update_and_draw_parallax(pulse2d::Renderer& renderer, float delta_time)
+#if defined(PULSE2D_TEENSY)
+    etl::map<const char*,
+        pulse2d::assets::Animation_Def,
+        MAX_ANIMATION_DEFINITION,
+        CStrLess>
+        anim_defs;
+#else
+    etl::map<std::string,
+        pulse2d::assets::Animation_Def,
+        MAX_ANIMATION_DEFINITION>
+        anim_defs;
+#endif
+    etl::vector<pulse2d::assets::Animation_Instance, MAX_ACTIVE_ANIMATION>
+        active_animations;
+};
+
+class Pulse2d_Scene_Kinematic_Pool
+{
+  public:
+    Pulse2d_Scene_Kinematic_Pool() = default;
+
+    Pulse2d_Scene_Kinematic_Pool(pulse2d::graphics::World* w,
+        pulse2d::graphics::detail::Body_Descriptor const& desc)
+        : world_(w)
+        , descriptor_(desc)
+    {
+        descriptor_.mass = 0.0f;
+    }
+
+    template<typename Action_Func>
+    inline void deploy(const char* name,
+        float x,
+        float y,
+        float vx,
+        float vy,
+        Action_Func action)
+    {
+        auto* obj = memory_.allocate();
+        if (obj != nullptr) {
+            obj->set(descriptor_);
+            obj->position = { x, y };
+            obj->velocity = { vx, vy };
+
+            world_->add(obj);
+            active_list_.push_back(obj);
+            action(*obj);
+        }
+    }
+
+    void retract(pulse2d::graphics::Body* obj)
+    {
+        auto it = std::ranges::find(active_list_, obj);
+        if (it != active_list_.end()) {
+            world_->remove(obj); // O(1) swap-and-pop
+
+            std::iter_swap(it, active_list_.end() - 1);
+            active_list_.pop_back();
+
+            memory_.release(obj);
+        }
+    }
+
+    void clear_out_of_bounds(float min_y, float max_y)
+    {
+        for (int i = static_cast<int>(active_list_.size()) - 1; i >= 0; --i) {
+            auto* obj = active_list_[i];
+            if (obj->position.y < min_y || obj->position.y > max_y) {
+                retract(obj);
+            }
+        }
+    }
+
+  private:
+    etl::pool<pulse2d::graphics::Body, config::max_pooled_objects> memory_;
+    etl::vector<pulse2d::graphics::Body*, config::max_pooled_objects>
+        active_list_;
+    pulse2d::graphics::World* world_ = nullptr;
+    pulse2d::graphics::detail::Body_Descriptor descriptor_{};
+};
+
+template<std::size_t T_Sprite>
+struct Pulse2d_Scene_Background
+{
+
+#if defined(PULSE2D_TEENSY)
+    using Sprite_Pool = etl::map<const char*, std::size_t, T_Sprite, CStrLess>;
+#else
+    using Sprite_Pool = etl::map<std::string, std::size_t, T_Sprite>;
+#endif
+
+    Pulse2d_Scene_Background() = delete;
+    explicit Pulse2d_Scene_Background(Sprite_Pool& sprite_pool,
+        etl::array<pulse2d::Sprite, T_Sprite>& sprites)
+        : sprite_pool_(sprite_pool)
+        , sprites_(sprites)
+    {
+    }
+
+    void update_and_draw_layers(pulse2d::Renderer& renderer, float delta_time)
     {
         for (auto& layer : background_layers) {
             // Skip any layer whose sprite was not registered (e.g. because
@@ -200,8 +208,8 @@ struct Pulse2d_Scene : Pulse2d_Scene_Base
             // PULSE2D_ADD_PARALLAX_LAYER calls, or set_from_flash was never
             // called for it). Without this guard, sprite_pool.at() would hit
             // an ETL assertion and hard-fault the board on the first loop tick.
-            auto it = sprite_pool.find(layer.sprite_name);
-            if (it == sprite_pool.end()) {
+            auto it = sprite_pool_.find(layer.sprite_name);
+            if (it == sprite_pool_.end()) {
                 PULSE2D_DEBUG_SERIAL(
                     "[WARN] parallax: sprite '%s' not registered, skipping\n",
                     layer.sprite_name);
@@ -213,40 +221,129 @@ struct Pulse2d_Scene : Pulse2d_Scene_Base
 
             float draw_x = -layer.current_offset;
 
-            const pulse2d::Sprite& _spr = sprites.at(it->second);
+            const pulse2d::Sprite& _spr = sprites_.at(it->second);
 
             renderer.add_sprite(&_spr, static_cast<int16_t>(draw_x), 0);
             renderer.add_sprite(
                 &_spr, static_cast<int16_t>(draw_x + layer.width), 0);
         }
     }
+    etl::vector<assets::Background_Layer, MAX_BACKGROUND_LAYERS>
+        background_layers;
+
+  private:
+    Sprite_Pool& sprite_pool_;
+    etl::array<pulse2d::Sprite, T_Sprite>& sprites_;
+};
+
+template<std::size_t T_Body, std::size_t T_Sprite, std::size_t T_Joint = 0>
+struct Pulse2d_Scene_Base
+{
+    Pulse2d_Scene_Base() = default;
 
     etl::array<pulse2d::graphics::Body, T_Body> bodies;
     etl::array<pulse2d::graphics::Joint, T_Joint> joints;
-    etl::vector<assets::Parallax_Layer, MAX_PARALLAX_LAYERS> background_layers;
     etl::array<pulse2d::Sprite, T_Sprite> sprites;
+
+    std::size_t active_bodies = 0;
+    std::size_t active_sprites = 0;
 
 #if defined(PULSE2D_TEENSY)
     etl::map<const char*, std::size_t, T_Body, CStrLess> body_pool;
     etl::map<const char*, std::size_t, T_Sprite, CStrLess> sprite_pool;
-    etl::map<const char*,
-        pulse2d::assets::Animation_Def,
-        MAX_ANIMATION_DEFINITION,
-        CStrLess>
-        anim_defs;
 #else
     etl::map<std::string, std::size_t, T_Body> body_pool;
     etl::map<std::string, std::size_t, T_Sprite> sprite_pool;
-    etl::map<std::string,
-        pulse2d::assets::Animation_Def,
-        MAX_ANIMATION_DEFINITION>
-        anim_defs;
 #endif
-    etl::vector<pulse2d::assets::Animation_Instance, MAX_ACTIVE_ANIMATION>
-        active_animations;
+    Pulse2d_Scene_Kinematic_Pool pool_manager; // default constructed
+    Pulse2d_Scene_Animation animation_manager; // default constructed
+    Pulse2d_Scene_Background<T_Sprite> background_manager{ sprite_pool,
+        sprites };
+};
 
-    std::size_t active_bodies{ 0 };
-    std::size_t active_sprites{ 0 };
+template<std::size_t T_Body, std::size_t T_Sprite, std::size_t T_Joint = 0>
+class Pulse2d_Scene : public Pulse2d_Scene_Base<T_Body, T_Sprite, T_Joint>
+{
+  public:
+    Pulse2d_Scene() = default;
+
+  private:
+    static_assert(T_Body <= MAX_PHYSICS_BODIES,
+        "T_Body exceeds MAX_PHYSICS_BODIES");
+    static_assert(T_Body <= MAX_LOADED_SPRITES,
+        "T_Sprite exceeds MAX_LOADED_SPRITES");
+    static_assert(T_Joint <= MAX_PHYSICS_JOINTS,
+        "T_Joint exceeds MAX_PHYSICS_JOINTS");
+
+  public:
+    inline graphics::Body& get_body(const char* name)
+    {
+        return this->bodies.at(this->body_pool.at(name));
+    }
+
+    inline Sprite& get_sprite(const char* name)
+    {
+        return this->sprites.at(this->sprite_pool.at(name));
+    }
+
+  public:
+    void set(const char* name, pulse2d::graphics::detail::Body_Descriptor& body)
+    {
+        if (this->active_bodies >= MAX_PHYSICS_BODIES) {
+            PULSE2D_DEBUG_SERIAL(
+                "[WARN] body pool full, cannot spawn '%s'\n", name);
+            return;
+        }
+        this->body_pool[name] = this->active_bodies;
+        this->bodies.at(this->active_bodies++).set(body);
+    }
+
+    void set(const char* name,
+        pulse2d::Storage& storage,
+        const char* path,
+        uint16_t x,
+        uint16_t y)
+    {
+        if (this->active_sprites >= config::max_loaded_sprites) {
+            PULSE2D_DEBUG_SERIAL(
+                "[WARN] sprite pool full, cannot load '%s'\n", path);
+            return;
+        }
+        this->sprite_pool[name] = this->active_sprites;
+        this->sprites.at(this->active_sprites++) =
+            storage.load_sprite(path, x, y);
+        if (this->sprites[this->active_sprites - 1].data == nullptr) {
+            PULSE2D_DEBUG_SERIAL(
+                "[WARN] sprite load failed: '%s' -> '%s'\n", name, path);
+        } else {
+            PULSE2D_DEBUG_SERIAL("sprite '%s' ready: %ux%u\n",
+                name,
+                this->sprites[this->active_sprites - 1].width,
+                this->sprites[this->active_sprites - 1].height);
+        }
+    }
+
+    void set_from_flash(const char* name,
+        uint16_t const* flash_data,
+        uint16_t w,
+        uint16_t h)
+    {
+        if (this->active_sprites >= config::max_loaded_sprites) {
+            PULSE2D_DEBUG_SERIAL(
+                "[WARN] sprite pool full, cannot load flash sprite '%s'\n",
+                name);
+            return;
+        }
+        this->sprite_pool[name] = this->active_sprites;
+
+        this->sprites.at(this->active_sprites).data = flash_data;
+        this->sprites.at(this->active_sprites).width = w;
+        this->sprites.at(this->active_sprites).height = h;
+
+        this->active_sprites++;
+
+        PULSE2D_DEBUG_SERIAL("flash sprite '%s' ready: %ux%u\n", name, w, h);
+    }
 };
 
 template<std::size_t T_Body, std::size_t T_Sprite, std::size_t T_Joint = 0>

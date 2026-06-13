@@ -18,11 +18,11 @@
 /****************************************************************************
  * Storage
  *
- * Uses stb_image to decode any supported format and converts RGBA8 to
- * RGB565 with nearest-neighbour scaling.
- *
  * On Teensy, reads .bin (uint16_t width, height, then pixels) from
  * the built-in SDIO SD card via SdFat.
+ *
+ * Otherwise, Uses stb_image to decode any supported format and converts
+ * RGBA8 to RGB565 with nearest-neighbour scaling.
  *
  ****************************************************************************/
 
@@ -48,7 +48,7 @@ Sprite Storage::load_sprite(const char* path,
     uint16_t target_w,
     uint16_t target_h)
 {
-    if (next_slot_ >= k_max_loaded_sprites) {
+    if (next_slot_ >= config::max_loaded_sprites) {
         PULSE2D_DEBUG_SERIAL(
             "[WARN] storage: sprite slot pool full, cannot load '%s'\n", path);
         return { nullptr, 0, 0 };
@@ -74,7 +74,7 @@ Sprite Storage::load_sprite(const char* path,
         return { nullptr, 0, 0 };
     }
     const size_t pixel_count = static_cast<size_t>(w) * h;
-    if (pixel_count == 0 or pixel_count > k_max_sprite_pixels) {
+    if (pixel_count == 0 or pixel_count > config::max_sprite_pixels) {
         PULSE2D_DEBUG_SERIAL(
             "[WARN] storage: sprite '%s' pixel size is zero or too large",
             path);
@@ -109,7 +109,7 @@ Sprite Storage::load_sprite(const char* path,
     h = target_h ? target_h : static_cast<uint16_t>(src_h);
 
     const size_t pixel_count = static_cast<size_t>(w) * h;
-    if (pixel_count == 0 or pixel_count > k_max_sprite_pixels) {
+    if (pixel_count == 0 or pixel_count > config::max_sprite_pixels) {
         stbi_image_free(img);
         return { nullptr, 0, 0 };
     }

@@ -22,23 +22,17 @@
 
 #pragma once
 
-#include "arbiter.h"    // for Arbiter_Key, operator<
-#include "math.h"       // for Vec2
-#include "types.h"      // for assign
-#include <etl/map.h>    // for map
-#include <etl/vector.h> // for vector
+#include "arbiter.h"        // for Arbiter_Key, operator<
+#include "math.h"           // for Vec2
+#include "types.h"          // for assign
+#include <etl/map.h>        // for map
+#include <etl/vector.h>     // for vector
+#include <pulse2d/config.h> // for MAX_PHYSICS_BODIES, ...
 
 namespace pulse2d::graphics {
 class Body;
 class Joint;
 }
-
-#ifndef MAX_PHYSICS_BODIES
-#define MAX_PHYSICS_BODIES 256
-#endif
-#ifndef MAX_PHYSICS_JOINTS
-#define MAX_PHYSICS_JOINTS 32
-#endif
 
 /****************************************************************************
  * World

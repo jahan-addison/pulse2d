@@ -9,12 +9,9 @@
 
 #include <cstddef>          // for size_t
 #include <etl/array.h>      // for array
+#include <pulse2d/config.h> // for MAX_LOADED_SPRITES
 #include <pulse2d/sprite.h> // for Sprite
 #include <pulse2d/util.h>   // for PULSE2D_TEENSY
-
-#ifndef MAX_LOADED_SPRITES
-#define MAX_LOADED_SPRITES 8
-#endif
 
 #if defined(PULSE2D_TEENSY)
 #include <SdFat.h> // for SdFs, SdioConfig, FIFO_SDIO, BUILTIN_SDCARD
@@ -23,11 +20,11 @@
 /****************************************************************************
  * Storage
  *
- * Uses stb_image to decode any supported format and converts RGBA8 to
- * RGB565 with nearest-neighbour scaling.
- *
  * On Teensy, reads .bin (uint16_t width, height, then pixels) from
  * the built-in SDIO SD card via SdFat.
+ *
+ * Otherwise, Uses stb_image to decode any supported format and converts
+ * RGBA8 to RGB565 with nearest-neighbour scaling.
  *
  ****************************************************************************/
 
@@ -51,14 +48,6 @@ namespace pulse2d {
 class Storage
 {
   public:
-    static constexpr size_t k_max_loaded_sprites = MAX_LOADED_SPRITES;
-#if defined(PULSE2D_TEENSY)
-    static constexpr size_t k_max_sprite_pixels = 96 * 96;
-#else
-    static constexpr size_t k_max_sprite_pixels = 320 * 240;
-#endif
-
-  public:
     Storage() = default;
     Storage(Storage const&) = delete;
     Storage& operator=(Storage const&) = delete;
@@ -71,8 +60,8 @@ class Storage
     void reset();
 
   private:
-    using Pixel_Buffer = etl::array<uint16_t, k_max_sprite_pixels>;
-    etl::array<Pixel_Buffer, MAX_LOADED_SPRITES> pool_{};
+    using Pixel_Buffer = etl::array<uint16_t, config::max_sprite_pixels>;
+    etl::array<Pixel_Buffer, config::max_loaded_sprites> pool_{};
     size_t next_slot_{ 0 };
 
 #if defined(PULSE2D_TEENSY)

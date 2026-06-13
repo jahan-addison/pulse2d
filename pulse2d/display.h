@@ -7,9 +7,10 @@
 
 #pragma once
 
-#include <cstdint>        // for uint16_t
-#include <etl/array.h>    // for array
-#include <pulse2d/util.h> // for PULSE2D_PRIVATE, PULSE2D_TEENSY
+#include <cstdint>          // for uint16_t
+#include <etl/array.h>      // for array
+#include <pulse2d/config.h> // for config
+#include <pulse2d/util.h>   // for PULSE2D_PRIVATE, PULSE2D_TEENSY
 #if defined(PULSE2D_TEENSY)
 #include <ILI9341_t3.h>
 #else
@@ -34,15 +35,6 @@
  ****************************************************************************/
 
 namespace pulse2d {
-
-/**
- * @brief ILI9341 native display resolution and SDL2 desktop scale factor
- */
-namespace config {
-inline constexpr int width = 320;
-inline constexpr int height = 240;
-inline constexpr int scale = 3; // SDL2 window scale (960x720)
-} // namespace config
 
 template<int x = config::width, int y = config::height>
 using Frame_Buffer = etl::array<uint16_t, x * y>;

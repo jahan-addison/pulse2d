@@ -78,7 +78,7 @@
  ****************************************************************************/
 
 #define BODY_FIELD_BUILDER(NAME, type) \
-    inline Body& set_##NAME(type& to)  \
+    inline Body& set_##NAME(type&& to) \
     {                                  \
         this->NAME = to;               \
         return *this;                  \

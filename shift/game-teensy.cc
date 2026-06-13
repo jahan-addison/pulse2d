@@ -26,58 +26,60 @@ PULSE2D_DEFINE bool fired = false;
 
 PULSE2D_ON_GAMESCENE_START(Sample_Level)
 {
-    PULSE2D_SPAWN_STATIC_BODY("planet",
+    PULSE2D_SPRITE(planet_sprite, "planet.bin", 96, 96);
+    PULSE2D_SPRITE(spell_sprite, "spell.bin", 64, 36);
+    PULSE2D_SPRITE(explode_sprite, "explosion.bin", 96, 96);
+
+    PULSE2D_STATIC_BODY(planet_object,
         {
             .position = { 3.5f, 0.0f },
               .width = { 1.0f, 1.0f }
     });
 
-    PULSE2D_SPAWN_BODY("spell",
+    PULSE2D_DYNAMIC_BODY(spell_object,
         {
             .position = { -3.5f, 2.5111f },
             .velocity = { 0.0f,  0.0f    },
             .width = { 1.0f,  0.5f    },
             .mass = 1.0f
     });
-    PULSE2D_SET_SPRITE(planet_sprite, "planet.bin", 96, 96);
-    PULSE2D_SET_SPRITE(spell_sprite, "spell.bin", 64, 36);
-    PULSE2D_SET_SPRITE(explode_sprite, "explosion.bin", 96, 96);
 }
 
 PULSE2D_ON_GAMESCENE(Sample_Level)
 {
     PULSE2D_TICK_WORLD(Sample_Level);
     PULSE2D_POLL_SEESAW_GAMEPAD();
-    auto& spell = PULSE2D_GET_BODY("spell");
+    auto& spell = PULSE2D_GET_BODY(spell_object);
 
     PULSE2D_ON_COLLISION()
     {
         if (!exploded) {
             exploded = true;
-            spell.velocity = { 0.0f, 0.0f };
+            spell.set_velocity({ 0.0f, 0.0f });
         }
     }
 
     if (!fired)
-        SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED("spell", 5.22f);
+        SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED(spell_object, 5.22f);
 
     if (!fired and SEESAW_BUTTON_INPUT(SEESAW_A)) {
-        spell.velocity = { 12.555f, 0.0f };
+        spell.set_velocity({ 12.555f, 0.0f });
         fired = true;
     }
 
     // reset?
     if (spell.position.x > 5.5f or SEESAW_BUTTON_INPUT(SEESAW_START)) {
         fired = false;
+        exploded = false;
         PULSE2D_SET_SCENE(Sample_Level);
     }
 
     if (exploded)
-        PULSE2D_DRAW("planet", explode_sprite);
+        PULSE2D_DRAW(planet_object, explode_sprite);
     else
-        PULSE2D_DRAW("planet", planet_sprite);
+        PULSE2D_DRAW(planet_object, planet_sprite);
 
-    PULSE2D_DRAW("spell", spell_sprite, 3.111f);
+    PULSE2D_DRAW(spell_object, spell_sprite, 3.111f);
     PULSE2D_RENDER(active_scene);
 }
 

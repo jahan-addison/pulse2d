@@ -1,0 +1,1386 @@
+# DSL Documentation
+
+The pulse2d DSL is a set of macros in [`pulse2d/dsl.h`](pulse2d/dsl.h) inspired by the [Catch2](https://github.com/catchorg/Catch2) library that enables development of Teensy games. It wraps the engine, physics world, scene management, animations, object pools, and render pipeline into a declarative "fantasy" scripting language, without the need to understand bare-metal embedded programming.
+
+---
+
+## Table of Contents
+
+- [Game State, Setup](#game-state--setup)
+  - [PULSE2D_START_PULSE](#pulse2d_start_pulse)
+  - [PULSE2D_INIT](#pulse2d_init)
+  - [PULSE2D_DEFINE](#pulse2d_define)
+  - [PULSE2D_HARDWARE_DEFINE](#pulse2d_hardware_define)
+- [Scenes](#scenes)
+  - [PULSE2D_DEFINE_SCENE](#pulse2d_define_scene)
+  - [PULSE2D_GAME_SCENES](#pulse2d_game_scenes)
+  - [PULSE2D_SET_SCENE](#pulse2d_set_scene)
+  - [PULSE2D_ON_GAMESCENE_START](#pulse2d_on_gamescene_start)
+  - [PULSE2D_ON_GAMESCENE](#pulse2d_on_gamescene)
+  - [PULSE2D_TICK_GAMESCENE](#pulse2d_tick_gamescene)
+  - [PULSE2D_TICK_WORLD](#pulse2d_tick_world)
+- [Physics, Bodies](#physics--bodies)
+  - [PULSE2D_STATIC_BODY](#pulse2d_define_fixed_object)
+  - [PULSE2D_CONTROLLED_BODY](#pulse2d_define_controlled_object)
+  - [PULSE2D_DYNAMIC_BODY](#pulse2d_define_dynamic_object)
+  - [PULSE2D_GET_BODY](#pulse2d_get_body)
+  - [Body Properties](#body-properties)
+- [Sprites, Rendering](#sprites--rendering)
+  - [PULSE2D_SPRITE](#pulse2d_define_sprite)
+  - [PULSE2D_SPRITE_FLASH](#pulse2d_define_sprite_flash)
+  - [PULSE2D_DRAW](#pulse2d_draw)
+  - [PULSE2D_DRAW_BODY](#pulse2d_draw_body)
+  - [PULSE2D_RENDER](#pulse2d_render)
+- [Backgrounds, Parallax](#backgrounds--parallax)
+  - [PULSE2D_ADD_BACKGROUND_LAYER](#pulse2d_add_background_layer)
+  - [PULSE2D_ADD_PARALLAX_LAYER](#pulse2d_add_parallax_layer)
+  - [PULSE2D_RENDER_BACKGROUNDS](#pulse2d_render_backgrounds)
+- [Animations](#animations)
+  - [PULSE2D_REGISTER_ANIMATION](#pulse2d_register_animation)
+  - [PULSE2D_PLAY_ANIMATION](#pulse2d_play_animation)
+  - [PULSE2D_TICK_ANIMATIONS](#pulse2d_tick_animations)
+- [Kinematic Pools](#kinematic-pools)
+  - [PULSE2D_CONTROLLED_POOL](#pulse2d_preallocate_controlled_pool)
+  - [PULSE2D_DEPLOY_OBJECT](#pulse2d_deploy_pooled_object)
+  - [PULSE2D_DESPAWN_OBJECT](#pulse2d_despawn_pooled_object)
+- [Collision](#collision)
+  - [PULSE2D_ON_COLLISION](#pulse2d_on_collision)
+  - [PULSE2D_ON_COLLISION_WITH](#pulse2d_on_collision_with)
+- [Gamepad Input](#gamepad-input)
+  - [PULSE2D_ENABLE_SEESAW_GAMEPAD](#pulse2d_enable_seesaw_gamepad)
+  - [PULSE2D_START_SEESAW_GAMEPAD](#pulse2d_start_seesaw_gamepad)
+  - [PULSE2D_POLL_SEESAW_GAMEPAD](#pulse2d_poll_seesaw_gamepad)
+  - [SEESAW_BUTTON_INPUT](#seesaw_button_input)
+  - [SEESAW_ARCADE_DIRECTIONAL_MOVEMENT](#seesaw_arcade_directional_movement)
+  - [SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED](#seesaw_arcade_directional_movement_inverted)
+  - [SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT](#seesaw_dynamic_directional_movement)
+  - [SEESAW_SLIDING_FRICTION_DIRECTIONAL_MOVEMENT](#seesaw_sliding_friction_directional_movement)
+  - [Analog Stick Input](#analog-stick-input)
+  - [Direction Helpers](#direction-helpers)
+- [Engine Lifecycle](#engine-lifecycle)
+  - [PULSE2D_ON_GAMESTART](#pulse2d_on_gamestart)
+  - [PULSE2D_ON_GAMELOOP](#pulse2d_on_gameloop)
+  - [PULSE2D_TICK_PULSE](#pulse2d_tick_pulse)
+- [Debug, Utilities](#debug--utilities)
+  - [PULSE2D_PRINT_STACKSIZE](#pulse2d_print_stacksize)
+  - [PULSE2D_REGISTER_ETL_ERROR_HANDLER](#pulse2d_register_etl_error_handler)
+
+---
+
+## Game State, Setup
+
+### PULSE2D_START_PULSE
+
+```cpp
+PULSE2D_START_PULSE();
+```
+
+Declares the engine, physics world, and two function pointers that control scene dispatch. Place this at file scope, once per game.
+
+It creates:
+
+- `engine` — Hardware-deferred pulse2d engine instance
+- `world` — Hardware-deferred physics world instance
+- `pending_transition` — Scene transition function pointer
+- `active_scene_fn` — Current scene tick function pointer
+- `PULSE` — Constant frame delta (1/60th second)
+
+**Example:**
+```cpp
+#include PULSE2D_HEADER
+#include PULSE2D_GRAPHICS
+
+PULSE2D_START_PULSE();
+PULSE2D_ENABLE_SEESAW_GAMEPAD();
+
+// ... rest of game
+```
+
+---
+
+### PULSE2D_INIT
+
+```cpp
+PULSE2D_INIT(gravity_x, gravity_y, solver_iterations);
+```
+
+Initializes the engine and physics world. The first two arguments are the gravity vector components (typically `0.0f, 0.0f` for space or `0.0f, -9.8f` for platformers). The third argument is the solver iteration count (10 is a good default).
+
+**Parameters:**
+- `gravity_x` — Horizontal gravity component
+- `gravity_y` — Vertical gravity component
+- `solver_iterations` — Physics solver iteration count (higher = more accurate, slower)
+
+**Example:**
+```cpp
+PULSE2D_ON_GAMESTART() {
+    Serial.begin(115200);
+    PULSE2D_INIT(0.0f, 0.0f, 10);      // zero gravity
+    PULSE2D_INIT(0.0f, -9.8f, 10);     // platformer gravity
+}
+```
+
+---
+
+### PULSE2D_DEFINE
+
+```cpp
+PULSE2D_DEFINE type variable_name = initial_value;
+```
+
+Allocates a static variable in the correct memory section for game state. Use this for any persistent game variables.
+
+**Example:**
+```cpp
+PULSE2D_DEFINE bool game_over = false;
+PULSE2D_DEFINE int score = 0;
+PULSE2D_DEFINE float player_health = 100.0f;
+```
+
+---
+
+### PULSE2D_HARDWARE_DEFINE
+
+```cpp
+PULSE2D_HARDWARE_DEFINE(Type) variable_name;
+```
+
+Declares a hardware-deferred type for late initialization. Used internally by `PULSE2D_START_PULSE()`. You typically don't need to use this directly unless you're creating custom hardware wrappers.
+
+---
+
+## Scenes
+
+Scenes are the organizational unit for game levels, menus, and states. Each scene has its own pools of bodies, sprites, and joints.
+
+### PULSE2D_DEFINE_SCENE
+
+```cpp
+PULSE2D_DEFINE_SCENE(SceneName, max_bodies, max_sprites);
+PULSE2D_DEFINE_SCENE(SceneName, max_bodies, max_sprites, max_joints);
+```
+
+Declares a scene struct with fixed-size pools. The sizes are checked at compile time against hardware limits. The optional fourth argument sets the joint pool size (default: 0).
+
+**Parameters:**
+- `SceneName` — Identifier for the scene (becomes a struct name)
+- `max_bodies` — Maximum physics bodies (checked against `MAX_PHYSICS_BODIES`)
+- `max_sprites` — Maximum loaded sprites (checked against `MAX_LOADED_SPRITES`)
+- `max_joints` — Optional joint pool size (default: 0)
+
+**Example:**
+```cpp
+PULSE2D_DEFINE_SCENE(Main_Menu, 2, 5);         // 2 bodies, 5 sprites
+PULSE2D_DEFINE_SCENE(Game_Level, 10, 8);       // 10 bodies, 8 sprites
+PULSE2D_DEFINE_SCENE(Boss_Fight, 15, 12, 4);   // 15 bodies, 12 sprites, 4 joints
+```
+
+---
+
+### PULSE2D_GAME_SCENES
+
+```cpp
+PULSE2D_GAME_SCENES(Scene1, Scene2, ...);
+```
+
+Declares a `std::variant` that holds all scene types used in the game. This creates the `current_scene` global variable.
+
+**Example:**
+```cpp
+PULSE2D_GAME_SCENES(Main_Menu, Game_Level, Boss_Fight);
+```
+
+---
+
+### PULSE2D_SET_SCENE
+
+```cpp
+PULSE2D_SET_SCENE(SceneName);
+```
+
+Transitions to a scene, this:
+
+1. Clears the physics world
+2. Resets the storage system
+3. Emplaces the new scene into `current_scene`
+4. Calls the scene's entry function (`PULSE2D_ON_GAMESCENE_START`)
+5. Registers the scene's tick function
+
+**Example:**
+```cpp
+PULSE2D_SET_SCENE(Game_Level);
+
+// From inside a scene, defer the transition:
+if (player_dead) {
+    pending_transition = []() { PULSE2D_SET_SCENE(Game_Over); };
+}
+```
+
+---
+
+### PULSE2D_ON_GAMESCENE_START
+
+```cpp
+PULSE2D_ON_GAMESCENE_START(SceneName) {
+    // Initialization code
+}
+```
+
+Defines the entry function for a scene. Called once automatically by `PULSE2D_SET_SCENE`. This is where you spawn bodies, load sprites, and set up the scene.
+
+**Example:**
+```cpp
+PULSE2D_ON_GAMESCENE_START(Game_Level) {
+    PULSE2D_STATIC_BODY(floor_object, {
+        .position = { 0.0f, -5.0f },
+        .width = { 10.0f, 0.5f }
+    });
+
+    PULSE2D_DYNAMIC_BODY(player_object, {
+        .position = { 0.0f, 2.0f },
+        .mass = 1.0f
+    });
+
+    PULSE2D_SPRITE(player_sprite, "player.bin", 32, 32);
+}
+```
+
+---
+
+### PULSE2D_ON_GAMESCENE
+
+```cpp
+PULSE2D_ON_GAMESCENE(Scene_Name) {
+    // Per-frame logic
+}
+```
+
+Defines the per-frame function for a scene. This is registered as the active tick function by `PULSE2D_SET_SCENE` and called every frame by `PULSE2D_TICK_GAMESCENE`.
+
+**Example:**
+```cpp
+PULSE2D_ON_GAMESCENE(Game_Level) {
+    PULSE2D_TICK_WORLD(Game_Level);
+    PULSE2D_POLL_SEESAW_GAMEPAD();
+
+    SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(player_object, 3.0f);
+
+    PULSE2D_DRAW(player_object, player_sprite);
+    PULSE2D_RENDER(active_scene);
+}
+```
+
+---
+
+### PULSE2D_TICK_GAMESCENE
+
+```cpp
+PULSE2D_TICK_GAMESCENE();
+```
+
+Calls the active scene's tick function, then resolves any pending transition. This is the only call needed in `PULSE2D_ON_GAMELOOP`.
+
+**Example:**
+```cpp
+PULSE2D_ON_GAMELOOP() {
+    PULSE2D_TICK_GAMESCENE();
+}
+```
+
+---
+
+### PULSE2D_TICK_WORLD
+
+```cpp
+PULSE2D_TICK_WORLD(SceneName);
+```
+
+Steps the physics simulation one frame and brings `active_scene` and `renderer` into scope for the rest of the scene function. Call this at the top of every `PULSE2D_ON_GAMESCENE`.
+
+**Example:**
+```cpp
+PULSE2D_ON_GAMESCENE(Game_Level) {
+    PULSE2D_TICK_WORLD(Game_Level);
+    // active_scene and renderer are now in scope
+    auto& player = PULSE2D_GET_BODY(player_object);
+    player.apply_force({ 0.0f, 10.0f });
+}
+```
+
+---
+
+## Physics, Bodies
+
+Bodies are the physical objects in your game. There are three types:
+
+1. **Fixed** — Immovable obstacles (walls, floors, platforms)
+2. **Controlled** — Player-controlled objects with `mass = 0` (infinite mass, but can be moved by setting velocity directly)
+3. **Dynamic** — Fully simulated objects with active physics
+
+### PULSE2D_STATIC_BODY
+
+```cpp
+PULSE2D_STATIC_BODY(object_name, {
+    // Body descriptor
+});
+```
+
+Allocates an immovable body in the current scene's pool and registers it with the physics world. Use for walls, floors, and static obstacles.
+
+**Example:**
+```cpp
+PULSE2D_STATIC_BODY(floor, {
+    .position = { 0.0f, -5.0f },
+    .width = { 10.0f, 0.5f }
+});
+
+PULSE2D_STATIC_BODY(left_wall, {
+    .position = { -6.0f, 0.0f },
+    .width = { 0.5f, 8.0f }
+});
+```
+
+---
+
+### PULSE2D_CONTROLLED_BODY
+
+```cpp
+PULSE2D_CONTROLLED_BODY(object_name, {
+    // Body descriptor with mass = 0
+});
+```
+
+Allocates a player-controlled body with `mass = 0` (infinite mass). The body doesn't respond to forces, but you can set its velocity directly for responsive control.
+
+**Example:**
+```cpp
+PULSE2D_CONTROLLED_BODY(player, {
+    .position = { 0.0f, 0.0f },
+    .velocity = { 0.0f, 0.0f },
+    .width = { 1.0f, 1.0f },
+    .mass = 1.0f  // Set to 0.0f by the macro
+});
+```
+
+---
+
+### PULSE2D_DYNAMIC_BODY
+
+```cpp
+PULSE2D_DYNAMIC_BODY(object_name, {
+    // Body descriptor with mass > 0
+});
+```
+
+Allocates a dynamic body with active, in-motion physics and registers it with the world. The body responds to forces, gravity, and collisions.
+
+**Example:**
+```cpp
+PULSE2D_DYNAMIC_BODY(ball, {
+    .position = { 0.0f, 5.0f },
+    .velocity = { 2.0f, 0.0f },
+    .width = { 0.5f, 0.5f },
+    .mass = 1.0f
+});
+```
+
+---
+
+### PULSE2D_GET_BODY
+
+```cpp
+auto& body_ref = PULSE2D_GET_BODY(object_name);
+```
+
+Returns a reference to a named body from the active scene. Available after `PULSE2D_TICK_WORLD`.
+
+**Example:**
+```cpp
+PULSE2D_ON_GAMESCENE(Game_Level) {
+    PULSE2D_TICK_WORLD(Game_Level);
+
+    auto& player = PULSE2D_GET_BODY(player_object);
+    player.set_velocity({ 3.0f, 0.0f });
+
+    if (player.position.y < -10.0f) {
+        // player fell off the map
+    }
+}
+```
+
+---
+
+### Body Properties
+
+All body descriptors support these fields (see [`pulse2d/graphics/body.h`](pulse2d/graphics/body.h) for complete details):
+
+```cpp
+{
+    .position = { x, y },           // Vec2: initial position
+    .velocity = { vx, vy },         // Vec2: initial velocity
+    .force = { fx, fy },            // Vec2: accumulated force
+    .width = { w, h },              // Vec2: half-extents (half-width, half-height)
+    .mass = 1.0f,                   // float: mass (0.0f = infinite)
+    .friction = 0.2f,               // float: coefficient of friction
+    .rotation = 0.0f                // float: rotation in radians
+}
+```
+
+**Example:**
+```cpp
+PULSE2D_DYNAMIC_BODY(crate, {
+    .position = { 2.0f, 3.0f },
+    .width = { 0.5f, 0.5f },
+    .mass = 2.0f,
+    .friction = 0.8f
+});
+```
+
+---
+
+## Sprites, Rendering
+
+### PULSE2D_SPRITE
+
+```cpp
+PULSE2D_SPRITE(sprite_name, "path/to/file.bin", width, height);
+```
+
+Loads a raw RGB565 sprite from the SD card into the current scene's sprite pool. The path is relative to the SD card root.
+
+**Example:**
+```cpp
+PULSE2D_SPRITE(player_sprite, "player.bin", 32, 32);
+PULSE2D_SPRITE(enemy_sprite, "sprites/enemy.bin", 48, 48);
+```
+
+---
+
+### PULSE2D_SPRITE_FLASH
+
+```cpp
+PULSE2D_SPRITE_FLASH(sprite_name, data_array, width, height);
+```
+
+Registers a flash-resident sprite array (from a C header generated by `png2header`) as a named sprite in the current scene's sprite pool. Use this for backgrounds and large assets that stay in QSPI flash.
+
+**Example:**
+```cpp
+#include "../include/nebula-bg.h"
+
+PULSE2D_ON_GAMESCENE_START(Level_One) {
+    PULSE2D_SPRITE_FLASH(sprite_nebula, bg_1, 320, 240);
+}
+```
+
+---
+
+### PULSE2D_DRAW
+
+```cpp
+PULSE2D_DRAW(body_name, sprite_name);
+PULSE2D_DRAW(body_name, sprite_name, rotation_radians);
+```
+
+Projects a body's world-space position to screen coordinates and queues the sprite for rendering. An optional third argument sets a fixed rotation in radians.
+
+**Important:** Pass identifiers, not string literals. The macro stringifies them.
+
+**Example:**
+```cpp
+PULSE2D_DRAW(player_object, player_sprite);
+PULSE2D_DRAW(ship_object, ship_sprite, 1.5708f);  // 90° rotation
+```
+
+**Common mistake:**
+```cpp
+// WRONG - do not use string literals
+PULSE2D_DRAW("player", "player_sprite");
+
+// CORRECT - use identifiers
+PULSE2D_DRAW(player_object, player_sprite);
+```
+
+---
+
+### PULSE2D_DRAW_BODY
+
+```cpp
+PULSE2D_DRAW_BODY(body_pointer, sprite_name);
+PULSE2D_DRAW_BODY(body_pointer, sprite_name, rotation_radians);
+```
+
+Same as `PULSE2D_DRAW`, but takes a body pointer instead of a name. Useful when drawing pooled objects.
+
+**Example:**
+```cpp
+PULSE2D_DEPLOY_OBJECT(bullet_template, x, y, vx, vy,
+    [](auto& bullet) {
+        PULSE2D_DRAW_BODY(&bullet, bullet_sprite);
+    }
+);
+```
+
+---
+
+### PULSE2D_RENDER
+
+```cpp
+PULSE2D_RENDER(active_scene);
+```
+
+Flushes the renderer's sprite queue to the display. Call once at the end of your scene function.
+
+**Example:**
+```cpp
+PULSE2D_ON_GAMESCENE(Game_Level) {
+    PULSE2D_TICK_WORLD(Game_Level);
+    PULSE2D_DRAW(player_object, player_sprite);
+    PULSE2D_DRAW(enemy_object, enemy_sprite);
+    PULSE2D_RENDER(active_scene);
+}
+```
+
+---
+
+## Backgrounds, Parallax
+
+The background system renders full-screen sprites in layers. Parallax layers scroll at different speeds to create depth.
+
+### PULSE2D_ADD_BACKGROUND_LAYER
+
+```cpp
+PULSE2D_ADD_BACKGROUND_LAYER(sprite_name, width);
+```
+
+Adds a static (non-scrolling) background layer to the current scene. Call after `PULSE2D_SPRITE_FLASH`.
+
+**Example:**
+```cpp
+PULSE2D_ON_GAMESCENE_START(Menu_Screen) {
+    PULSE2D_SPRITE_FLASH(menu_bg, menu_bg_data, 320, 240);
+    PULSE2D_ADD_BACKGROUND_LAYER(menu_bg, 320.0f);
+}
+```
+
+---
+
+### PULSE2D_ADD_PARALLAX_LAYER
+
+```cpp
+PULSE2D_ADD_PARALLAX_LAYER(sprite_name, width, scroll_speed);
+```
+
+Adds a parallax scrolling layer to the current scene. `width` is the image width in pixels (used to wrap the offset), `scroll_speed` is pixels per second. Layers are drawn in the order they're added.
+
+**Example:**
+```cpp
+PULSE2D_ON_GAMESCENE_START(Space_Level) {
+    PULSE2D_SPRITE_FLASH(sprite_nebula, bg_1, 320, 240);
+    PULSE2D_SPRITE_FLASH(sprite_stars, bg_2, 320, 240);
+    PULSE2D_SPRITE_FLASH(sprite_dust, bg_3, 320, 240);
+
+    PULSE2D_ADD_PARALLAX_LAYER(sprite_nebula, 320.0f, 10.0f);  // slow
+    PULSE2D_ADD_PARALLAX_LAYER(sprite_stars, 320.0f, 3.0f);    // very slow
+    PULSE2D_ADD_PARALLAX_LAYER(sprite_dust, 320.0f, 65.0f);    // fast
+}
+```
+
+---
+
+### PULSE2D_RENDER_BACKGROUNDS
+
+```cpp
+PULSE2D_RENDER_BACKGROUNDS();
+```
+
+Advances each layer's scroll offset and blits all layers to the framebuffer. Call before `PULSE2D_RENDER` in your scene function.
+
+**Example:**
+```cpp
+PULSE2D_ON_GAMESCENE(Space_Level) {
+    PULSE2D_TICK_WORLD(Space_Level);
+    PULSE2D_POLL_SEESAW_GAMEPAD();
+
+    PULSE2D_RENDER_BACKGROUNDS();  // draw backgrounds first
+
+    PULSE2D_DRAW(ship_object, ship_sprite);
+    PULSE2D_RENDER(active_scene);
+}
+```
+
+---
+
+## Animations
+
+The animation system plays sprite-sheet animations independently of physics bodies. Each animation is a sequence of frames stored in flash memory.
+
+### PULSE2D_REGISTER_ANIMATION
+
+```cpp
+PULSE2D_REGISTER_ANIMATION(anim_name, data_ptr, frame_width, frame_height, total_frames, fps);
+```
+
+Registers an animation definition in the current scene's animation manager. The sprite sheet is a linear array of frames in flash memory (generated by `png2header`).
+
+**Parameters:**
+- `anim_name` — Identifier for the animation
+- `data_ptr` — Pointer to the flash sprite sheet array
+- `frame_width` — Width of each frame in pixels
+- `frame_height` — Height of each frame in pixels
+- `total_frames` — Number of frames in the animation
+- `fps` — Frames per second playback rate
+
+**Example:**
+```cpp
+#include "../include/explosion-anim.h"  // explosion_frames[8][64*64]
+
+PULSE2D_ON_GAMESCENE_START(Game_Level) {
+    // Register 8-frame explosion at 12 fps
+    PULSE2D_REGISTER_ANIMATION(explosion, explosion_frames, 64, 64, 8, 12);
+}
+```
+
+---
+
+### PULSE2D_PLAY_ANIMATION
+
+```cpp
+PULSE2D_PLAY_ANIMATION(anim_name, x, y);
+```
+
+Spawns a new animation instance at the given screen coordinates. The animation plays once and is automatically removed when it completes. If the animation queue is full, the request is silently dropped.
+
+**Example:**
+```cpp
+PULSE2D_ON_COLLISION() {
+    PULSE2D_PLAY_ANIMATION(explosion, 160, 120);  // center of screen
+}
+
+// Play at a body's position
+auto& enemy = PULSE2D_GET_BODY(enemy_object);
+auto [sx, sy] = pulse2d::Renderer::project_coordinates(
+    enemy.position.x, enemy.position.y);
+PULSE2D_PLAY_ANIMATION(explosion, sx, sy);
+```
+
+---
+
+### PULSE2D_TICK_ANIMATIONS
+
+```cpp
+PULSE2D_TICK_ANIMATIONS();
+```
+
+Advances and draws all active animations. Call after rendering game objects but before `PULSE2D_RENDER`.
+
+**Example:**
+```cpp
+PULSE2D_ON_GAMESCENE(Game_Level) {
+    PULSE2D_TICK_WORLD(Game_Level);
+    PULSE2D_POLL_SEESAW_GAMEPAD();
+
+    PULSE2D_DRAW(player_object, player_sprite);
+    PULSE2D_DRAW(enemy_object, enemy_sprite);
+
+    PULSE2D_TICK_ANIMATIONS();  // draw animations on top
+
+    PULSE2D_RENDER(active_scene);
+}
+```
+
+**Complete animation example:**
+```cpp
+#include "../include/explosion-anim.h"
+
+PULSE2D_DEFINE_SCENE(Shooter, 10, 5);
+PULSE2D_GAME_SCENES(Shooter);
+
+PULSE2D_ON_GAMESCENE_START(Shooter) {
+    PULSE2D_REGISTER_ANIMATION(explosion, explosion_frames, 64, 64, 8, 12);
+    PULSE2D_DYNAMIC_BODY(enemy, {
+        .position = { 3.0f, 0.0f },
+        .mass = 1.0f
+    });
+    PULSE2D_SPRITE(enemy_sprite, "enemy.bin", 48, 48);
+}
+
+PULSE2D_DEFINE bool enemy_destroyed = false;
+
+PULSE2D_ON_GAMESCENE(Shooter) {
+    PULSE2D_TICK_WORLD(Shooter);
+    PULSE2D_POLL_SEESAW_GAMEPAD();
+
+    PULSE2D_ON_COLLISION() {
+        if (!enemy_destroyed) {
+            enemy_destroyed = true;
+            auto& enemy = PULSE2D_GET_BODY(enemy);
+            auto [sx, sy] = pulse2d::Renderer::project_coordinates(
+                enemy.position.x, enemy.position.y);
+            PULSE2D_PLAY_ANIMATION(explosion, sx, sy);
+        }
+    }
+
+    if (!enemy_destroyed) {
+        PULSE2D_DRAW(enemy, enemy_sprite);
+    }
+
+    PULSE2D_TICK_ANIMATIONS();
+    PULSE2D_RENDER(active_scene);
+}
+```
+
+---
+
+## Kinematic Pools
+
+Kinematic pools provide pre-allocated object pools for temporary entities like projectiles, particles, and powerups. This avoids dynamic allocation and enables efficient spawning/despawning of many objects.
+
+### PULSE2D_CONTROLLED_POOL
+
+```cpp
+PULSE2D_CONTROLLED_POOL(template_name, {
+    // Body descriptor
+});
+```
+
+Registers a body template in the pool manager. The descriptor defines the baseline properties for all objects spawned from this template. The macro automatically sets `mass = 0.0f` to ensure controlled (non-physics) behavior.
+
+Call this in `PULSE2D_ON_GAMESCENE_START`.
+
+**Example:**
+```cpp
+PULSE2D_ON_GAMESCENE_START(Shooter) {
+    // Create a bullet template
+    PULSE2D_CONTROLLED_POOL(bullet_template, {
+        .width = { 0.2f, 0.1f },
+        .friction = 0.0f
+    });
+
+    // Create a particle template
+    PULSE2D_CONTROLLED_POOL(particle_template, {
+        .width = { 0.05f, 0.05f }
+    });
+}
+```
+
+---
+
+### PULSE2D_DEPLOY_OBJECT
+
+```cpp
+PULSE2D_DEPLOY_OBJECT(template_name, x, y, vx, vy,
+    [](auto& body) {
+        // Action closure with body reference
+    }
+);
+```
+
+Requests an object from the pool and executes an action closure with a safe reference to the body. The body is initialized with the template descriptor, then its position and velocity are set.
+
+**Parameters:**
+- `template_name` — The template registered with `PULSE2D_CONTROLLED_POOL`
+- `x, y` — Initial position
+- `vx, vy` — Initial velocity
+- `action` — Lambda/closure that receives a `Body&` reference
+
+**Example:**
+```cpp
+PULSE2D_ON_GAMESCENE(Shooter) {
+    PULSE2D_TICK_WORLD(Shooter);
+    PULSE2D_POLL_SEESAW_GAMEPAD();
+
+    if (SEESAW_BUTTON_INPUT(SEESAW_A)) {
+        auto& ship = PULSE2D_GET_BODY(ship_object);
+
+        // Fire bullet from ship position
+        PULSE2D_DEPLOY_OBJECT(bullet_template,
+            ship.position.x, ship.position.y,   // position
+            5.0f, 0.0f,                          // velocity
+            [](auto& bullet) {
+                // The bullet body is valid only inside this closure
+                PULSE2D_DRAW_BODY(&bullet, bullet_sprite);
+            }
+        );
+    }
+}
+```
+
+---
+
+### PULSE2D_DESPAWN_OBJECT
+
+```cpp
+PULSE2D_DESPAWN_OBJECT(body_ref);
+```
+
+Safely releases a pooled object and returns its memory to the pool. The object is removed from the physics world and marked as available for reuse.
+
+**Example:**
+```cpp
+PULSE2D_DEPLOY_OBJECT(bullet_template, x, y, vx, vy,
+    [](auto& bullet) {
+        // Despawn bullets that go off-screen
+        if (bullet.position.x > 10.0f || bullet.position.x < -10.0f) {
+            PULSE2D_DESPAWN_OBJECT(bullet);
+            return;
+        }
+
+        PULSE2D_DRAW_BODY(&bullet, bullet_sprite);
+    }
+);
+```
+
+**Complete pooled projectile example:**
+```cpp
+PULSE2D_DEFINE_SCENE(Shooter, 20, 3);  // 20 bodies for player + enemies + bullets
+PULSE2D_GAME_SCENES(Shooter);
+
+PULSE2D_ON_GAMESCENE_START(Shooter) {
+    PULSE2D_CONTROLLED_POOL(bullet_template, {
+        .width = { 0.2f, 0.1f }
+    });
+
+    PULSE2D_CONTROLLED_BODY(ship, {
+        .position = { -4.0f, 0.0f },
+        .width = { 0.5f, 0.5f }
+    });
+
+    PULSE2D_SPRITE(ship_sprite, "ship.bin", 48, 48);
+    PULSE2D_SPRITE(bullet_sprite, "bullet.bin", 16, 8);
+}
+
+PULSE2D_DEFINE uint32_t fire_cooldown = 0;
+
+PULSE2D_ON_GAMESCENE(Shooter) {
+    PULSE2D_TICK_WORLD(Shooter);
+    PULSE2D_POLL_SEESAW_GAMEPAD();
+
+    auto& ship = PULSE2D_GET_BODY(ship);
+    SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(ship, 3.0f);
+
+    // Fire bullets
+    if (fire_cooldown > 0) fire_cooldown--;
+
+    if (SEESAW_BUTTON_INPUT(SEESAW_A) && fire_cooldown == 0) {
+        PULSE2D_DEPLOY_OBJECT(bullet_template,
+            ship.position.x + 0.6f, ship.position.y,
+            8.0f, 0.0f,
+            [](auto& bullet) {
+                // Bullet spawned successfully
+            }
+        );
+        fire_cooldown = 15;  // 15 frames = 0.25s @ 60fps
+    }
+
+    // Update and draw all bullets
+    PULSE2D_DEPLOY_OBJECT(bullet_template, 0, 0, 0, 0,
+        [](auto& bullet) {
+            if (bullet.position.x > 8.0f) {
+                PULSE2D_DESPAWN_OBJECT(bullet);
+                return;
+            }
+            PULSE2D_DRAW_BODY(&bullet, bullet_sprite);
+        }
+    );
+
+    PULSE2D_DRAW(ship, ship_sprite);
+    PULSE2D_RENDER(active_scene);
+}
+```
+
+---
+
+## Collision
+
+### PULSE2D_ON_COLLISION
+
+```cpp
+PULSE2D_ON_COLLISION() {
+    // Collision handling code
+}
+```
+
+A conditional block that executes when at least one collision is active in the physics world.
+
+**Example:**
+```cpp
+PULSE2D_ON_GAMESCENE(Game_Level) {
+    PULSE2D_TICK_WORLD(Game_Level);
+
+    PULSE2D_ON_COLLISION() {
+        game_over = true;
+    }
+
+    PULSE2D_RENDER(active_scene);
+}
+```
+
+---
+
+### PULSE2D_ON_COLLISION_WITH
+
+```cpp
+PULSE2D_ON_COLLISION_WITH(arbiter_name) {
+    // Collision handling code
+}
+```
+
+A conditional block that executes when a specific named arbiter (collision pair) is active.
+
+**Example:**
+```cpp
+PULSE2D_ON_COLLISION_WITH(player_enemy) {
+    health -= 10;
+}
+
+PULSE2D_ON_COLLISION_WITH(player_powerup) {
+    score += 100;
+}
+```
+
+---
+
+## Gamepad Input
+
+The gamepad system supports the [Adafruit Seesaw Gamepad QT](https://www.adafruit.com/product/5743) with analog thumbstick and 6 buttons over I2C.
+
+### PULSE2D_ENABLE_SEESAW_GAMEPAD
+
+```cpp
+PULSE2D_ENABLE_SEESAW_GAMEPAD();
+```
+
+Declares the I2C driver and gamepad at file scope. Place this once alongside `PULSE2D_START_PULSE()`.
+
+**Example:**
+```cpp
+PULSE2D_START_PULSE();
+PULSE2D_ENABLE_SEESAW_GAMEPAD();
+```
+
+---
+
+### PULSE2D_START_SEESAW_GAMEPAD
+
+```cpp
+PULSE2D_START_SEESAW_GAMEPAD();
+```
+
+Initializes the I2C bus and gamepad hardware. Call once in `PULSE2D_ON_GAMESTART()`.
+
+**Example:**
+```cpp
+PULSE2D_ON_GAMESTART() {
+    Serial.begin(115200);
+    PULSE2D_INIT(0.0f, 0.0f, 10);
+    PULSE2D_START_SEESAW_GAMEPAD();
+    PULSE2D_SET_SCENE(Main_Menu);
+}
+```
+
+---
+
+### PULSE2D_POLL_SEESAW_GAMEPAD
+
+```cpp
+PULSE2D_POLL_SEESAW_GAMEPAD();
+```
+
+Polls all inputs and brings `gamepad_state` into scope for the rest of the scene function. Call at the top of each scene function.
+
+**Example:**
+```cpp
+PULSE2D_ON_GAMESCENE(Game_Level) {
+    PULSE2D_TICK_WORLD(Game_Level);
+    PULSE2D_POLL_SEESAW_GAMEPAD();
+
+    // gamepad_state is now available
+    if (SEESAW_BUTTON_INPUT(SEESAW_A)) {
+        fire();
+    }
+}
+```
+
+---
+
+### SEESAW_BUTTON_INPUT
+
+```cpp
+SEESAW_BUTTON_INPUT(button_name)
+```
+
+Evaluates non-zero while the named button is held. Available button constants:
+- `SEESAW_A`
+- `SEESAW_B`
+- `SEESAW_X`
+- `SEESAW_Y`
+- `SEESAW_START`
+- `SEESAW_SELECT`
+
+**Example:**
+```cpp
+if (SEESAW_BUTTON_INPUT(SEESAW_A)) { jump(); }
+if (SEESAW_BUTTON_INPUT(SEESAW_B)) { shoot(); }
+if (SEESAW_BUTTON_INPUT(SEESAW_START)) { pause(); }
+```
+
+---
+
+### SEESAW_ARCADE_DIRECTIONAL_MOVEMENT
+
+```cpp
+SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(body_name, max_speed);
+SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(body_name, max_speed, vertical_only, horizontal_only);
+```
+
+**Profile A: The Arcade Controller** (Pokémon, Zelda, Pac-Man)
+
+Sets the body's velocity directly from the stick position for instant response and instant stop. Optional third and fourth boolean arguments enable vertical-only or horizontal-only movement.
+
+**Example:**
+```cpp
+SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(player, 3.0f);                    // both axes
+SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(player, 3.0f, true, false);       // vertical only
+SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(player, 3.0f, false, true);       // horizontal only
+```
+
+---
+
+### SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED
+
+```cpp
+SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED(body_name, max_speed);
+SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED(body_name, max_speed, vertical_only, horizontal_only);
+```
+
+Same as `SEESAW_ARCADE_DIRECTIONAL_MOVEMENT`, but with inverted axes.
+
+**Example:**
+```cpp
+SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED(ship, 4.0f);
+```
+
+---
+
+### SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT
+
+```cpp
+SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT(body_name, acceleration);
+```
+
+**Profile B: The Momentum Controller** (Asteroids, Mario)
+
+Applies a thrust force scaled by `acceleration` each frame. Velocity builds up over time, creating momentum-based movement.
+
+**Example:**
+```cpp
+SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT(ship, 0.8f);
+```
+
+---
+
+### SEESAW_SLIDING_FRICTION_DIRECTIONAL_MOVEMENT
+
+```cpp
+SEESAW_SLIDING_FRICTION_DIRECTIONAL_MOVEMENT(body_name, drag_amount);
+```
+
+**Profile C: Top-Down Friction**
+
+Applies linear drag to the body each frame. Pair with `SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT` so the body doesn't slide forever.
+
+**Example:**
+```cpp
+SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT(ship, 0.8f);
+SEESAW_SLIDING_FRICTION_DIRECTIONAL_MOVEMENT(ship, 0.92f);
+```
+
+---
+
+### Analog Stick Input
+
+```cpp
+float x = SEESAW_DIRECTIONAL_X_INPUT();  // -1.0 to +1.0
+float y = SEESAW_DIRECTIONAL_Y_INPUT();  // -1.0 to +1.0
+```
+
+Raw analog stick axes, normalized from −1.0 to +1.0.
+
+**Example:**
+```cpp
+auto& ship = PULSE2D_GET_BODY(ship);
+ship.set_velocity({
+    SEESAW_DIRECTIONAL_X_INPUT() * 5.0f,
+    SEESAW_DIRECTIONAL_Y_INPUT() * 5.0f
+});
+```
+
+---
+
+### Direction Helpers
+
+```cpp
+SEESAW_DIRECTION_IS_LEFT()
+SEESAW_DIRECTION_IS_RIGHT()
+SEESAW_DIRECTION_IS_UP()
+SEESAW_DIRECTION_IS_DOWN()
+```
+
+Boolean helpers that return true when the stick is pushed more than halfway (> 0.5 magnitude) in the given direction.
+
+**Example:**
+```cpp
+if (SEESAW_DIRECTION_IS_UP() && on_ground) {
+    jump();
+}
+
+if (SEESAW_DIRECTION_IS_LEFT()) {
+    facing_left = true;
+}
+```
+
+---
+
+## Engine Lifecycle
+
+### PULSE2D_ON_GAMESTART
+
+```cpp
+PULSE2D_ON_GAMESTART() {
+    // Initialization code
+}
+```
+
+Maps to Arduino `setup()`. Runs once on power-on. This is where you initialize serial, the engine, the gamepad, and set the initial scene.
+
+**Example:**
+```cpp
+PULSE2D_ON_GAMESTART() {
+    Serial.begin(115200);
+    PULSE2D_POLL_SERIAL_CONNECTION();
+    PULSE2D_REGISTER_ETL_ERROR_HANDLER();
+
+    PULSE2D_INIT(0.0f, 0.0f, 10);
+    PULSE2D_START_SEESAW_GAMEPAD();
+    PULSE2D_SET_SCENE(Main_Menu);
+}
+```
+
+---
+
+### PULSE2D_ON_GAMELOOP
+
+```cpp
+PULSE2D_ON_GAMELOOP() {
+    // Per-frame code
+}
+```
+
+Maps to Arduino `loop()`. Runs every frame (~60 Hz). For most games, this only needs `PULSE2D_TICK_GAMESCENE()`.
+
+**Example:**
+```cpp
+PULSE2D_ON_GAMELOOP() {
+    PULSE2D_TICK_GAMESCENE();
+}
+```
+
+---
+
+### PULSE2D_TICK_PULSE
+
+```cpp
+PULSE2D_TICK_PULSE();
+```
+
+Manually ticks the game engine. You typically don't need this - `PULSE2D_RENDER` calls it automatically.
+
+---
+
+## Debug, Utilities
+
+### PULSE2D_PRINT_STACKSIZE
+
+```cpp
+PULSE2D_PRINT_STACKSIZE();
+```
+
+Prints stack usage to serial every 300 frames (~5 seconds at 60 fps). Compiled away in non-debug builds.
+
+**Example:**
+```cpp
+PULSE2D_ON_GAMESCENE(Game_Level) {
+    PULSE2D_TICK_WORLD(Game_Level);
+    PULSE2D_PRINT_STACKSIZE();
+
+    PULSE2D_RENDER(active_scene);
+}
+```
+
+**Output:**
+```
+stack used: 8192 bytes
+stack used: 8256 bytes
+```
+
+---
+
+### PULSE2D_REGISTER_ETL_ERROR_HANDLER
+
+```cpp
+PULSE2D_REGISTER_ETL_ERROR_HANDLER();
+```
+
+Registers a Serial callback for ETL assertion failures. With `-fno-exceptions` (required by Teensyduino), ETL bounds violations are silent by default. This makes them print to serial:
+
+```
+[ETL] Error in scene.h:42 with 'map full'
+```
+
+Call once in `PULSE2D_ON_GAMESTART()` after `Serial.begin()`. Compiled away in non-debug builds.
+
+**Example:**
+```cpp
+PULSE2D_ON_GAMESTART() {
+    Serial.begin(115200);
+    PULSE2D_POLL_SERIAL_CONNECTION();
+    PULSE2D_REGISTER_ETL_ERROR_HANDLER();
+
+    PULSE2D_INIT(0.0f, 0.0f, 10);
+}
+```
+
+---
+
+## Complete Example
+
+Here's a complete game demonstrating most DSL features:
+
+```cpp
+#include PULSE2D_HEADER
+#include PULSE2D_GRAPHICS
+#include "../include/explosion-anim.h"
+#include "../include/stars-bg.h"
+
+PULSE2D_START_PULSE();
+PULSE2D_ENABLE_SEESAW_GAMEPAD();
+
+PULSE2D_DEFINE_SCENE(Space_Shooter, 20, 6);
+PULSE2D_GAME_SCENES(Space_Shooter);
+
+PULSE2D_DEFINE int score = 0;
+PULSE2D_DEFINE bool enemy_hit = false;
+
+PULSE2D_ON_GAMESCENE_START(Space_Shooter) {
+    // Background
+    PULSE2D_SPRITE_FLASH(bg_stars, stars_bg, 320, 240);
+    PULSE2D_ADD_PARALLAX_LAYER(bg_stars, 320.0f, 15.0f);
+
+    // Animation
+    PULSE2D_REGISTER_ANIMATION(explosion, explosion_frames, 64, 64, 8, 12);
+
+    // Projectile pool
+    PULSE2D_CONTROLLED_POOL(bullet_template, {
+        .width = { 0.15f, 0.08f }
+    });
+
+    // Player
+    PULSE2D_CONTROLLED_BODY(ship, {
+        .position = { -4.0f, 0.0f },
+        .width = { 0.5f, 0.5f }
+    });
+
+    // Enemy
+    PULSE2D_DYNAMIC_BODY(enemy, {
+        .position = { 3.0f, 0.0f },
+        .mass = 1.0f,
+        .width = { 0.6f, 0.6f }
+    });
+
+    PULSE2D_SPRITE(ship_sprite, "ship.bin", 48, 48);
+    PULSE2D_SPRITE(enemy_sprite, "enemy.bin", 48, 48);
+    PULSE2D_SPRITE(bullet_sprite, "bullet.bin", 12, 8);
+}
+
+PULSE2D_DEFINE uint32_t cooldown = 0;
+
+PULSE2D_ON_GAMESCENE(Space_Shooter) {
+    PULSE2D_TICK_WORLD(Space_Shooter);
+    PULSE2D_POLL_SEESAW_GAMEPAD();
+    PULSE2D_RENDER_BACKGROUNDS();
+
+    // Player movement
+    auto& ship = PULSE2D_GET_BODY(ship);
+    SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(ship, 3.5f);
+
+    // Fire bullets
+    if (cooldown > 0) cooldown--;
+    if (SEESAW_BUTTON_INPUT(SEESAW_A) && cooldown == 0) {
+        PULSE2D_DEPLOY_OBJECT(bullet_template,
+            ship.position.x + 0.6f, ship.position.y,
+            8.0f, 0.0f,
+            [](auto&) {}
+        );
+        cooldown = 10;
+    }
+
+    // Update bullets
+    PULSE2D_DEPLOY_OBJECT(bullet_template, 0, 0, 0, 0,
+        [](auto& bullet) {
+            if (bullet.position.x > 6.0f) {
+                PULSE2D_DESPAWN_OBJECT(bullet);
+                return;
+            }
+            PULSE2D_DRAW_BODY(&bullet, bullet_sprite);
+        }
+    );
+
+    // Collision
+    PULSE2D_ON_COLLISION() {
+        if (!enemy_hit) {
+            enemy_hit = true;
+            auto& enemy = PULSE2D_GET_BODY(enemy);
+            auto [sx, sy] = pulse2d::Renderer::project_coordinates(
+                enemy.position.x, enemy.position.y);
+            PULSE2D_PLAY_ANIMATION(explosion, sx, sy);
+            score += 100;
+        }
+    }
+
+    // Draw
+    PULSE2D_DRAW(ship, ship_sprite);
+    if (!enemy_hit) {
+        PULSE2D_DRAW(enemy, enemy_sprite);
+    }
+
+    PULSE2D_TICK_ANIMATIONS();
+    PULSE2D_RENDER(active_scene);
+
+    // Reset for testing
+    if (SEESAW_BUTTON_INPUT(SEESAW_START)) {
+        PULSE2D_SET_SCENE(Space_Shooter);
+    }
+}
+
+PULSE2D_ON_GAMESTART() {
+    Serial.begin(115200);
+    PULSE2D_REGISTER_ETL_ERROR_HANDLER();
+    PULSE2D_INIT(0.0f, 0.0f, 10);
+    PULSE2D_START_SEESAW_GAMEPAD();
+    PULSE2D_SET_SCENE(Space_Shooter);
+}
+
+PULSE2D_ON_GAMELOOP() {
+    PULSE2D_TICK_GAMESCENE();
+}
+```
+
+---
+
+## See Also
+
+- [Main README](README.md) — Project overview and build instructions
+- [Physics README](pulse2d/graphics/readme.md) — Physics engine details
+- [shift game source](shift/game-teensy.cc) — Real-world example
+- [Blog series](https://soliloq.uy/tag/pulse2d/) — Development blog
