@@ -40,9 +40,9 @@ The pulse2d DSL is a set of macros in [`pulse2d/dsl.h`](pulse2d/dsl.h) inspired 
   - [PULSE2D_PLAY_ANIMATION](#pulse2d_play_animation)
   - [PULSE2D_TICK_ANIMATIONS](#pulse2d_tick_animations)
 - [Kinematic Pools](#kinematic-pools)
-  - [PULSE2D_CONTROLLED_POOL](#pulse2d_preallocate_controlled_pool)
-  - [PULSE2D_DEPLOY_OBJECT](#pulse2d_deploy_pooled_object)
-  - [PULSE2D_DESPAWN_OBJECT](#pulse2d_despawn_pooled_object)
+  - [PULSE2D_INIT_POOL](#pulse2d_init_pool)
+  - [PULSE2D_SPAWN](#pulse2d_spawn)
+  - [PULSE2D_DESPAWN](#pulse2d_despawn)
 - [Collision](#collision)
   - [PULSE2D_ON_COLLISION](#pulse2d_on_collision)
   - [PULSE2D_ON_COLLISION_WITH](#pulse2d_on_collision_with)
@@ -734,31 +734,31 @@ PULSE2D_ON_GAMESCENE(Shooter) {
 
 ## Kinematic Pools
 
-Kinematic pools provide pre-allocated object pools for temporary entities like projectiles, particles, and powerups. This avoids dynamic allocation and enables efficient spawning/despawning of many objects.
+Kinematic pools provide pre-allocated object pools for temporary entities like projectiles, particles, and powerups. Unlike the built-in scene pool manager, kinematic pools give you direct control over named pool instances.
 
-### PULSE2D_CONTROLLED_POOL
+### PULSE2D_INIT_POOL
 
 ```cpp
-PULSE2D_CONTROLLED_POOL(template_name, {
+PULSE2D_INIT_POOL(pool_name, {
     // Body descriptor
 });
 ```
 
-Registers a body template in the pool manager. The descriptor defines the baseline properties for all objects spawned from this template. The macro automatically sets `mass = 0.0f` to ensure controlled (non-physics) behavior.
+Initializes a named pool instance in the current scene with a body descriptor template. The descriptor defines the baseline properties for all objects spawned from this pool. The macro automatically sets `mass = 0.0f` to ensure controlled (non-physics) behavior.
 
 Call this in `PULSE2D_ON_GAMESCENE_START`.
 
 **Example:**
 ```cpp
 PULSE2D_ON_GAMESCENE_START(Shooter) {
-    // Create a bullet template
-    PULSE2D_CONTROLLED_POOL(bullet_template, {
+    // Create a bullet pool
+    PULSE2D_INIT_POOL(bullet_pool, {
         .width = { 0.2f, 0.1f },
         .friction = 0.0f
     });
 
-    // Create a particle template
-    PULSE2D_CONTROLLED_POOL(particle_template, {
+    // Create a particle pool
+    PULSE2D_INIT_POOL(particle_pool, {
         .width = { 0.05f, 0.05f }
     });
 }
@@ -766,20 +766,20 @@ PULSE2D_ON_GAMESCENE_START(Shooter) {
 
 ---
 
-### PULSE2D_DEPLOY_OBJECT
+### PULSE2D_SPAWN
 
 ```cpp
-PULSE2D_DEPLOY_OBJECT(template_name, x, y, vx, vy,
+PULSE2D_SPAWN(pool_name, x, y, vx, vy,
     [](auto& body) {
         // Action closure with body reference
     }
 );
 ```
 
-Requests an object from the pool and executes an action closure with a safe reference to the body. The body is initialized with the template descriptor, then its position and velocity are set.
+Spawns an object from the named pool and executes an action closure with a safe reference to the body. The body is initialized with the pool's descriptor template, then its position and velocity are set.
 
 **Parameters:**
-- `template_name` — The template registered with `PULSE2D_CONTROLLED_POOL`
+- `pool_name` — The pool initialized with `PULSE2D_INIT_POOL`
 - `x, y` — Initial position
 - `vx, vy` — Initial velocity
 - `action` — Lambda/closure that receives a `Body&` reference
@@ -794,7 +794,7 @@ PULSE2D_ON_GAMESCENE(Shooter) {
         auto& ship = PULSE2D_GET_BODY(ship_object);
 
         // Fire bullet from ship position
-        PULSE2D_DEPLOY_OBJECT(bullet_template,
+        PULSE2D_SPAWN(bullet_pool,
             ship.position.x, ship.position.y,   // position
             5.0f, 0.0f,                          // velocity
             [](auto& bullet) {
@@ -808,21 +808,21 @@ PULSE2D_ON_GAMESCENE(Shooter) {
 
 ---
 
-### PULSE2D_DESPAWN_OBJECT
+### PULSE2D_DESPAWN
 
 ```cpp
-PULSE2D_DESPAWN_OBJECT(body_ref);
+PULSE2D_DESPAWN(pool_name, body_ref);
 ```
 
-Safely releases a pooled object and returns its memory to the pool. The object is removed from the physics world and marked as available for reuse.
+Safely releases a pooled object and returns its memory to the named pool. The object is removed from the physics world and marked as available for reuse.
 
 **Example:**
 ```cpp
-PULSE2D_DEPLOY_OBJECT(bullet_template, x, y, vx, vy,
+PULSE2D_SPAWN(bullet_pool, x, y, vx, vy,
     [](auto& bullet) {
         // Despawn bullets that go off-screen
         if (bullet.position.x > 10.0f || bullet.position.x < -10.0f) {
-            PULSE2D_DESPAWN_OBJECT(bullet);
+            PULSE2D_DESPAWN(bullet_pool, bullet);
             return;
         }
 
@@ -837,7 +837,8 @@ PULSE2D_DEFINE_SCENE(Shooter, 20, 3);  // 20 bodies for player + enemies + bulle
 PULSE2D_GAME_SCENES(Shooter);
 
 PULSE2D_ON_GAMESCENE_START(Shooter) {
-    PULSE2D_CONTROLLED_POOL(bullet_template, {
+    // Initialize bullet pool
+    PULSE2D_INIT_POOL(bullet_pool, {
         .width = { 0.2f, 0.1f }
     });
 
@@ -863,7 +864,7 @@ PULSE2D_ON_GAMESCENE(Shooter) {
     if (fire_cooldown > 0) fire_cooldown--;
 
     if (SEESAW_BUTTON_INPUT(SEESAW_A) && fire_cooldown == 0) {
-        PULSE2D_DEPLOY_OBJECT(bullet_template,
+        PULSE2D_SPAWN(bullet_pool,
             ship.position.x + 0.6f, ship.position.y,
             8.0f, 0.0f,
             [](auto& bullet) {
@@ -874,10 +875,10 @@ PULSE2D_ON_GAMESCENE(Shooter) {
     }
 
     // Update and draw all bullets
-    PULSE2D_DEPLOY_OBJECT(bullet_template, 0, 0, 0, 0,
+    PULSE2D_SPAWN(bullet_pool, 0, 0, 0, 0,
         [](auto& bullet) {
             if (bullet.position.x > 8.0f) {
-                PULSE2D_DESPAWN_OBJECT(bullet);
+                PULSE2D_DESPAWN(bullet_pool, bullet);
                 return;
             }
             PULSE2D_DRAW_BODY(&bullet, bullet_sprite);
@@ -1281,7 +1282,7 @@ PULSE2D_ON_GAMESCENE_START(Space_Shooter) {
     PULSE2D_REGISTER_ANIMATION(explosion, explosion_frames, 64, 64, 8, 12);
 
     // Projectile pool
-    PULSE2D_CONTROLLED_POOL(bullet_template, {
+    PULSE2D_INIT_POOL(bullet_pool, {
         .width = { 0.15f, 0.08f }
     });
 
@@ -1317,7 +1318,7 @@ PULSE2D_ON_GAMESCENE(Space_Shooter) {
     // Fire bullets
     if (cooldown > 0) cooldown--;
     if (SEESAW_BUTTON_INPUT(SEESAW_A) && cooldown == 0) {
-        PULSE2D_DEPLOY_OBJECT(bullet_template,
+        PULSE2D_SPAWN(bullet_pool,
             ship.position.x + 0.6f, ship.position.y,
             8.0f, 0.0f,
             [](auto&) {}
@@ -1326,10 +1327,10 @@ PULSE2D_ON_GAMESCENE(Space_Shooter) {
     }
 
     // Update bullets
-    PULSE2D_DEPLOY_OBJECT(bullet_template, 0, 0, 0, 0,
+    PULSE2D_SPAWN(bullet_pool, 0, 0, 0, 0,
         [](auto& bullet) {
             if (bullet.position.x > 6.0f) {
-                PULSE2D_DESPAWN_OBJECT(bullet);
+                PULSE2D_DESPAWN(bullet_pool, bullet);
                 return;
             }
             PULSE2D_DRAW_BODY(&bullet, bullet_sprite);

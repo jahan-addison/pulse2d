@@ -123,21 +123,27 @@ class Pulse2d_Scene_Kinematic_Pool
   public:
     Pulse2d_Scene_Kinematic_Pool() = default;
 
-    Pulse2d_Scene_Kinematic_Pool(pulse2d::graphics::World* w,
-        pulse2d::graphics::detail::Body_Descriptor const& desc)
-        : world_(w)
+#if defined(PULSE2D_TEENSY)
+    Pulse2d_Scene_Kinematic_Pool(
+        HARDWARE_Deferred_Init<pulse2d::graphics::World>* world,
+        graphics::detail::Body_Descriptor const& desc)
+        : world_(world)
         , descriptor_(desc)
     {
         descriptor_.mass = 0.0f;
     }
+#else
+    Pulse2d_Scene_Kinematic_Pool(pulse2d::graphics::World* world,
+        graphics::detail::Body_Descriptor const& desc)
+        : world_(world)
+        , descriptor_(desc)
+    {
+        descriptor_.mass = 0.0f;
+    }
+#endif
 
     template<typename Action_Func>
-    inline void deploy(const char* name,
-        float x,
-        float y,
-        float vx,
-        float vy,
-        Action_Func action)
+    inline void deploy(float x, float y, float vx, float vy, Action_Func action)
     {
         auto* obj = memory_.allocate();
         if (obj != nullptr) {
@@ -145,7 +151,11 @@ class Pulse2d_Scene_Kinematic_Pool
             obj->position = { x, y };
             obj->velocity = { vx, vy };
 
+#if defined(PULSE2D_TEENSY)
+            world_->get()->add(obj);
+#else
             world_->add(obj);
+#endif
             active_list_.push_back(obj);
             action(*obj);
         }
@@ -155,7 +165,12 @@ class Pulse2d_Scene_Kinematic_Pool
     {
         auto it = std::ranges::find(active_list_, obj);
         if (it != active_list_.end()) {
-            world_->remove(obj); // O(1) swap-and-pop
+            // O(1) swap-and-pop
+#if defined(PULSE2D_TEENSY)
+            world_->get()->remove(obj);
+#else
+            world_->remove(obj);
+#endif
 
             std::iter_swap(it, active_list_.end() - 1);
             active_list_.pop_back();
@@ -178,7 +193,11 @@ class Pulse2d_Scene_Kinematic_Pool
     etl::pool<pulse2d::graphics::Body, config::max_pooled_objects> memory_;
     etl::vector<pulse2d::graphics::Body*, config::max_pooled_objects>
         active_list_;
+#if defined(PULSE2D_TEENSY)
+    HARDWARE_Deferred_Init<pulse2d::graphics::World>* world_ = nullptr;
+#else
     pulse2d::graphics::World* world_ = nullptr;
+#endif
     pulse2d::graphics::detail::Body_Descriptor descriptor_{};
 };
 

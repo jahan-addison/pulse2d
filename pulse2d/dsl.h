@@ -324,35 +324,30 @@
 // Object Pools //
 //////////////////
 
-// Stores the baseline descriptor in the manager
-#define PULSE2D_CONTROLLED_POOL(template_name, ...)                          \
-    do {                                                                     \
-        std::visit(                                                          \
-            [](auto& scene) {                                                \
-                if constexpr (!std::is_same_v<std::decay_t<decltype(scene)>, \
-                                  std::monostate>) {                         \
-                    pulse2d::graphics::detail::Body_Descriptor desc =        \
-                        __VA_ARGS__;                                         \
-                    desc.mass = 0.0f; /* Guarantee CONTROLLED behavior */    \
-                    scene.pool_manager.register_template(                    \
-                        #template_name, desc);                               \
-                }                                                            \
-            },                                                               \
-            current_scene);                                                  \
+// Initializes a pool instance with its physics world and descriptor
+#define PULSE2D_INIT_POOL(pool_instance, ...)                                  \
+    do {                                                                       \
+        std::visit(                                                            \
+            [&world](auto& scene) {                                            \
+                if constexpr (!std::is_same_v<std::decay_t<decltype(scene)>,   \
+                                  std::monostate>) {                           \
+                    scene.pool_instance =                                      \
+                        Pulse2d_Scene_Kinematic_Pool(&world, { __VA_ARGS__ }); \
+                }                                                              \
+            },                                                                 \
+            current_scene);                                                    \
     } while (0)
 
-// Requests object deployment and executes the safe reference closure
-#define PULSE2D_DEPLOY_OBJECT(                                   \
-    template_name, pos_x, pos_y, vel_x, vel_y, action)           \
-    do {                                                         \
-        active_scene.pool_manager.deploy(                        \
-            #template_name, pos_x, pos_y, vel_x, vel_y, action); \
+// Requests kinematic object and executes the safe reference closure
+#define PULSE2D_SPAWN(pool_instance, pos_x, pos_y, vel_x, vel_y, action)       \
+    do {                                                                       \
+        active_scene.pool_instance.deploy(pos_x, pos_y, vel_x, vel_y, action); \
     } while (0)
 
-// Safely release the object and returns memory to the pool
-#define PULSE2D_DESPAWN_OBJECT(body_ref)                \
-    do {                                                \
-        active_scene.pool_manager.retract(&(body_ref)); \
+// Release the kinematic object and returns memory to the pool
+#define PULSE2D_DESPAWN(pool_instance, body_ref)         \
+    do {                                                 \
+        active_scene.pool_instance.retract(&(body_ref)); \
     } while (0)
 
 /////////////
