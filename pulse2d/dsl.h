@@ -373,9 +373,9 @@
         }                                                                     \
     } while (0)
 
-/////////////
-// Sprites //
-/////////////
+////////////////////////
+// Sprites, Rendering //
+////////////////////////
 
 // Set a sprite from flash memory
 #define PULSE2D_SPRITE_FLASH(name, data_ptr, w, h)                           \
@@ -404,6 +404,7 @@
                 __VA_ARGS__);                                                \
     } while (0)
 
+// Like PULSE2D_DRAW but takes a pointer instead of a name
 #define PULSE2D_DRAW_BODY(body_ptr, sprite_name, ...)                        \
     do {                                                                     \
         auto [sx, sy] = pulse2d::Renderer::project_coordinates(              \
@@ -414,6 +415,11 @@
             static_cast<int16_t>(sy - _spr.height / 2) __VA_OPT__(, )        \
                 __VA_ARGS__);                                                \
     } while (0)
+
+// Get the projected coordinates of a physics body on the screen
+#define PULSE2D_BODY_COORDINATES(body_ptr)  \
+    pulse2d::Renderer::project_coordinates( \
+        (body_ptr)->position.x, (body_ptr)->position.y);
 
 // Allocate an immovable body in the current scene's pool and registers it with
 // the world.

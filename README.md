@@ -15,6 +15,8 @@ The Teensy 4.1 is a microcontroller development board based on the NXP i.MX RT10
 
 The project builds a sample game for desktop and the teensy hardware called `shift`.
 
+> The pilot game, [asterisk](https://github.com/jahan-addison/asterisk), is a feature complete space-shooter using the pulse2d engine. It is **recommended as a starting point for development of new games**.
+
 Check out the [blog series](https://soliloq.uy/tag/pulse2d/)!
 
 ### Demo:
@@ -53,92 +55,122 @@ This installs the Teensy core, libraries, and linker scripts into your local Ard
 
 The DSL is a set of macros in `pulse2d/dsl.h` inspired by the [Catch2](https://github.com/catchorg/Catch2/blob/85eb4652b46cc69c4ad7915c9fd3b009d99e9fb7/examples/120-Bdd-ScenarioGivenWhenThen.cpp#L15) library that enables development of Teensy games. It wraps the engine, physics world, scene management, animations, object pools, and render pipeline into a declarative "fantasy" scripting language, without the need to understand bare-metal embedded programming.
 
-📖 [See DSL documentation here](dsl.md)!
+📖 [See DSL documentation here](dsl.md)
 
-Check [the source code of the shift game](/shift/game-teensy.cc) for a full example.
-
-A minimal game with physics, sprites, collision, and gamepad input:
+A game example that demostrates most features:
 
 ```cpp
 #include PULSE2D_HEADER
 #include PULSE2D_GRAPHICS
+#include "../include/explosion-anim.h"
+#include "../include/stars-bg.h"
 
 PULSE2D_START_PULSE();
 PULSE2D_ENABLE_SEESAW_GAMEPAD();
 
-PULSE2D_DEFINE_SCENE(Sample_Level, 2, 3);
-PULSE2D_GAME_SCENES(Sample_Level);
+PULSE2D_DEFINE_SCENE(Space_Shooter, 20, 6);
+PULSE2D_GAME_SCENES(Space_Shooter);
 
-PULSE2D_DEFINE bool exploded = false;
-PULSE2D_DEFINE bool fired = false;
+PULSE2D_DEFINE int score = 0;
+PULSE2D_DEFINE bool enemy_hit = false;
 
-PULSE2D_ON_GAMESCENE_START(Sample_Level)
-{
-    PULSE2D_SPRITE(planet_sprite, "planet.bin", 96, 96);
-    PULSE2D_SPRITE(spell_sprite, "spell.bin", 64, 36);
-    PULSE2D_SPRITE(explode_sprite, "explosion.bin", 96, 96);
+PULSE2D_ON_GAMESCENE_START(Space_Shooter) {
+    PULSE2D_SPRITE_FLASH(bg_stars, stars_bg, 320, 240);
 
-    PULSE2D_STATIC_BODY(planet_object, {
-        .position = { 3.5f, 0.0f },
-        .width = { 1.0f, 1.0f }
+    PULSE2D_SPRITE(ship_sprite, "ship.bin", 48, 48);
+    PULSE2D_SPRITE(enemy_sprite, "enemy.bin", 48, 48);
+    PULSE2D_SPRITE(bullet_sprite, "bullet.bin", 12, 8);
+
+    PULSE2D_ADD_PARALLAX_LAYER(bg_stars, 320.0f, 15.0f);
+
+    PULSE2D_REGISTER_ANIMATION(explosion, explosion_frames, 64, 64, 8, 12);
+
+    PULSE2D_INIT_POOL(bullet_pool, {
+        .width = { 0.15f, 0.08f }
     });
 
-    PULSE2D_DYNAMIC_BODY(spell_object, {
-        .position = { -3.5f, 2.5111f },
-        .velocity = { 0.0f, 0.0f },
-        .width = { 1.0f, 0.5f },
-        .mass = 1.0f
+    // Player
+    PULSE2D_CONTROLLED_BODY(ship_object, {
+        .position = { -4.0f, 0.0f },
+        .width = { 0.5f, 0.5f }
+    });
+
+    // Enemy
+    PULSE2D_DYNAMIC_BODY(enemy_object, {
+        .position = { 3.0f, 0.0f },
+        .mass = 1.0f,
+        .width = { 0.6f, 0.6f }
     });
 }
 
-PULSE2D_ON_GAMESCENE(Sample_Level)
-{
-    PULSE2D_TICK_WORLD(Sample_Level);
+PULSE2D_DEFINE uint32_t cooldown = 0;
+
+PULSE2D_ON_GAMESCENE(Space_Shooter) {
+    PULSE2D_TICK_WORLD(Space_Shooter);
+
     PULSE2D_POLL_SEESAW_GAMEPAD();
 
-    auto& spell = PULSE2D_GET_BODY(spell_object);
+    PULSE2D_RENDER_BACKGROUNDS();
 
-    PULSE2D_ON_COLLISION()
-    {
-        if (!exploded) {
-            exploded = true;
-            spell.set_velocity({ 0.0f, 0.0f });
+    SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(ship_object, 3.5f);
+
+    auto& ship = PULSE2D_GET_BODY(ship_object);
+
+    // Fire bullets
+    if (cooldown > 0)
+      cooldown--;
+    if (SEESAW_BUTTON_INPUT(SEESAW_A) && cooldown == 0) {
+        PULSE2D_SPAWN(bullet_pool,
+            100,
+            ship.position.x + 0.6f, ship.position.y,
+            8.0f, 0.0f
+        );
+        cooldown = 10;
+    }
+
+    PULSE2D_RENDER_POOL(bullet_pool, [&](auto* bullet) {
+        if (bullet.position.x > 6.0f) {
+            PULSE2D_DESPAWN(bullet_pool, bullet);
+            return;
+        }
+        PULSE2D_DRAW_BODY(bullet, bullet_sprite);
+    });
+
+    PULSE2D_ON_COLLISION() {
+        if (!enemy_hit) {
+            enemy_hit = true;
+            auto& enemy = PULSE2D_GET_BODY(enemy_object);
+            auto [sx, sy] = PULSE2D_BODY_COORDINATES(enemy);
+            PULSE2D_PLAY_ANIMATION(explosion, sx, sy);
+            score += 100;
         }
     }
 
-    if (!fired)
-        SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED(spell_object, 5.22f);
-
-    if (!fired and SEESAW_BUTTON_INPUT(SEESAW_A)) {
-        spell.set_velocity({ 12.555f, 0.0f });
-        fired = true;
+    // Reset
+    if (SEESAW_BUTTON_INPUT(SEESAW_START)) {
+        PULSE2D_SET_SCENE(Space_Shooter);
     }
 
-    // should we reset?
-    if (spell.position.x > 5.5f or SEESAW_BUTTON_INPUT(SEESAW_START)) {
-        fired = false;
-        exploded = false;
-        PULSE2D_SET_SCENE(Sample_Level);
+    PULSE2D_DRAW(ship_object, ship_sprite);
+
+    if (!enemy_hit) {
+        PULSE2D_DRAW(enemy_object, enemy_sprite);
     }
 
-    if (exploded)
-        PULSE2D_DRAW(planet_object, explode_sprite);
-    else
-        PULSE2D_DRAW(planet_object, planet_sprite);
-
-    PULSE2D_DRAW(spell_object, spell_sprite, 3.111f);
+    PULSE2D_TICK_ANIMATIONS();
     PULSE2D_RENDER(active_scene);
 }
 
-PULSE2D_ON_GAMESTART()
-{
+PULSE2D_ON_GAMESTART() {
+    Serial.begin(115200);
+
+    PULSE2D_REGISTER_ETL_ERROR_HANDLER();
     PULSE2D_INIT(0.0f, 0.0f, 10);
     PULSE2D_START_SEESAW_GAMEPAD();
-    PULSE2D_SET_SCENE(Sample_Level);
+    PULSE2D_SET_SCENE(Space_Shooter);
 }
 
-PULSE2D_ON_GAMELOOP()
-{
+PULSE2D_ON_GAMELOOP() {
     PULSE2D_TICK_GAMESCENE();
 }
 ```

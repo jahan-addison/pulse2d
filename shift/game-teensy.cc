@@ -71,7 +71,7 @@ PULSE2D_ON_GAMESCENE(Sample_Level)
     if (spell.position.x > 5.5f or SEESAW_BUTTON_INPUT(SEESAW_START)) {
         fired = false;
         exploded = false;
-        PULSE2D_DEFER_SCENE(Sample_Level);
+        PULSE2D_SET_SCENE(Sample_Level);
     }
 
     if (exploded)

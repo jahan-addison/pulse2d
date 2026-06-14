@@ -29,6 +29,7 @@ The pulse2d DSL is a set of macros in [`pulse2d/dsl.h`](pulse2d/dsl.h) inspired 
 - [Sprites, Rendering](#sprites--rendering)
   - [PULSE2D_SPRITE](#pulse2d_define_sprite)
   - [PULSE2D_SPRITE_FLASH](#pulse2d_define_sprite_flash)
+  - [PULSE2D_BODY_COORDINATES](#pulse2d_body_coordinates)
   - [PULSE2D_DRAW](#pulse2d_draw)
   - [PULSE2D_DRAW_BODY](#pulse2d_draw_body)
   - [PULSE2D_RENDER](#pulse2d_render)
@@ -515,7 +516,6 @@ PULSE2D_DRAW(player_object, player_sprite);
 PULSE2D_DRAW(ship_object, ship_sprite, 1.5708f);  // 90° rotation
 ```
 
-**Common mistake:**
 ```cpp
 // WRONG - do not use string literals
 PULSE2D_DRAW("player", "player_sprite");
@@ -537,11 +537,29 @@ Same as `PULSE2D_DRAW`, but takes a body pointer instead of a name. Useful when 
 
 **Example:**
 ```cpp
-PULSE2D_DEPLOY_OBJECT(bullet_template, x, y, vx, vy,
-    [](auto& bullet) {
-        PULSE2D_DRAW_BODY(&bullet, bullet_sprite);
+PULSE2D_RENDER_POOL(gun_ammo,
+    [](auto* bullet) {
+        PULSE2D_DRAW_BODY(bullet, bullet_sprite);
     }
 );
+```
+
+---
+
+### PULSE2D_BODY_COORDINATES
+
+```cpp
+PULSE2D_BODY_COORDINATES(player_object);
+```
+
+Get the projected `x, y` pixel coordinates of a physics body on the screen.
+
+**Example:**
+```cpp
+// Play at a body's position
+auto& enemy = PULSE2D_GET_BODY(enemy_object);
+auto [sx, sy] = PULSE2D_BODY_COORDINATES(enemy);
+PULSE2D_PLAY_ANIMATION(explosion, sx, sy);
 ```
 
 ---
@@ -684,8 +702,7 @@ PULSE2D_ON_COLLISION() {
 
 // Play at a body's position
 auto& enemy = PULSE2D_GET_BODY(enemy_object);
-auto [sx, sy] = pulse2d::Renderer::project_coordinates(
-    enemy.position.x, enemy.position.y);
+auto [sx, sy] = PULSE2D_BODY_COORDINATES(enemy);
 PULSE2D_PLAY_ANIMATION(explosion, sx, sy);
 ```
 
@@ -740,8 +757,7 @@ PULSE2D_ON_GAMESCENE(Shooter) {
         if (!enemy_destroyed) {
             enemy_destroyed = true;
             auto& enemy = PULSE2D_GET_BODY(enemy);
-            auto [sx, sy] = pulse2d::Renderer::project_coordinates(
-                enemy.position.x, enemy.position.y);
+            auto [sx, sy] = PULSE2D_BODY_COORDINATES(enemy);
             PULSE2D_PLAY_ANIMATION(explosion, sx, sy);
         }
     }
@@ -1298,7 +1314,7 @@ PULSE2D_ON_GAMESTART() {
 
 ---
 
-## Complete Example
+## Example
 
 Here's a complete game demonstrating most DSL features:
 
@@ -1311,6 +1327,7 @@ Here's a complete game demonstrating most DSL features:
 PULSE2D_START_PULSE();
 PULSE2D_ENABLE_SEESAW_GAMEPAD();
 
+// Single scene with up to 20 bodies and 6 sprites
 PULSE2D_DEFINE_SCENE(Space_Shooter, 20, 6);
 PULSE2D_GAME_SCENES(Space_Shooter);
 
@@ -1320,47 +1337,52 @@ PULSE2D_DEFINE bool enemy_hit = false;
 PULSE2D_ON_GAMESCENE_START(Space_Shooter) {
     // Background
     PULSE2D_SPRITE_FLASH(bg_stars, stars_bg, 320, 240);
+
+    // Sprites
+    PULSE2D_SPRITE(ship_sprite, "ship.bin", 48, 48);
+    PULSE2D_SPRITE(enemy_sprite, "enemy.bin", 48, 48);
+    PULSE2D_SPRITE(bullet_sprite, "bullet.bin", 12, 8);
+
     PULSE2D_ADD_PARALLAX_LAYER(bg_stars, 320.0f, 15.0f);
 
-    // Animation
+    // Setup animation
     PULSE2D_REGISTER_ANIMATION(explosion, explosion_frames, 64, 64, 8, 12);
 
-    // Projectile pool
+    // Setup ammo pool
     PULSE2D_INIT_POOL(bullet_pool, {
         .width = { 0.15f, 0.08f }
     });
 
     // Player
-    PULSE2D_CONTROLLED_BODY(ship, {
+    PULSE2D_CONTROLLED_BODY(ship_object, {
         .position = { -4.0f, 0.0f },
         .width = { 0.5f, 0.5f }
     });
 
     // Enemy
-    PULSE2D_DYNAMIC_BODY(enemy, {
+    PULSE2D_DYNAMIC_BODY(enemy_object, {
         .position = { 3.0f, 0.0f },
         .mass = 1.0f,
         .width = { 0.6f, 0.6f }
     });
-
-    PULSE2D_SPRITE(ship_sprite, "ship.bin", 48, 48);
-    PULSE2D_SPRITE(enemy_sprite, "enemy.bin", 48, 48);
-    PULSE2D_SPRITE(bullet_sprite, "bullet.bin", 12, 8);
 }
 
 PULSE2D_DEFINE uint32_t cooldown = 0;
 
 PULSE2D_ON_GAMESCENE(Space_Shooter) {
     PULSE2D_TICK_WORLD(Space_Shooter);
+
     PULSE2D_POLL_SEESAW_GAMEPAD();
+
     PULSE2D_RENDER_BACKGROUNDS();
 
-    // Player movement
-    auto& ship = PULSE2D_GET_BODY(ship);
-    SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(ship, 3.5f);
+    SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(ship_object, 3.5f);
+
+    auto& ship = PULSE2D_GET_BODY(ship_object);
 
     // Fire bullets
-    if (cooldown > 0) cooldown--;
+    if (cooldown > 0)
+      cooldown--;
     if (SEESAW_BUTTON_INPUT(SEESAW_A) && cooldown == 0) {
         PULSE2D_SPAWN(bullet_pool,
             100,
@@ -1370,7 +1392,7 @@ PULSE2D_ON_GAMESCENE(Space_Shooter) {
         cooldown = 10;
     }
 
-    // Update bullets
+    // Update live bullets
     PULSE2D_RENDER_POOL(bullet_pool, [&](auto* bullet) {
         if (bullet.position.x > 6.0f) {
             PULSE2D_DESPAWN(bullet_pool, bullet);
@@ -1379,36 +1401,35 @@ PULSE2D_ON_GAMESCENE(Space_Shooter) {
         PULSE2D_DRAW_BODY(bullet, bullet_sprite);
     });
 
-
-    // Collision
     PULSE2D_ON_COLLISION() {
         if (!enemy_hit) {
             enemy_hit = true;
-            auto& enemy = PULSE2D_GET_BODY(enemy);
-            auto [sx, sy] = pulse2d::Renderer::project_coordinates(
-                enemy.position.x, enemy.position.y);
+            auto& enemy = PULSE2D_GET_BODY(enemy_object);
+            auto [sx, sy] = PULSE2D_BODY_COORDINATES(enemy);
             PULSE2D_PLAY_ANIMATION(explosion, sx, sy);
             score += 100;
         }
     }
 
-    // Draw
-    PULSE2D_DRAW(ship, ship_sprite);
+    // Reset
+    if (SEESAW_BUTTON_INPUT(SEESAW_START)) {
+        PULSE2D_SET_SCENE(Space_Shooter);
+    }
+
+    // Draw code
+    PULSE2D_DRAW(ship_object, ship_sprite);
+
     if (!enemy_hit) {
-        PULSE2D_DRAW(enemy, enemy_sprite);
+        PULSE2D_DRAW(enemy_object, enemy_sprite);
     }
 
     PULSE2D_TICK_ANIMATIONS();
     PULSE2D_RENDER(active_scene);
-
-    // Reset for testing
-    if (SEESAW_BUTTON_INPUT(SEESAW_START)) {
-        PULSE2D_SET_SCENE(Space_Shooter);
-    }
 }
 
 PULSE2D_ON_GAMESTART() {
     Serial.begin(115200);
+
     PULSE2D_REGISTER_ETL_ERROR_HANDLER();
     PULSE2D_INIT(0.0f, 0.0f, 10);
     PULSE2D_START_SEESAW_GAMEPAD();
