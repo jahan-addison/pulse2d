@@ -142,7 +142,7 @@ class Pulse2d_Scene_Kinematic_Object
         descriptor_.mass = 0.0f;
     }
 
-    inline void deploy(
+    void deploy(
 #if defined(PULSE2D_TEENSY)
         HARDWARE_Deferred_Init<pulse2d::graphics::World>* world,
 #else
@@ -237,6 +237,7 @@ struct Pulse2d_Scene_Background
 #endif
 
     Pulse2d_Scene_Background() = delete;
+
     explicit Pulse2d_Scene_Background(Sprite_Pool& sprite_pool,
         etl::array<pulse2d::Sprite, T_Sprite>& sprites)
         : sprite_pool_(sprite_pool)
@@ -312,7 +313,7 @@ class Pulse2d_Scene : public Pulse2d_Scene_Base<T_Body, T_Sprite, T_Joint>
   public:
     Pulse2d_Scene() = default;
 
-  private:
+  public:
     static_assert(T_Body <= MAX_PHYSICS_BODIES,
         "T_Body exceeds MAX_PHYSICS_BODIES");
     static_assert(T_Body <= MAX_LOADED_SPRITES,

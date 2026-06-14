@@ -179,6 +179,10 @@
         active_scene_fn = pulse2d_scene_fn_##scene; \
     } while (0)
 
+// Defer the transition to another scene
+#define PULSE2D_DEFER_SCENE(to) \
+    pending_transition = []() { PULSE2D_SET_SCENE(to); }
+
 // Declare the all scene types used in the game.
 #define PULSE2D_GAME_SCENES(...)                                           \
     PULSE2D_DEFINE std::variant<std::monostate __VA_OPT__(, ) __VA_ARGS__> \

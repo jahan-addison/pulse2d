@@ -15,6 +15,7 @@ The pulse2d DSL is a set of macros in [`pulse2d/dsl.h`](pulse2d/dsl.h) inspired 
   - [PULSE2D_DEFINE_SCENE](#pulse2d_define_scene)
   - [PULSE2D_GAME_SCENES](#pulse2d_game_scenes)
   - [PULSE2D_SET_SCENE](#pulse2d_set_scene)
+  - [PULSE2D_DEFER_SCENE](#pulse2d_defer_scene)
   - [PULSE2D_ON_GAMESCENE_START](#pulse2d_on_gamescene_start)
   - [PULSE2D_ON_GAMESCENE](#pulse2d_on_gamescene)
   - [PULSE2D_TICK_GAMESCENE](#pulse2d_tick_gamescene)
@@ -80,11 +81,11 @@ Declares the engine, physics world, and two function pointers that control scene
 
 It creates:
 
-- `engine` — Hardware-deferred pulse2d engine instance
-- `world` — Hardware-deferred physics world instance
-- `pending_transition` — Scene transition function pointer
-- `active_scene_fn` — Current scene tick function pointer
-- `PULSE` — Constant frame delta (1/60th second)
+- `engine` - Hardware-deferred pulse2d engine instance
+- `world` - Hardware-deferred physics world instance
+- `pending_transition` - Scene transition function pointer
+- `active_scene_fn` - Current scene tick function pointer
+- `PULSE` - Constant frame delta (1/60th second)
 
 **Example:**
 ```cpp
@@ -108,9 +109,9 @@ PULSE2D_INIT(gravity_x, gravity_y, solver_iterations);
 Initializes the engine and physics world. The first two arguments are the gravity vector components (typically `0.0f, 0.0f` for space or `0.0f, -9.8f` for platformers). The third argument is the solver iteration count (10 is a good default).
 
 **Parameters:**
-- `gravity_x` — Horizontal gravity component
-- `gravity_y` — Vertical gravity component
-- `solver_iterations` — Physics solver iteration count (higher = more accurate, slower)
+- `gravity_x` - Horizontal gravity component
+- `gravity_y` - Vertical gravity component
+- `solver_iterations` - Physics solver iteration count (higher = more accurate, slower)
 
 **Example:**
 ```cpp
@@ -157,17 +158,17 @@ Scenes are the organizational unit for game levels, menus, and states. Each scen
 ### PULSE2D_DEFINE_SCENE
 
 ```cpp
-PULSE2D_DEFINE_SCENE(SceneName, max_bodies, max_sprites);
-PULSE2D_DEFINE_SCENE(SceneName, max_bodies, max_sprites, max_joints);
+PULSE2D_DEFINE_SCENE(scene_name, max_bodies, max_sprites);
+PULSE2D_DEFINE_SCENE(scene_name, max_bodies, max_sprites, max_joints);
 ```
 
 Declares a scene struct with fixed-size pools. The sizes are checked at compile time against hardware limits. The optional fourth argument sets the joint pool size (default: 0).
 
 **Parameters:**
-- `SceneName` — Identifier for the scene (becomes a struct name)
-- `max_bodies` — Maximum physics bodies (checked against `MAX_PHYSICS_BODIES`)
-- `max_sprites` — Maximum loaded sprites (checked against `MAX_LOADED_SPRITES`)
-- `max_joints` — Optional joint pool size (default: 0)
+- `scene_name` - Identifier for the scene (becomes a struct name)
+- `max_bodies` - Maximum physics bodies (checked against `MAX_PHYSICS_BODIES`)
+- `max_sprites` - Maximum loaded sprites (checked against `MAX_LOADED_SPRITES`)
+- `max_joints` - Optional joint pool size (default: 0)
 
 **Example:**
 ```cpp
@@ -196,7 +197,7 @@ PULSE2D_GAME_SCENES(Main_Menu, Game_Level, Boss_Fight);
 ### PULSE2D_SET_SCENE
 
 ```cpp
-PULSE2D_SET_SCENE(SceneName);
+PULSE2D_SET_SCENE(scene_name);
 ```
 
 Transitions to a scene, this:
@@ -213,7 +214,28 @@ PULSE2D_SET_SCENE(Game_Level);
 
 // From inside a scene, defer the transition:
 if (player_dead) {
-    pending_transition = []() { PULSE2D_SET_SCENE(Game_Over); };
+    PULSE2D_DEFER_SCENE(Game_Over);
+}
+```
+
+---
+
+### PULSE2D_DEFER_SCENE
+
+```cpp
+PULSE2D_DEFER_SCENE(scene_name)
+```
+
+Defer scene transition to another scene on next scene tick.
+
+**Example:**
+```cpp
+PULSE2D_ON_GAMESCENE(Level_Two)
+{
+    // should we reset?
+    if (player.position.x > 5.5f or SEESAW_BUTTON_INPUT(SEESAW_START)) {
+        PULSE2D_DEFER_SCENE(Level_One);
+    }
 }
 ```
 
@@ -222,7 +244,7 @@ if (player_dead) {
 ### PULSE2D_ON_GAMESCENE_START
 
 ```cpp
-PULSE2D_ON_GAMESCENE_START(SceneName) {
+PULSE2D_ON_GAMESCENE_START(scene_name) {
     // Initialization code
 }
 ```
@@ -293,7 +315,7 @@ PULSE2D_ON_GAMELOOP() {
 ### PULSE2D_TICK_WORLD
 
 ```cpp
-PULSE2D_TICK_WORLD(SceneName);
+PULSE2D_TICK_WORLD(scene_name);
 ```
 
 Steps the physics simulation one frame and brings `active_scene` and `renderer` into scope for the rest of the scene function. Call this at the top of every `PULSE2D_ON_GAMESCENE`.
@@ -314,9 +336,9 @@ PULSE2D_ON_GAMESCENE(Game_Level) {
 
 Bodies are the physical objects in your game. There are three types:
 
-1. **Fixed** — Immovable obstacles (walls, floors, platforms)
-2. **Controlled** — Player-controlled objects with `mass = 0` (infinite mass, but can be moved by setting velocity directly)
-3. **Dynamic** — Fully simulated objects with active physics
+1. Fixed - Immovable obstacles (walls, floors, platforms)
+2. Controlled - Player-controlled objects with `mass = 0` (infinite mass, but can be moved by setting velocity directly)
+3. Dynamic - Fully simulated objects with active physics
 
 ### PULSE2D_STATIC_BODY
 
@@ -413,7 +435,7 @@ PULSE2D_ON_GAMESCENE(Game_Level) {
 
 ### Body Properties
 
-All body descriptors support these fields (see [`pulse2d/graphics/body.h`](pulse2d/graphics/body.h) for complete details):
+All body descriptors support these fields (see [`pulse2d/graphics/body.h`](pulse2d/graphics/body.h) for details):
 
 ```cpp
 {
@@ -595,6 +617,8 @@ PULSE2D_ON_GAMESCENE_START(Space_Level) {
 PULSE2D_RENDER_BACKGROUNDS();
 ```
 
+#### Warning: Sprites are FIFO, always call PULSE2D_RENDER_BACKGROUNDS before drawing any other sprites
+
 Advances each layer's scroll offset and blits all layers to the framebuffer. Call before `PULSE2D_RENDER` in your scene function.
 
 **Example:**
@@ -625,12 +649,12 @@ PULSE2D_REGISTER_ANIMATION(anim_name, data_ptr, frame_width, frame_height, total
 Registers an animation definition in the current scene's animation manager. The sprite sheet is a linear array of frames in flash memory (generated by `png2header`).
 
 **Parameters:**
-- `anim_name` — Identifier for the animation
-- `data_ptr` — Pointer to the flash sprite sheet array
-- `frame_width` — Width of each frame in pixels
-- `frame_height` — Height of each frame in pixels
-- `total_frames` — Number of frames in the animation
-- `fps` — Frames per second playback rate
+- `anim_name` - Identifier for the animation
+- `data_ptr` - Pointer to the flash sprite sheet array
+- `frame_width` - Width of each frame in pixels
+- `frame_height` - Height of each frame in pixels
+- `total_frames` - Number of frames in the animation
+- `fps` - Frames per second playback rate
 
 **Example:**
 ```cpp
@@ -773,13 +797,13 @@ PULSE2D_ON_GAMESCENE_START(Shooter) {
 PULSE2D_SPAWN(pool_name, delay, x, y, vx, vy);
 ```
 
-Spawns an object from the named pool. The body is initialized with the pool's descriptor template, then its position and velocity are set, and it's added to the physics world. The delay is a "debounce" timer in ms between spawns.
+Spawns an object from the named pool. The body is initialized with the pool's descriptor template, then its position and velocity are set, and it's added to the physics world. The delay parameter is a "debounce" timer in ms between spawns.
 
 **Parameters:**
-- `pool_name` — The pool initialized with `PULSE2D_INIT_POOL`
+- `pool_name` - The pool initialized with `PULSE2D_INIT_POOL`
 - `delay` - The debounce time between spawns in `ms`
-- `x, y` — Initial position
-- `vx, vy` — Initial velocity
+- `x, y` - Initial position
+- `vx, vy` - Initial velocity
 
 **Example:**
 ```cpp
@@ -802,7 +826,7 @@ PULSE2D_ON_GAMESCENE(Shooter) {
         if (bullet.position.x > 10.0f) {
             PULSE2D_DESPAWN(bullet_pool, bullet);
         } else {
-            PULSE2D_DRAW_BODY(&bullet, bullet_sprite);
+            PULSE2D_DRAW_BODY(bullet, bullet_sprite);
         }
     });
 }
@@ -813,14 +837,14 @@ PULSE2D_ON_GAMESCENE(Shooter) {
 ### PULSE2D_DESPAWN
 
 ```cpp
-PULSE2D_DESPAWN(pool_name, body_ref);
+PULSE2D_DESPAWN(pool_name, body_ptr);
 ```
 
 Safely releases a pooled object and returns its memory to the named pool. The object is removed from the physics world and marked as available for reuse.
 
 **Parameters:**
-- `pool_name` — The pool to return the object to
-- `body_ptr` — A pointer to the body to despawn
+- `pool_name` - The pool to return the object to
+- `body_ptr` - A pointer to the body to despawn
 
 ---
 
@@ -837,8 +861,8 @@ PULSE2D_RENDER_POOL(pool_name,
 Iterates over all active objects in a pool and executes an action for each. The lambda receives a pointer to each active body. Iterates backwards to allow safe despawning during iteration.
 
 **Parameters:**
-- `pool_name` — The pool initialized with `PULSE2D_INIT_POOL`
-- `action` — Closure that receives a `Body*` for each active object
+- `pool_name` - The pool initialized with `PULSE2D_INIT_POOL`
+- `action` - Closure that receives a `Body*` for each active object
 
 **Example:**
 ```cpp
@@ -1339,23 +1363,22 @@ PULSE2D_ON_GAMESCENE(Space_Shooter) {
     if (cooldown > 0) cooldown--;
     if (SEESAW_BUTTON_INPUT(SEESAW_A) && cooldown == 0) {
         PULSE2D_SPAWN(bullet_pool,
+            100,
             ship.position.x + 0.6f, ship.position.y,
-            8.0f, 0.0f,
-            [](auto&) {}
+            8.0f, 0.0f
         );
         cooldown = 10;
     }
 
     // Update bullets
-    PULSE2D_SPAWN(bullet_pool, 0, 0, 0, 0,
-        [](auto& bullet) {
-            if (bullet.position.x > 6.0f) {
-                PULSE2D_DESPAWN(bullet_pool, bullet);
-                return;
-            }
-            PULSE2D_DRAW_BODY(&bullet, bullet_sprite);
+    PULSE2D_RENDER_POOL(bullet_pool, [&](auto* bullet) {
+        if (bullet.position.x > 6.0f) {
+            PULSE2D_DESPAWN(bullet_pool, bullet);
+            return;
         }
-    );
+        PULSE2D_DRAW_BODY(bullet, bullet_sprite);
+    });
+
 
     // Collision
     PULSE2D_ON_COLLISION() {
@@ -1401,7 +1424,7 @@ PULSE2D_ON_GAMELOOP() {
 
 ## See Also
 
-- [Main README](README.md) — Project overview and build instructions
-- [Physics README](pulse2d/graphics/readme.md) — Physics engine details
-- [shift game source](shift/game-teensy.cc) — Real-world example
-- [Blog series](https://soliloq.uy/tag/pulse2d/) — Development blog
+- [README](README.md) - Project overview and build instructions
+- [Physics README](pulse2d/graphics/readme.md) - Physics engine details
+- [shift game source](shift/game-teensy.cc) - Real-world example
+- [Blog series](https://soliloq.uy/tag/pulse2d/) - Development blog
