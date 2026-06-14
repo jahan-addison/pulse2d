@@ -118,32 +118,40 @@ struct Pulse2d_Scene_Animation
         active_animations;
 };
 
-class Pulse2d_Scene_Kinematic_Pool
+class Pulse2d_Scene_Kinematic_Object
 {
   public:
-    Pulse2d_Scene_Kinematic_Pool() = default;
+    Pulse2d_Scene_Kinematic_Object() = default;
 
+    Pulse2d_Scene_Kinematic_Object(
+        const Pulse2d_Scene_Kinematic_Object&) = delete;
+    Pulse2d_Scene_Kinematic_Object& operator=(
+        const Pulse2d_Scene_Kinematic_Object&) = delete;
+
+    explicit Pulse2d_Scene_Kinematic_Object(
+        graphics::detail::Body_Descriptor const& desc)
+        : descriptor_(desc)
+    {
+        descriptor_.mass = 0.0f;
+    }
+
+  public:
+    void set_descriptor(graphics::detail::Body_Descriptor const& desc)
+    {
+        descriptor_ = desc;
+        descriptor_.mass = 0.0f;
+    }
+
+    inline void deploy(
 #if defined(PULSE2D_TEENSY)
-    Pulse2d_Scene_Kinematic_Pool(
         HARDWARE_Deferred_Init<pulse2d::graphics::World>* world,
-        graphics::detail::Body_Descriptor const& desc)
-        : world_(world)
-        , descriptor_(desc)
-    {
-        descriptor_.mass = 0.0f;
-    }
 #else
-    Pulse2d_Scene_Kinematic_Pool(pulse2d::graphics::World* world,
-        graphics::detail::Body_Descriptor const& desc)
-        : world_(world)
-        , descriptor_(desc)
-    {
-        descriptor_.mass = 0.0f;
-    }
+        pulse2d::graphics::World* world,
 #endif
-
-    template<typename Action_Func>
-    inline void deploy(float x, float y, float vx, float vy, Action_Func action)
+        float x,
+        float y,
+        float vx,
+        float vy)
     {
         auto* obj = memory_.allocate();
         if (obj != nullptr) {
@@ -152,24 +160,29 @@ class Pulse2d_Scene_Kinematic_Pool
             obj->velocity = { vx, vy };
 
 #if defined(PULSE2D_TEENSY)
-            world_->get()->add(obj);
+            world->get()->add(obj);
 #else
-            world_->add(obj);
+            world->add(obj);
 #endif
-            active_list_.push_back(obj);
-            action(*obj);
+            active_list_.emplace_back(obj);
         }
     }
 
-    void retract(pulse2d::graphics::Body* obj)
+    void retract(
+#if defined(PULSE2D_TEENSY)
+        HARDWARE_Deferred_Init<pulse2d::graphics::World>* world,
+#else
+        pulse2d::graphics::World* world,
+#endif
+        pulse2d::graphics::Body* obj)
     {
         auto it = std::ranges::find(active_list_, obj);
         if (it != active_list_.end()) {
             // O(1) swap-and-pop
 #if defined(PULSE2D_TEENSY)
-            world_->get()->remove(obj);
+            world->get()->remove(obj);
 #else
-            world_->remove(obj);
+            world->remove(obj);
 #endif
 
             std::iter_swap(it, active_list_.end() - 1);
@@ -179,26 +192,38 @@ class Pulse2d_Scene_Kinematic_Pool
         }
     }
 
-    void clear_out_of_bounds(float min_y, float max_y)
+    etl::vector<pulse2d::graphics::Body*, config::max_pooled_objects>&
+    active_objects()
     {
-        for (int i = static_cast<int>(active_list_.size()) - 1; i >= 0; --i) {
-            auto* obj = active_list_[i];
-            if (obj->position.y < min_y || obj->position.y > max_y) {
-                retract(obj);
-            }
-        }
+        return active_list_;
     }
 
   private:
     etl::pool<pulse2d::graphics::Body, config::max_pooled_objects> memory_;
     etl::vector<pulse2d::graphics::Body*, config::max_pooled_objects>
         active_list_;
-#if defined(PULSE2D_TEENSY)
-    HARDWARE_Deferred_Init<pulse2d::graphics::World>* world_ = nullptr;
-#else
-    pulse2d::graphics::World* world_ = nullptr;
-#endif
     pulse2d::graphics::detail::Body_Descriptor descriptor_{};
+};
+
+struct Pulse2d_Scene_Kinematic_Pool
+{
+    Pulse2d_Scene_Kinematic_Pool() = default;
+
+#if defined(PULSE2D_TEENSY)
+    etl::
+        map<const char*, elapsedMillis, MAX_ACTIVE_KINEMATIC_INSTANCE, CStrLess>
+            instance_timer;
+    etl::map<const char*,
+        Pulse2d_Scene_Kinematic_Object,
+        MAX_ACTIVE_KINEMATIC_INSTANCE,
+        CStrLess>
+        instances;
+#else
+    etl::map<std::string,
+        Pulse2d_Scene_Kinematic_Object,
+        MAX_ACTIVE_KINEMATIC_INSTANCE>
+        instances;
+#endif
 };
 
 template<std::size_t T_Sprite>
@@ -267,6 +292,7 @@ struct Pulse2d_Scene_Base
     std::size_t active_bodies = 0;
     std::size_t active_sprites = 0;
 
+  public:
 #if defined(PULSE2D_TEENSY)
     etl::map<const char*, std::size_t, T_Body, CStrLess> body_pool;
     etl::map<const char*, std::size_t, T_Sprite, CStrLess> sprite_pool;

@@ -95,6 +95,7 @@ PULSE2D_ON_GAMESCENE(Sample_Level)
 {
     PULSE2D_TICK_WORLD(Sample_Level);
     PULSE2D_POLL_SEESAW_GAMEPAD();
+
     auto& spell = PULSE2D_GET_BODY(spell_object);
 
     PULSE2D_ON_COLLISION()
@@ -113,7 +114,7 @@ PULSE2D_ON_GAMESCENE(Sample_Level)
         fired = true;
     }
 
-    // reset?
+    // should we reset?
     if (spell.position.x > 5.5f or SEESAW_BUTTON_INPUT(SEESAW_START)) {
         fired = false;
         exploded = false;

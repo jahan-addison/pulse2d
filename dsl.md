@@ -43,6 +43,7 @@ The pulse2d DSL is a set of macros in [`pulse2d/dsl.h`](pulse2d/dsl.h) inspired 
   - [PULSE2D_INIT_POOL](#pulse2d_init_pool)
   - [PULSE2D_SPAWN](#pulse2d_spawn)
   - [PULSE2D_DESPAWN](#pulse2d_despawn)
+  - [PULSE2D_RENDER_POOL](#pulse2d_render_pool)
 - [Collision](#collision)
   - [PULSE2D_ON_COLLISION](#pulse2d_on_collision)
   - [PULSE2D_ON_COLLISION_WITH](#pulse2d_on_collision_with)
@@ -734,7 +735,7 @@ PULSE2D_ON_GAMESCENE(Shooter) {
 
 ## Kinematic Pools
 
-Kinematic pools provide pre-allocated object pools for temporary entities like projectiles, particles, and powerups. Unlike the built-in scene pool manager, kinematic pools give you direct control over named pool instances.
+Kinematic pools provide pre-allocated object pools for temporary entities like projectiles, particles, and powerups. The pool manager is part of every scene and allows you to create named pool instances with different templates.
 
 ### PULSE2D_INIT_POOL
 
@@ -769,20 +770,16 @@ PULSE2D_ON_GAMESCENE_START(Shooter) {
 ### PULSE2D_SPAWN
 
 ```cpp
-PULSE2D_SPAWN(pool_name, x, y, vx, vy,
-    [](auto& body) {
-        // Action closure with body reference
-    }
-);
+PULSE2D_SPAWN(pool_name, delay, x, y, vx, vy);
 ```
 
-Spawns an object from the named pool and executes an action closure with a safe reference to the body. The body is initialized with the pool's descriptor template, then its position and velocity are set.
+Spawns an object from the named pool. The body is initialized with the pool's descriptor template, then its position and velocity are set, and it's added to the physics world. The delay is a "debounce" timer in ms between spawns.
 
 **Parameters:**
 - `pool_name` — The pool initialized with `PULSE2D_INIT_POOL`
+- `delay` - The debounce time between spawns in `ms`
 - `x, y` — Initial position
 - `vx, vy` — Initial velocity
-- `action` — Lambda/closure that receives a `Body&` reference
 
 **Example:**
 ```cpp
@@ -795,14 +792,19 @@ PULSE2D_ON_GAMESCENE(Shooter) {
 
         // Fire bullet from ship position
         PULSE2D_SPAWN(bullet_pool,
-            ship.position.x, ship.position.y,   // position
-            5.0f, 0.0f,                          // velocity
-            [](auto& bullet) {
-                // The bullet body is valid only inside this closure
-                PULSE2D_DRAW_BODY(&bullet, bullet_sprite);
-            }
-        );
+            250,                               // 250ms delay between each bullet
+            ship.position.x, ship.position.y,  // position
+            5.0f, 0.0f);                       // velocity
     }
+
+    // Update and render bullets each frame
+    PULSE2D_RENDER_POOL(bullet_pool, [&](auto* bullet) {
+        if (bullet.position.x > 10.0f) {
+            PULSE2D_DESPAWN(bullet_pool, bullet);
+        } else {
+            PULSE2D_DRAW_BODY(&bullet, bullet_sprite);
+        }
+    });
 }
 ```
 
@@ -816,22 +818,45 @@ PULSE2D_DESPAWN(pool_name, body_ref);
 
 Safely releases a pooled object and returns its memory to the named pool. The object is removed from the physics world and marked as available for reuse.
 
-**Example:**
-```cpp
-PULSE2D_SPAWN(bullet_pool, x, y, vx, vy,
-    [](auto& bullet) {
-        // Despawn bullets that go off-screen
-        if (bullet.position.x > 10.0f || bullet.position.x < -10.0f) {
-            PULSE2D_DESPAWN(bullet_pool, bullet);
-            return;
-        }
+**Parameters:**
+- `pool_name` — The pool to return the object to
+- `body_ptr` — A pointer to the body to despawn
 
-        PULSE2D_DRAW_BODY(&bullet, bullet_sprite);
+---
+
+### PULSE2D_RENDER_POOL
+
+```cpp
+PULSE2D_RENDER_POOL(pool_name,
+    [](auto* body) {
+        // Update, draw, or despawn logic
     }
 );
 ```
 
-**Complete pooled projectile example:**
+Iterates over all active objects in a pool and executes an action for each. The lambda receives a pointer to each active body. Iterates backwards to allow safe despawning during iteration.
+
+**Parameters:**
+- `pool_name` — The pool initialized with `PULSE2D_INIT_POOL`
+- `action` — Closure that receives a `Body*` for each active object
+
+**Example:**
+```cpp
+// Update and render all active bullets
+PULSE2D_RENDER_POOL(bullet_pool, [&](auto* bullet) {
+    // Check bounds and despawn off-screen bullets
+    if (bullet.position.x > 10.0f || bullet.position.x < -10.0f) {
+        PULSE2D_DESPAWN(bullet_pool, bullet);
+        return;
+    }
+
+    // Draw bullets still in bounds
+    PULSE2D_DRAW_BODY(bullet, bullet_sprite);
+});
+```
+
+#### A complete Projectile example
+
 ```cpp
 PULSE2D_DEFINE_SCENE(Shooter, 20, 3);  // 20 bodies for player + enemies + bullets
 PULSE2D_GAME_SCENES(Shooter);
@@ -865,25 +890,20 @@ PULSE2D_ON_GAMESCENE(Shooter) {
 
     if (SEESAW_BUTTON_INPUT(SEESAW_A) && fire_cooldown == 0) {
         PULSE2D_SPAWN(bullet_pool,
+            250,
             ship.position.x + 0.6f, ship.position.y,
-            8.0f, 0.0f,
-            [](auto& bullet) {
-                // Bullet spawned successfully
-            }
-        );
+            8.0f, 0.0f);
         fire_cooldown = 15;  // 15 frames = 0.25s @ 60fps
     }
 
-    // Update and draw all bullets
-    PULSE2D_SPAWN(bullet_pool, 0, 0, 0, 0,
-        [](auto& bullet) {
-            if (bullet.position.x > 8.0f) {
-                PULSE2D_DESPAWN(bullet_pool, bullet);
-                return;
-            }
-            PULSE2D_DRAW_BODY(&bullet, bullet_sprite);
+    // Update and draw all active bullets
+    PULSE2D_RENDER_POOL(bullet_pool, [&](auto* bullet) {
+        if (bullet.position.x > 8.0f) {
+            PULSE2D_DESPAWN(bullet_pool, bullet);
+        } else {
+            PULSE2D_DRAW_BODY(bullet, bullet_sprite);
         }
-    );
+    });
 
     PULSE2D_DRAW(ship, ship_sprite);
     PULSE2D_RENDER(active_scene);

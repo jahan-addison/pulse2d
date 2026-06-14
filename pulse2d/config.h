@@ -25,6 +25,14 @@
 #define MAX_BACKGROUND_LAYERS 8
 #endif
 
+#ifndef MAX_ACTIVE_KINEMATIC_POOL
+#define MAX_ACTIVE_KINEMATIC_POOL 32
+#endif
+
+#ifndef MAX_ACTIVE_KINEMATIC_INSTANCE
+#define MAX_ACTIVE_KINEMATIC_INSTANCE 8
+#endif
+
 #ifndef MAX_ANIMATION_DEFINITION
 #define MAX_ANIMATION_DEFINITION 16
 #endif
@@ -43,7 +51,7 @@ inline constexpr int scale = 3; // SDL2 window scale (960x720)
 
 inline constexpr size_t max_loaded_sprites = MAX_LOADED_SPRITES;
 
-inline constexpr std::size_t max_pooled_objects = 32;
+inline constexpr std::size_t max_pooled_objects = MAX_ACTIVE_KINEMATIC_POOL;
 
 #if defined(PULSE2D_TEENSY)
 inline constexpr size_t max_sprite_pixels = 96 * 96;

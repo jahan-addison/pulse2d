@@ -324,30 +324,49 @@
 // Object Pools //
 //////////////////
 
-// Initializes a pool instance with its physics world and descriptor
-#define PULSE2D_INIT_POOL(pool_instance, ...)                                  \
-    do {                                                                       \
-        std::visit(                                                            \
-            [&world](auto& scene) {                                            \
-                if constexpr (!std::is_same_v<std::decay_t<decltype(scene)>,   \
-                                  std::monostate>) {                           \
-                    scene.pool_instance =                                      \
-                        Pulse2d_Scene_Kinematic_Pool(&world, { __VA_ARGS__ }); \
-                }                                                              \
-            },                                                                 \
-            current_scene);                                                    \
+// Initializes a pool instance with a body descriptor template
+#define PULSE2D_INIT_POOL(pool_instance, ...)                                \
+    do {                                                                     \
+        std::visit(                                                          \
+            [](auto& scene) {                                                \
+                if constexpr (!std::is_same_v<std::decay_t<decltype(scene)>, \
+                                  std::monostate>) {                         \
+                    scene.pool_manager.instances[#pool_instance]             \
+                        .set_descriptor(__VA_ARGS__);                        \
+                    scene.pool_manager.instance_timer[#pool_instance] = 0;   \
+                }                                                            \
+            },                                                               \
+            current_scene);                                                  \
     } while (0)
 
-// Requests kinematic object and executes the safe reference closure
-#define PULSE2D_SPAWN(pool_instance, pos_x, pos_y, vel_x, vel_y, action)       \
-    do {                                                                       \
-        active_scene.pool_instance.deploy(pos_x, pos_y, vel_x, vel_y, action); \
+// Spawn an object from the pool at the given position and velocity on an
+// interval
+#define PULSE2D_SPAWN(pool_instance, delay, pos_x, pos_y, vel_x, vel_y)   \
+    do {                                                                  \
+        auto& _timer =                                                    \
+            active_scene.pool_manager.instance_timer.at(#pool_instance);  \
+        if (_timer >= delay) {                                            \
+            active_scene.pool_manager.instances.at(#pool_instance)        \
+                .deploy(&world, pos_x, pos_y, vel_x, vel_y);              \
+            active_scene.pool_manager.instance_timer[#pool_instance] = 0; \
+        }                                                                 \
     } while (0)
 
 // Release the kinematic object and returns memory to the pool
-#define PULSE2D_DESPAWN(pool_instance, body_ref)         \
-    do {                                                 \
-        active_scene.pool_instance.retract(&(body_ref)); \
+#define PULSE2D_DESPAWN(pool_instance, body_ref)               \
+    do {                                                       \
+        active_scene.pool_manager.instances.at(#pool_instance) \
+            .retract(&world, (body_ref));                      \
+    } while (0)
+
+// Iterate over all active objects in pool and execute action for each
+#define PULSE2D_RENDER_POOL(pool_instance, action)                            \
+    do {                                                                      \
+        auto& _pool = active_scene.pool_manager.instances.at(#pool_instance); \
+        auto& _objs = _pool.active_objects();                                 \
+        for (int _i = static_cast<int>(_objs.size()) - 1; _i >= 0; --_i) {    \
+            action(_objs[_i]);                                                \
+        }                                                                     \
     } while (0)
 
 /////////////
@@ -384,7 +403,7 @@
 #define PULSE2D_DRAW_BODY(body_ptr, sprite_name, ...)                        \
     do {                                                                     \
         auto [sx, sy] = pulse2d::Renderer::project_coordinates(              \
-            body_ptr->position.x, body_ptr->position.y);                     \
+            (body_ptr)->position.x, (body_ptr)->position.y);                 \
         const pulse2d::Sprite& _spr = active_scene.get_sprite(#sprite_name); \
         renderer.add_sprite(&_spr,                                           \
             static_cast<int16_t>(sx - _spr.width / 2),                       \

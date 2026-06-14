@@ -7,6 +7,7 @@
 
 #include <pulse2d/renderer.h>
 
+#include <algorithm>                // for for_each
 #include <cmath>                    // for cosf, sinf, sqrtf
 #include <etl/utility.h>            // for forward
 #include <pulse2d/graphics/body.h>  // for Body
@@ -67,15 +68,21 @@ void Renderer::add_sprite(Sprite const* sprite,
 /**
  * @brief Rasterize all active bodies in the world and queued sprites
  * into the framebuffer, then drain the sprite queue
+ *
+ * Note: Runs on the reverse iterator
  */
 void Renderer::draw(graphics::World const& world)
 {
-    for (auto const* body : world.bodies) {
-        draw_body(body);
-    }
-    for (auto const& entry : sprite_queue_) {
-        draw_sprite(entry.sprite, entry.x, entry.y, entry.angle_rad);
-    }
+    std::for_each(world.bodies.begin(),
+        world.bodies.end(),
+        [&, this](auto const* body) { this->draw_body(body); });
+
+    std::for_each(sprite_queue_.begin(),
+        sprite_queue_.end(),
+        [&, this](auto const& entry) {
+            this->draw_sprite(entry.sprite, entry.x, entry.y, entry.angle_rad);
+        });
+
     sprite_queue_.clear();
 }
 
