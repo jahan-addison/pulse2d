@@ -4,9 +4,9 @@
 # Licensed under the MIT License (https://opensource.org/license/mit)
 ##############################################################################
 
-# png2bin — convert a PNG to the Pulse2D RGB565 sprite binary format
+##############################################################################
+# png2bin - convert a PNG to the Pulse2D RGB565 sprite binary format
 #
-# Format written:
 #   uint16_t width   (little-endian)
 #   uint16_t height  (little-endian)
 #   uint16_t pixels[width * height]  (RGB565, row-major)
@@ -16,6 +16,7 @@
 #
 # Usage:
 #   png2bin <input.png> <output.bin> <width> <height>
+##############################################################################
 
 import struct
 import sys
@@ -23,7 +24,7 @@ import sys
 try:
     from PIL import Image
 except ImportError:
-    sys.exit("error: Pillow is not installed — run: pip3 install Pillow")
+    sys.exit("error: Pillow is not installed - run: pip3 install Pillow")
 
 
 class Conversion_Error(Exception):

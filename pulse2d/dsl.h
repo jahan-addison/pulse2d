@@ -247,7 +247,7 @@
                                   std::monostate>) {                         \
                     auto& anim_mgr = scene.animation_manager;                \
                     if (!anim_mgr.active_animations.full()) {                \
-                        anim_mgr.active_animations.push_back(                \
+                        anim_mgr.active_animations.emplace_back(             \
                             { &anim_mgr.anim_defs[#anim_name],               \
                                 (float)(pos_x),                              \
                                 (float)(pos_y),                              \
@@ -363,7 +363,8 @@
             .retract(&world, (body_ref));                      \
     } while (0)
 
-// Iterate over all active objects in pool and execute action for each
+// Iterate over all active objects in pool and execute action for each in
+// reverse
 #define PULSE2D_RENDER_POOL(pool_instance, action)                            \
     do {                                                                      \
         auto& _pool = active_scene.pool_manager.instances.at(#pool_instance); \
@@ -390,6 +391,11 @@
             current_scene);                                                  \
     } while (0)
 
+// Get the projected pixel coordinates of a physics body on the screen
+#define PULSE2D_BODY_COORDINATES(body_ptr)  \
+    pulse2d::Renderer::project_coordinates( \
+        (body_ptr)->position.x, (body_ptr)->position.y);
+
 // Project a body's world-space position to screen coordinates and queue its
 // sprite. Note: optional third argument to set a fixed rotation in radians
 #define PULSE2D_DRAW(body_name, sprite_name, ...)                            \
@@ -415,11 +421,6 @@
             static_cast<int16_t>(sy - _spr.height / 2) __VA_OPT__(, )        \
                 __VA_ARGS__);                                                \
     } while (0)
-
-// Get the projected coordinates of a physics body on the screen
-#define PULSE2D_BODY_COORDINATES(body_ptr)  \
-    pulse2d::Renderer::project_coordinates( \
-        (body_ptr)->position.x, (body_ptr)->position.y);
 
 // Allocate an immovable body in the current scene's pool and registers it with
 // the world.

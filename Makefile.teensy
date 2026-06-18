@@ -21,8 +21,8 @@
 #         - Teensyduino 1.60.0 installed via Arduino IDE
 #
 #       Outputs:
-#         build-teensy/game-teensy.elf — ELF debug image (default GAME_NAME)
-#         build-teensy/game-teensy.hex — flashable Intel HEX
+#         build-teensy/game-teensy.elf - ELF debug image (default GAME_NAME)
+#         build-teensy/game-teensy.hex - flashable Intel HEX
 #
 #       External use (include from a game's Makefile):
 #         PULSE2D_ROOT = /path/to/pulse2d
@@ -439,7 +439,7 @@ $(OUT)/$(GAME_NAME).hex: $(OUT)/$(GAME_NAME).elf
 size: $(OUT)/$(GAME_NAME).elf
 	@$(SIZE) $<
 
-# Print a sorted section table — region, VMA, LMA, size, type.
+# Print a sorted section table - region, VMA, LMA, size, type.
 # Sections < 64 bytes are hidden by default; pass SECTIONS_ALL=1 to show all.
 # Usage:  make sections
 #         make sections SECTIONS_ALL=1

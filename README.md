@@ -368,7 +368,7 @@ Python tools for converting PNG assets are in `tools/` - both require [Pillow](h
   tools/png2bin sprite.png sprite.bin 64 64
   ```
 
-- `png2header` - converts a PNG to a C header containing an RGB565 pixel array for use as a full-screen background. The array is placed in `.progmem` via `__attribute__((section(".progmem")))`, which keeps it in QSPI flash on Teensy 4.x. Use `PULSE2D_SPRITE_FLASH` and `PULSE2D_ADD_PARALLAX_LAYER` to register the header as a parallax layer. The output file is generated - do not edit it by hand.
+- `png2header` - converts a PNG to a C header containing an RGB565 pixel array for use as a full-screen background. Use `PULSE2D_SPRITE_FLASH` and `PULSE2D_ADD_PARALLAX_LAYER` to register the header as a parallax layer. The output file is generated - do not edit it by hand.
 
   ```bash
   tools/png2header background.png include/nebula-bg.h bg_1 320 240
@@ -376,7 +376,13 @@ Python tools for converting PNG assets are in `tools/` - both require [Pillow](h
 
   Generates `bg_1_width`, `bg_1_height`, and `bg_1[320 * 240]`.
 
-  > **Why `.progmem` and not `constexpr`?** The Teensy 4.x linker script places all `.rodata*` inside the `.data` output section, which is copied from QSPI flash into DTCM at boot. A single 320×240 background is 150 KB; four layers would overflow the 512 KB DTCM before `setup()` runs. `.progmem*` is a separate output section in the linker script that maps directly to FLASH and is never copied.
+- `animation2header` - convert multiple PNGs to a C header containing a contiguous RGB565 pixel array for use as spritesheets.
+
+  ```bash
+  tools/animation2header include/laser-anim.h laser_anim 54 32 laser-sprite1.png laser-sprite2.png laser-sprite3.png
+  ```
+
+  Generates `laser_anim_width`, `laser_anim_height`, and `laser_anim[54 * 32 * 3]`.
 
 ## Debug
 

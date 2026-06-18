@@ -4,26 +4,20 @@
 # Licensed under the MIT License (https://opensource.org/license/mit)
 ##############################################################################
 
-# ldscript — summarise the Teensy 4.x linker script memory layout
+##############################################################################
+# ldscript - summarise the Teensy 4.x linker script memory layout
 #
 # Reads imxrt1062_t41.ld from the active Teensyduino install (or a path you
 # supply) and prints two tables:
 #
-#   1. MEMORY REGIONS — name, origin, length, and permissions
-#   2. OUTPUT SECTIONS — name, the input patterns it collects, and the region
+#   1. MEMORY REGIONS - name, origin, length, and permissions
+#   2. OUTPUT SECTIONS - name, the input patterns it collects, and the region
 #      it maps to, so you can answer "which section attribute do I need to keep
 #      this table in flash?" without grepping the raw ld file by hand.
 #
-# Example:
-# How .progmem was found:
-#   The Teensy linker script groups .rodata* inside the .data output section
-#   (region: DTCM, copied from flash at boot). That means every constexpr
-#   array ends up in DTCM regardless of the C++ storage class. Running this
-#   tool reveals that .progmem* and .flashmem* are separate output sections
-#   that map directly to FLASH.
-#
 # Usage:
 #   ldscript  [--ld /path/to/imxrt1062_t41.ld]
+##############################################################################
 
 import argparse
 import re

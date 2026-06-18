@@ -165,7 +165,7 @@ TEST_CASE("renderer.cc: Renderer::add_sprite axis-aligned transparent pixels")
     f.renderer.draw(world);
     f.renderer.render();
 
-    // pixel at (6, 7) is the transparent texel — framebuffer must stay 0
+    // pixel at (6, 7) is the transparent texel - framebuffer must stay 0
     CHECK(framebuffer(f.renderer)[7 * pulse2d::config::width + 6] == 0x0000);
 }
 

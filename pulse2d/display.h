@@ -50,7 +50,7 @@ inline constexpr uint8_t tft_mosi = 11;
 inline constexpr uint8_t tft_sck = 13;
 inline constexpr uint8_t tft_miso = 12;
 inline constexpr uint8_t touch_cs =
-    8; // XPT2046 CS — must be HIGH before SPI init
+    8; // XPT2046 CS - must be HIGH before SPI init
 } // namespace pins
 
 #endif

@@ -813,11 +813,11 @@ PULSE2D_ON_GAMESCENE_START(Shooter) {
 PULSE2D_SPAWN(pool_name, delay, x, y, vx, vy);
 ```
 
-Spawns an object from the named pool. The body is initialized with the pool's descriptor template, then its position and velocity are set, and it's added to the physics world. The delay parameter is a "debounce" timer in ms between spawns.
+Spawns an object from the named pool. The body is initialized with the pool's descriptor template, then its position and velocity are set, and it's added to the physics world. The delay parameter is a "delay" timer in ms between spawns.
 
 **Parameters:**
 - `pool_name` - The pool initialized with `PULSE2D_INIT_POOL`
-- `delay` - The debounce time between spawns in `ms`
+- `delay` - The delay time between spawns in `ms`
 - `x, y` - Initial position
 - `vx, vy` - Initial velocity
 

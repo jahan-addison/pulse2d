@@ -4,22 +4,17 @@
 # Licensed under the MIT License (https://opensource.org/license/mit)
 ##############################################################################
 
-# sections — print a sorted section table for a Teensy ELF
+##############################################################################
+# sections - print a sorted section table for a Teensy ELF
 #
 # Reads the compiled ELF and maps every output section to its memory region
 # (FLASH, DTCM, RAM/OCRAM, ERAM) using the known Teensy 4.x address ranges.
 # Sections smaller than --min-bytes are hidden by default; pass --all to
 # show everything.
 #
-# Why this exists:
-#   The Teensy 4.x linker script merges .rodata into the .data output section,
-#   which is copied from FLASH into DTCM at boot. Large read-only tables
-#   (backgrounds, palettes) must be placed in .progmem or .flashmem instead.
-#   This tool makes it immediately obvious which sections are in which region
-#   and how much space each one uses.
-#
 # Usage:
 #   sections <elf>  [--all] [--min-bytes N]
+##############################################################################
 
 import argparse
 import struct
@@ -66,8 +61,8 @@ class Section:
 
     Attributes:
         name: Section name string (e.g. .text, .data).
-        vma: Virtual memory address — where the section runs.
-        lma: Load memory address — where it lives in flash before copy.
+        vma: Virtual memory address - where the section runs.
+        lma: Load memory address - where it lives in flash before copy.
         size: Section size in bytes.
         flags: ELF sh_flags field.
         stype: ELF sh_type field.
