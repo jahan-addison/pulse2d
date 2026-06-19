@@ -60,7 +60,7 @@ class Joint;
  *   floor.position = { 0.0f, -4.0f };   // static; inv_mass = 0
  *
  *   graphics::Body box;
- *   box.set({ 0.5f, 0.5f }, 1.0f);
+ *   box.set_motion({ 0.5f, 0.5f }, 1.0f);
  *   box.position = { 0.0f, 2.0f };
  *
  *   world.add(&floor);

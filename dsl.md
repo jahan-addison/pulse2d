@@ -61,7 +61,7 @@ The pulse2d DSL is a set of macros in [`pulse2d/dsl.h`](pulse2d/dsl.h) inspired 
   - [PULSE2D_POLL_SEESAW_GAMEPAD](#pulse2d_poll_seesaw_gamepad)
   - [SEESAW_BUTTON_INPUT](#seesaw_button_input)
   - [SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL](#seesaw_set_arcade_directional_control)
-  - [SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL_INVERTED](#seesaw_set_arcade_directional_control)
+  - [SEESAW_SET_ARCADE_DIRECTIONAL_INVERTED_CONTROL](#seesaw_set_arcade_directional_inverted_control)
   - [SEESAW_SETDYNAMIC_DIRECTIONAL_CONTROL](#seesaw_set_dynamic_directional_control)
   - [SEESAW_SET_SLIDING_FRICTION_DIRECTIONAL_CONTROL](#seesaw_set_sliding_friction_directional_control)
   - [Analog Stick Input](#analog-stick-input)
@@ -712,7 +712,7 @@ PULSE2D_ON_GAMESCENE(Space_Level) {
 
 ## Animations
 
-Two animation systems serve different purposes. **Persistent animations** drive looped character and enemy states — idle, walk, jump — by mutating a sprite's frame pointer each tick. **VFX, one-shot animations** fire and forget: they play once and are removed automatically, suited for explosions, impacts, and pickup effects.
+Two animation systems serve different purposes. **Persistent animations** drive looped character and enemy states - idle, walk, jump - by mutating a sprite's frame pointer each tick. **VFX, one-shot animations** fire and forget: they play once and are removed automatically, suited for explosions, impacts, and pickup effects.
 
 ---
 
@@ -1328,11 +1328,11 @@ SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL(player, 3.0f, false, true);       // horiz
 
 ---
 
-### SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL_INVERTED
+### SEESAW_SET_ARCADE_DIRECTIONAL_INVERTED_CONTROL
 
 ```cpp
-SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL_INVERTED(body_name, max_speed);
-SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL_INVERTED(body_name, max_speed, vertical_only, horizontal_only);
+SEESAW_SET_ARCADE_DIRECTIONAL_INVERTED_CONTROL(body_name, max_speed);
+SEESAW_SET_ARCADE_DIRECTIONAL_INVERTED_CONTROL(body_name, max_speed, vertical_only, horizontal_only);
 ```
 
 Same as `SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL`, but with inverted axes.
@@ -1341,7 +1341,7 @@ Same as `SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL`, but with inverted axes.
 
 **Example:**
 ```cpp
-SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL_INVERTED(ship, 4.0f);
+SEESAW_SET_ARCADE_DIRECTIONAL_INVERTED_CONTROL(ship, 4.0f);
 ```
 
 ---

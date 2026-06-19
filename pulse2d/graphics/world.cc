@@ -58,7 +58,7 @@
  *   floor.position = { 0.0f, -4.0f };   // static; inv_mass = 0
  *
  *   graphics::Body box;
- *   box.set({ 0.5f, 0.5f }, 1.0f);
+ *   box.set_motion({ 0.5f, 0.5f }, 1.0f);
  *   box.position = { 0.0f, 2.0f };
  *
  *   world.add(&floor);
@@ -287,6 +287,9 @@ void World::step(float dt)
     // Perform iterations
     for (int i = 0; i < iterations; ++i) {
         for (ArbIter arb = arbiters.begin(); arb != arbiters.end(); ++arb) {
+            // Bypass collision solver on sensor bodies
+            if (arb->first.body1->is_sensor or arb->first.body2->is_sensor)
+                continue;
             arb->second.apply_impulse();
         }
 

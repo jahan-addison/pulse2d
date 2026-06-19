@@ -57,13 +57,13 @@
  * will still accumulate from the next frame onward. Setting force via
  * add_force() lets gravity and the push combine naturally each frame.
  *
- * A body created without calling set() has inv_mass = 0 and never moves
+ * A body created without calling set_motion() has inv_mass = 0 and never moves
  * regardless of gravity or forces. Use this for static floors and walls.
  *
  *  Example:
  *
  *   graphics::Body box;
- *   box.set({ 1.0f, 1.0f }, 10.0f); // 1x1 unit box, 10 kg
+ *   box.set_motion({ 1.0f, 1.0f }, 10.0f); // 1x1 unit box, 10 kg
  *   box.position = { 0.0f, 3.0f };  // start 3 units above origin
  *   world.add(&box);
  *

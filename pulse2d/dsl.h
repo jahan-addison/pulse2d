@@ -231,7 +231,7 @@
             (_body), pad.get_state(), (max_speed)__VA_OPT__(, ) __VA_ARGS__); \
     } while (0)
 
-#define SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL_INVERTED(                       \
+#define SEESAW_SET_ARCADE_DIRECTIONAL_INVERTED_CONTROL(                       \
     body_name, max_speed, ...)                                                \
     do {                                                                      \
         auto& _body = active_scene.get_body(#body_name);                      \
@@ -342,7 +342,7 @@
 /**
  * @brief
  * Step the physics simulation one frame. Brings active_scene and renderer
- * into scope — must be the first call in PULSE2D_ON_GAMESCENE.
+ * into scope - must be the first call in PULSE2D_ON_GAMESCENE.
  *
  * @scope: PULSE2D_ON_GAMESCENE
  * @param scene scene type of the current scene
@@ -634,7 +634,7 @@
 /**
  * @brief
  * Advance each layer's scroll offset and blit all background layers to the
- * framebuffer. Call before drawing any sprites — backgrounds are FIFO.
+ * framebuffer. Call before drawing any sprites - backgrounds are FIFO.
  *
  * @scope: PULSE2D_ON_GAMESCENE
  * @return
@@ -684,7 +684,7 @@
 /**
  * @brief
  * Spawn an object from the pool at the given position and velocity.
- * Rate-limited by delay — ignored if called before delay ms has elapsed.
+ * Rate-limited by delay - ignored if called before delay ms has elapsed.
  *
  * @scope: PULSE2D_ON_GAMESCENE
  * @param pool_instance pool identifier
@@ -854,7 +854,7 @@
 /**
  * @brief
  * Allocate a body for player or externally driven objects. Semantically
- * distinct from PULSE2D_STATIC_BODY — use when the body is moved by gamepad
+ * distinct from PULSE2D_STATIC_BODY - use when the body is moved by gamepad
  * input or direct velocity assignment rather than physics forces.
  *
  * @scope: PULSE2D_ON_GAMESCENE_START

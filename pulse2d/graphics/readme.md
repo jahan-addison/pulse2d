@@ -2,9 +2,19 @@
 
 ## Box2D-lite: modified for embedded devices
 
-Box2D-lite is a minimal, rigid-body physics engine originally written by Erin Catto as part of his GDC 2006 presentation. It implements sequential impulse-based constraint solving over a fixed timestep with contact caching, making it small enough and well-suited to heavy modification for embedded devices.
+Box2D-lite is a minimal rigid-body physics engine originally written by Erin Catto as part of his GDC 2006 presentation. It implements sequential impulse-based constraint solving over a fixed timestep with contact caching, well-suited for modification on embedded devices.
 
-Dynamic memory allocation has been removed in favor of fixed-size `etlcpp` storage, floating-point types are narrowed to `float` to match the FPv5-D16 hard-float pipeline on the i.MX RT1062.
+Dynamic memory allocation has been removed in favor of fixed-size `etlcpp` storage. Floating-point types are narrowed to `float` to match the FPv5-D16 hard-float pipeline on the i.MX RT1062.
+
+### Modifications
+
+- **No heap allocation** - `std::vector`, `std::map`, and native arrays replaced with `etl::vector`, `etl::map`, and `etl::array`. Pool sizes are set at compile time via `MAX_PHYSICS_BODIES`, `MAX_PHYSICS_JOINTS`, etc in `pulse2d/config.h`.
+- **`float`** - original used `double`, all types narrowed to `float` for the FPv5-D16 hard-float unit.
+- **Full-dimension `width`** - original `Body` stored half-extents in `h`. This fork stores full width and height in `width`; `collide.cc` computes half-extents internally as `h = 0.5 * width`.
+- **`Body::set_motion()`** - original `Body::Set(Vec2, float)` renamed to `set_motion()`. A zero-argument overload computes `inv_mass`, `I`, and `inv_i` from the current `mass` and `width` without resetting position or velocity.
+- **Body descriptor pattern** - `Body_Descriptor` struct with designated initializers; `Body::set(Body_Descriptor)` applies it field by field. Used by the DSL macros (`PULSE2D_STATIC_BODY`, `PULSE2D_DYNAMIC_BODY`, etc.).
+- **`World::remove(Body*)`** - removes a single body from the simulation without clearing the world. Used internally by kinematic pools to despawn individual projectiles.
+- **`Body::is_sensor`** - non-solid trigger zone flag. Overlap is detected and recorded in `world.arbiters` but no pushback impulse is applied. Not present in box2d-lite. See [Sensors](#sensors) below.
 
 ---
 
@@ -29,7 +39,7 @@ floor.position = { 0.0f, -4.0f };  // place it, then add to the world
 floor.width    = { 5.0f, 0.5f };   // 5 × 0.5 unit platform
 ```
 
-To make a body dynamic (i.e. affected by gravity and collisions), call `set_motion` with full dimensions and a mass in kg. `set_motion` also zeroes all motion state, so calling it again is safe and reinitializes the body:
+To make a body respond to gravity and collisions, call `set_motion` with full dimensions and a mass in kg. `set_motion` also zeroes all motion state, so calling it again is safe and reinitializes the body:
 
 ```cpp
 graphics::Body box;
@@ -50,7 +60,7 @@ If you want a continuous effect (like a thruster), call `add_force()` every fram
 box.velocity = { 3.0f, 0.0f };  // moves 3 units/second to the right
 ```
 
-`friction` controls how much a body resists sliding against another. `0.0` is frictionless ice, `1.0` is a rough grip. It defaults to `0.2` (light wood):
+`friction` controls how much a body resists sliding against another. `0.0` is frictionless ice, `1.0` is a rough grip. It defaults to `0.2`:
 
 ```cpp
 box.friction = 0.8f;  // sticky surface
@@ -62,7 +72,7 @@ box.friction = 0.8f;  // sticky surface
 
 `World` is the simulation context: it holds every body and joint, runs the solver each frame, and records every active contact in `arbiters`.
 
-Construct it with a gravity vector and an iteration count. Gravity is in world units per second squared - use a negative y value to pull things downward. The iteration count is how many passes the solver makes per step: more passes make stacked objects more stable, at higher CPU cost. **10 is a practical default** on both the Teensy and the host.
+Construct it with a gravity vector and an iteration count. Gravity is in world units per second squared. Use a negative y value to pull things downward. The iteration count is how many passes the solver makes per step - more passes make stacked objects more stable, at higher CPU cost. 10 is a good default on both the Teensy and the host.
 
 ```cpp
 graphics::World world({ 0.0f, -10.0f }, 10);
@@ -124,12 +134,58 @@ hinge.set(&body_a, &body_b, { 0.0f, 1.0f });  // pin at world position (0, 1)
 world.add(&hinge);
 ```
 
-Two parameters controle the feel of the constraint:
+Two parameters control the feel of the constraint:
 
-* `bias_factor`: How aggressively drift is corrected each step (0–1) - Higher = stiffer
-* `softness`: Adds spring-like "softness", `0.0` = rigid - increase slightly if the joint feels too stiff
+- `bias_factor`: How aggressively drift is corrected each step (0–1) - higher = stiffer
+- `softness`: Adds spring-like give, `0.0` = rigid - increase slightly if the joint feels too stiff
 
 ```cpp
 hinge.bias_factor = 0.3f;  // correct 30% of drift per step (slightly stiffer)
 hinge.softness    = 0.01f; // small spring give
 ```
+
+---
+
+### Sensors
+
+A sensor is a non-solid body that detects overlaps without applying any pushback. Other bodies pass through it freely, but the overlap is still recorded in `world.arbiters` for the duration of the contact - so you can react to it with game logic.
+
+Set `is_sensor = true` on a `Body_Descriptor` when creating the body:
+
+```cpp
+PULSE2D_STATIC_BODY(pickup_zone, {
+    .position = { 2.0f, 0.0f },
+    .width    = { 1.0f, 1.0f },
+    .is_sensor = true
+});
+```
+
+Or assign it directly on an existing body before adding it to the world:
+
+```cpp
+graphics::Body zone;
+zone.position  = { 2.0f, 0.0f };
+zone.width     = { 1.0f, 1.0f };
+zone.is_sensor = true;
+world.add(&zone);
+```
+
+While a body overlaps the sensor, `world.arbiters` contains an entry for that pair - the same map used for physical collisions. Use `PULSE2D_ON_COLLISION_WITH` to respond:
+
+```cpp
+PULSE2D_ON_COLLISION_WITH(pickup_zone) {
+    if (!item_collected) {
+        item_collected = true;
+        score += 50;
+    }
+}
+```
+
+Sensors are useful anywhere you need a spatial trigger with no physics effect:
+
+- **Pickup zones** - coins, health packs, powerups the player walks through
+- **Damage zones** - lava floors, spike pits, enemy auras that hurt on contact
+- **Level triggers** - invisible boundary that fires when the player crosses it
+- **Detection radii** - enemy aggro range, line-of-sight entry point
+
+The key distinction from a regular static body: a static body pushes other bodies away when they overlap. A sensor lets them pass through, and only tells you that the overlap happened.

@@ -191,7 +191,7 @@ struct Arbiter
     float friction; // geometric mean of both bodies' friction values
 };
 
-// This is used by std::set
+// Required by etl::map for key ordering
 constexpr inline bool operator<(const Arbiter_Key& a1, const Arbiter_Key& a2)
 {
     if (a1.body1 < a2.body1)

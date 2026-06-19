@@ -59,13 +59,13 @@
  * will still accumulate from the next frame onward. Setting force via
  * add_force() lets gravity and the push combine naturally each frame.
  *
- * A body created without calling set() has inv_mass = 0 and never moves
+ * A body created without calling set_motion() has inv_mass = 0 and never moves
  * regardless of gravity or forces. Use this for static floors and walls.
  *
  *  Example:
  *
  *   graphics::Body box;
- *   box.set({ 1.0f, 1.0f }, 10.0f); // 1x1 unit box, 10 kg
+ *   box.set_motion({ 1.0f, 1.0f }, 10.0f); // 1x1 unit box, 10 kg
  *   box.position = { 0.0f, 3.0f };  // start 3 units above origin
  *   world.add(&box);
  *
@@ -106,6 +106,7 @@ struct Body_Descriptor
     float inv_mass = 0.0f;
     float I = FLT_MAX;
     float inv_i = 0.0f;
+    bool is_sensor = false;
 };
 
 } // namespace detail
@@ -181,7 +182,7 @@ class Body
   public:
     /**
      * @brief
-     * Set the world object using the descriptor pattern:
+     * Set the body's fields using the descriptor pattern:
      *
      * Example:
      *
@@ -208,6 +209,7 @@ class Body
         detail::assign(&inv_mass, &desc.inv_mass);
         detail::assign(&I, &desc.I);
         detail::assign(&inv_i, &desc.inv_i);
+        detail::assign(&is_sensor, &desc.is_sensor);
     }
 
     BODY_FIELD_BUILDER(position, Vec2)
@@ -222,6 +224,7 @@ class Body
     BODY_FIELD_BUILDER(inv_mass, float)
     BODY_FIELD_BUILDER(I, float)
     BODY_FIELD_BUILDER(inv_i, float)
+    BODY_FIELD_BUILDER(is_sensor, bool)
 
     inline void add_force(Vec2 const& f) { force += f; }
 
@@ -338,9 +341,9 @@ class Body
      * for the SAT overlap test - you never need to halve this yourself.
      *
      * For static bodies you can assign width directly. For dynamic bodies
-     * always go through set(), which also recomputes mass and inertia:
+     * always go through set_motion(), which also recomputes mass and inertia:
      *
-     *   body.set({ 2.0f, 0.5f }, 3.0f); // 2×0.5 box, 3 kg
+     *   body.set_motion({ 2.0f, 0.5f }, 3.0f); // 2×0.5 box, 3 kg
      */
     Vec2 width = { 1.0f, 1.0f };
 
@@ -400,6 +403,21 @@ class Body
      * Read-only after set().
      */
     float inv_i = 0.0f;
+
+    /**
+     * @brief
+     * Acts as a non-solid trigger zone. Bypasses physical collision response
+     * (pushback) but registers overlaps for custom event callbacks.
+     *
+     * Bypasses the ApplyImpulse() solver while preserving BroadPhase detection:
+     *
+     * If true: Generates contact points, but zero normal force is applied.
+     *
+     * A sensor is like a laser tripwire or an explosion hitbox; bodies will
+     * pass seamlessly through it without losing momentum, but the engine still
+     * knows exactly where and when they intersected.
+     */
+    bool is_sensor = false;
 };
 
 } // namespace pulse2d
