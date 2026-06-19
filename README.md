@@ -83,7 +83,7 @@ PULSE2D_ON_GAMESCENE_START(Space_Shooter) {
 
     PULSE2D_ADD_PARALLAX_LAYER(bg_stars, 320.0f, 15.0f);
 
-    PULSE2D_REGISTER_ANIMATION(explosion, explosion_frames, 64, 64, 8, 12);
+    PULSE2D_DEFINE_VFX(explosion, explosion_frames, 64, 64, 8, 12);
 
     PULSE2D_INIT_POOL(bullet_pool, {
         .width = { 0.15f, 0.08f }
@@ -141,7 +141,7 @@ PULSE2D_ON_GAMESCENE(Space_Shooter) {
             enemy_hit = true;
             auto& enemy = PULSE2D_GET_BODY(enemy_object);
             auto [sx, sy] = PULSE2D_BODY_COORDINATES(enemy);
-            PULSE2D_PLAY_ANIMATION(explosion, sx, sy);
+            PULSE2D_PLAY_VFX(explosion, sx, sy);
             score += 100;
         }
     }
@@ -157,7 +157,7 @@ PULSE2D_ON_GAMESCENE(Space_Shooter) {
         PULSE2D_DRAW(enemy_object, enemy_sprite);
     }
 
-    PULSE2D_TICK_ANIMATIONS();
+    PULSE2D_TICK_VFX();
     PULSE2D_RENDER(active_scene);
 }
 
@@ -345,7 +345,7 @@ PULSE2D_ON_GAMESCENE(Game_Level) {
     PULSE2D_TICK_WORLD(Game_Level);
     PULSE2D_POLL_SEESAW_GAMEPAD();
 
-    SEESAW_ARCADE_DIRECTIONAL_MOVEMENT("player", 3.0f);
+    SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(player_object, 3.0f);
 
     if (SEESAW_BUTTON_INPUT(SEESAW_A)) { fire(); }
     if (SEESAW_BUTTON_INPUT(SEESAW_B)) { jump(); }

@@ -30,19 +30,56 @@
 ////////////////
 
 #if defined(PULSE2D_TEENSY)
-// Define a variable
+
+/**
+ * @brief
+ * Define a BSS memory section
+ *
+ * @scope: global
+ * @return
+ *
+ */
 #define PULSE2D_DEFINE static
 
-// Define a type in HARDWARE_Deferred_Init for deferred construction
+/**
+ * @brief
+ * Define a type in HARDWARE_Deferred_Init for deferred construction,
+ * Types constructed in this way should require the arduino runtime.
+ *
+ * @scope: global
+ * @param type the class type
+ * @return
+ *
+ */
 #define PULSE2D_HARDWARE_DEFINE(type) \
     PULSE2D_DEFINE pulse2d::HARDWARE_Deferred_Init<type>
 
-// Maps to Arduino setup(). Runs once on power-on.
+/**
+ * @brief
+ * Maps to Arduino setup(). Runs once on power-on.
+ *
+ * @scope: global
+ * @return
+ */
 #define PULSE2D_ON_GAMESTART() void setup()
-// Maps to Arduino loop(). Runs every frame.
+
+/**
+ * @brief
+ * Maps to Arduino loop(). Runs every frame (~60 Hz).
+ *
+ * @scope: global
+ * @return
+ */
 #define PULSE2D_ON_GAMELOOP() void loop()
 
-// Declare the engine, physics world, and scene dispatch pointers
+/**
+ * @brief
+ * Declare the engine, physics world, and scene dispatch pointers.
+ * Creates: engine, world, pending_transition, active_scene_fn, PULSE.
+ *
+ * @scope: global
+ * @return
+ */
 #define PULSE2D_START_PULSE()                                \
     PULSE2D_HARDWARE_DEFINE(pulse2d::Pulse2d) engine;        \
     PULSE2D_HARDWARE_DEFINE(pulse2d::graphics::World) world; \
@@ -50,7 +87,16 @@
     void (*active_scene_fn)() = nullptr;                     \
     PULSE2D_DEFINE constexpr float PULSE = 1.0f / 60.0f;
 
-// Initialize the engine and physics world
+/**
+ * @brief
+ * Initialize the engine and physics world.
+ *
+ * @scope: PULSE2D_ON_GAMESTART
+ * @param gravity_1 horizontal gravity component (0 for no gravity)
+ * @param gravity_2 vertical gravity component (0 for no gravity)
+ * @param solver physics solver iteration count
+ * @return
+ */
 #define PULSE2D_INIT(gravity_1, gravity_2, solver)                            \
     do {                                                                      \
         static_assert(std::is_same_v<decltype(engine),                        \
@@ -72,12 +118,24 @@
 // Gamepad //
 /////////////
 
-// Declare the I2C driver and gamepad
+/**
+ * @brief
+ * Declare the I2C driver and Seesaw gamepad at file scope.
+ *
+ * @scope: global
+ * @return
+ */
 #define PULSE2D_ENABLE_SEESAW_GAMEPAD()               \
     static pulse2d::gamepad::Teensy_I2CDriver driver; \
     static pulse2d::gamepad::Seesaw_Gamepad pad(driver)
 
-// Initialize the gamepad hardware
+/**
+ * @brief
+ * Initialize the Seesaw gamepad hardware over I2C.
+ *
+ * @scope: PULSE2D_ON_GAMESTART
+ * @return
+ */
 #define PULSE2D_START_SEESAW_GAMEPAD()                         \
     do {                                                       \
         if (!pad.init()) {                                     \
@@ -85,7 +143,13 @@
         }                                                      \
     } while (0)
 
-// Polls all inputs for the current frame and brings gamepad_state into scope
+/**
+ * @brief
+ * Poll all inputs for the current frame, and brings gamepad_state into scope.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @return
+ */
 #define PULSE2D_POLL_SEESAW_GAMEPAD() \
     pad.poll();                       \
     [[maybe_unused]] auto& gamepad_state = pad.get_state()
@@ -98,19 +162,63 @@
 #define SEESAW_START pulse2d::gamepad::Seesaw_Buttons::START
 #define SEESAW_SELECT pulse2d::gamepad::Seesaw_Buttons::SELECT
 
-// Raw analog stick axis, normalized -1.0f to +1.0f
+/**
+ * @brief
+ * Raw analog stick X axis, normalized -1.0f to +1.0f.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @return
+ */
 #define SEESAW_DIRECTIONAL_X_INPUT() gamepad_state.stick_x
+
+/**
+ * @brief
+ * Raw analog stick Y axis, normalized -1.0f to +1.0f.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @return
+ */
 #define SEESAW_DIRECTIONAL_Y_INPUT() gamepad_state.stick_y
 
-// Direction state when dpad is pushed more than halfway in the given direction
+/**
+ * @brief
+ * True when the analog stick exceeds 0.5 magnitude leftward.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @return
+ */
 #define SEESAW_DIRECTION_IS_LEFT() (gamepad_state.stick_x < -0.5f)
+
+/**
+ * @brief
+ * True when the analog stick exceeds 0.5 magnitude rightward.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @return
+ */
 #define SEESAW_DIRECTION_IS_RIGHT() (gamepad_state.stick_x > 0.5f)
 
+/**
+ * @brief
+ * True when the analog stick exceeds 0.5 magnitude upward.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @return
+ */
 #define SEESAW_DIRECTION_IS_UP() (gamepad_state.stick_y < -0.5f)
+
+/**
+ * @brief
+ * True when the analog stick exceeds 0.5 magnitude downward.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @return
+ */
 #define SEESAW_DIRECTION_IS_DOWN() (gamepad_state.stick_y > 0.5f)
 
 ////////////////////////////////////////////////////////////////////////////////
 // Profile A: The Arcade Controller (Pokemon, Zelda, Pac-Man)
+// @scope: PULSE2D_ON_GAMESCENE
 // Sets velocity directly from stick position for instant response and instant
 // stops.
 // Note: Enable "vertical only" or "horizontal only" movement by the third and
@@ -132,6 +240,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // Profile B: The Momentum Controller (Asteroids, Mario).
+// @scope: PULSE2D_ON_GAMESCENE
 // Applies a thrust force scaled by acceleration each frame - velocity builds up
 // over time.
 ////////////////////////////////////////////////////////////////////////////////
@@ -144,6 +253,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // Profile C: Top-Down Friction. Applies linear drag to the body each frame.
+// @scope: PULSE2D_ON_GAMESCENE
 // Pair with SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT so the body doesn't slide
 // forever.
 ////////////////////////////////////////////////////////////////////////////////
@@ -153,7 +263,14 @@
         pulse2d::gamepad::util::apply_linear_drag((_body), (drag_amount));   \
     } while (0)
 
-// Check whether a button is currently held
+/**
+ * @brief
+ * True while the named button is held.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @param NAME button constant (SEESAW_A, SEESAW_B, ...)
+ * @return
+ */
 // clang-format off
 #define SEESAW_BUTTON_INPUT(NAME) gamepad_state.buttons & NAME
 // clang-format on
@@ -162,14 +279,31 @@
 // Scenes //
 ////////////
 
-// Declare a scene with body, sprite, and joint pool sizes
+/**
+ * @brief
+ * Declare a scene struct with fixed-size body, sprite, and joint pools.
+ * Sizes are checked at compile time against hardware limits.
+ *
+ * @scope: global
+ * @param name scene identifier
+ * @param bodies maximum physics bodies
+ * @param sprites maximum loaded sprites
+ * @param ... optional joint pool size (default: 0)
+ * @return
+ */
 #define PULSE2D_DEFINE_SCENE(name, bodies, sprites, ...)                     \
     struct name                                                              \
         : pulse2d::Pulse2d_Scene<bodies, sprites __VA_OPT__(, ) __VA_ARGS__> \
     {}
 
-// Clear the physics world and storage, then enters and registers the given
-// scene.
+/**
+ * @brief
+ * Clear the physics world and storage, then enter and register the given scene.
+ *
+ * @scope: PULSE2D_ON_GAMESTART, PULSE2D_ON_GAMESCENE
+ * @param scene scene type to transition into
+ * @return
+ */
 #define PULSE2D_SET_SCENE(scene)                    \
     do {                                            \
         world->clear();                             \
@@ -179,33 +313,82 @@
         active_scene_fn = pulse2d_scene_fn_##scene; \
     } while (0)
 
-// Defer the transition to another scene
+/**
+ * @brief
+ * Defer transition to another scene until the end of the current scene tick.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @param to scene type to transition into
+ * @return
+ */
 #define PULSE2D_DEFER_SCENE(to) \
     pending_transition = []() { PULSE2D_SET_SCENE(to); }
 
-// Declare the all scene types used in the game.
+/**
+ * @brief
+ * Declare a std::variant holding all scene types used in the game.
+ * Creates the current_scene global variable.
+ *
+ * @scope: global
+ * @param ... scene types
+ * @return
+ */
 #define PULSE2D_GAME_SCENES(...)                                           \
     PULSE2D_DEFINE std::variant<std::monostate __VA_OPT__(, ) __VA_ARGS__> \
         current_scene
 
-// Steps the physics simulation one frame. Brings active_scene and renderer into
-// scope
+/**
+ * @brief
+ * Step the physics simulation one frame. Brings active_scene and renderer
+ * into scope — must be the first call in PULSE2D_ON_GAMESCENE.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @param scene scene type of the current scene
+ * @return
+ */
 #define PULSE2D_TICK_WORLD(scene)                                         \
     [[maybe_unused]] auto& active_scene = std::get<scene>(current_scene); \
     world->step(PULSE);                                                   \
     [[maybe_unused]] auto& renderer = engine->renderer()
 
-// Flush renderer's sprite queue to the display
+/**
+ * @brief
+ * Flush the renderer's sprite queue to the display.
+ * Must be the last call in PULSE2D_ON_GAMESCENE.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @return
+ */
 #define PULSE2D_RENDER(active_scene) engine->tick(*world)
 
-// Define the entry function for a scene. Called once by PULSE2D_SET_SCENE
+/**
+ * @brief
+ * Define the entry function for a scene, called once by PULSE2D_SET_SCENE.
+ *
+ * @scope: global
+ * @param scene scene identifier
+ * @return
+ */
 #define PULSE2D_ON_GAMESCENE_START(scene) void pulse2d_scene_enter_##scene()
 
-// Define the per-frame function for a scene
+/**
+ * @brief
+ * Define the per-frame function for a scene.
+ *
+ * @scope: global
+ * @param scene scene identifier
+ * @return
+ */
 #define PULSE2D_ON_GAMESCENE(scene) void pulse2d_scene_fn_##scene()
 
-// Call the active scene's per-frame function, then resolve any pending
-// transition. Note: This is the only call needed in PULSE2D_ON_GAMELOOP
+/**
+ * @brief
+ * Call the active scene's per-frame function, then resolve any pending
+ * scene transition. The only call needed in PULSE2D_ON_GAMELOOP.
+ *
+ * @scope: PULSE2D_ON_GAMELOOP
+ * @return
+ */
 #define PULSE2D_TICK_GAMESCENE()             \
     do {                                     \
         if (active_scene_fn != nullptr)      \
@@ -216,15 +399,103 @@
         }                                    \
     } while (0)
 
-// Tick the game engine
+/**
+ * @brief
+ * Manually tick the game engine. Prefer PULSE2D_RENDER which calls this
+ * automatically.
+ *
+ * @scope: PULSE2D_ON_GAMELOOP
+ * @return
+ */
 #define PULSE2D_TICK_PULSE() engine->tick(*world)
 
 ///////////////
 // Animation //
 ///////////////
 
-// Inserts the definition directly into the manager's dictionary
-#define PULSE2D_REGISTER_ANIMATION(anim_name, data_ptr, w, h, frames, fps)   \
+////////////////
+// Persistent //
+///////////////
+
+/**
+ * @brief
+ * Declare a named Sprite_Animator at file scope.
+ * The instance persists across frames and scenes.
+ *
+ * @scope: global
+ * @param name animator identifier
+ * @return
+ */
+#define PULSE2D_DEFINE_ANIMATOR(name) \
+    pulse2d::Sprite_Animator name {}
+
+/**
+ * @brief
+ * Define an immutable animation sequence blueprint as a static constexpr.
+ * time_per_frame (1.0f / fps) is computed at compile time.
+ *
+ * @scope: global
+ * @param name animation identifier
+ * @param sheet_ptr pointer to the flash sprite sheet array
+ * @param width frame width in pixels
+ * @param height frame height in pixels
+ * @param frames total number of frames
+ * @param fps playback rate in frames per second
+ * @return
+ */
+#define PULSE2D_ANIMATION_DEFINITION(                            \
+    name, sheet_ptr, width, height, frames, fps)                 \
+    static constexpr pulse2d::assets::Animation_Def name = {     \
+        (sheet_ptr), (width), (height), (frames), (1.0f / (fps)) \
+    }
+
+/**
+ * @brief
+ * Load an animation definition into a running animator.
+ * Resets the accumulator and plays from frame 0.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @param animator_inst Sprite_Animator instance
+ * @param anim_def Animation_Def to play
+ * @return
+ */
+#define PULSE2D_SET_ANIMATION(animator_inst, anim_def) \
+    (animator_inst).set_state(&(anim_def))
+
+/**
+ * @brief
+ * Advance the animator's frame accumulator and mutate the sprite's
+ * flash_data pointer to the current frame.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @param animator_inst Sprite_Animator instance
+ * @param sprite_name named sprite to update
+ * @return
+ */
+#define PULSE2D_TICK_ANIMATION(animator_inst, sprite_name)             \
+    do {                                                               \
+        pulse2d::Sprite& _spr = active_scene.get_sprite(#sprite_name); \
+        (animator_inst).tick((_spr), PULSE);                           \
+    } while (0)
+
+///////////////////
+// VFX, One-shot //
+///////////////////
+
+/**
+ * @brief
+ * Register a VFX animation definition in the current scene's animation manager.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE_START
+ * @param anim_name animation identifier
+ * @param data_ptr pointer to the flash sprite sheet array
+ * @param w frame width in pixels
+ * @param h frame height in pixels
+ * @param frames total number of frames
+ * @param fps playback rate in frames per second
+ * @return
+ */
+#define PULSE2D_DEFINE_VFX(anim_name, data_ptr, w, h, frames, fps)           \
     do {                                                                     \
         std::visit(                                                          \
             [](auto& scene) {                                                \
@@ -238,8 +509,19 @@
             current_scene);                                                  \
     } while (0)
 
-// Pushes a new instance onto the active queue (if there is space)
-#define PULSE2D_PLAY_ANIMATION(anim_name, pos_x, pos_y)                      \
+/**
+ * @brief
+ * Spawn a VFX animation instance at the given screen coordinates.
+ * Plays once and is removed automatically. Silently dropped if the queue is
+ * full.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @param anim_name animation identifier registered with PULSE2D_DEFINE_VFX
+ * @param pos_x screen x position in pixels
+ * @param pos_y screen y position in pixels
+ * @return
+ */
+#define PULSE2D_PLAY_VFX(anim_name, pos_x, pos_y)                            \
     do {                                                                     \
         std::visit(                                                          \
             [&](auto& scene) {                                               \
@@ -247,7 +529,7 @@
                                   std::monostate>) {                         \
                     auto& anim_mgr = scene.animation_manager;                \
                     if (!anim_mgr.active_animations.full()) {                \
-                        anim_mgr.active_animations.emplace_back(             \
+                        anim_mgr.active_animations.push_back(                \
                             { &anim_mgr.anim_defs[#anim_name],               \
                                 (float)(pos_x),                              \
                                 (float)(pos_y),                              \
@@ -259,8 +541,15 @@
             current_scene);                                                  \
     } while (0)
 
-// Ticks and draws all active animations
-#define PULSE2D_TICK_ANIMATIONS()                                \
+/**
+ * @brief
+ * Advance and draw all active VFX animations. Call after game objects
+ * but before PULSE2D_RENDER.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @return
+ */
+#define PULSE2D_TICK_VFX()                                       \
     do {                                                         \
         active_scene.animation_manager.tick_and_draw_animations( \
             renderer, PULSE);                                    \
@@ -270,18 +559,41 @@
 // Collision //
 ///////////////
 
-// Conditional block that executes when at least one collision is active in the
-// world
+/**
+ * @brief
+ * Conditional block that executes when at least one collision is active
+ * in the physics world.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @return
+ */
 #define PULSE2D_ON_COLLISION() if (!world->arbiters.empty())
 
-// Conditional block that executes when a specific named arbiter is active
+/**
+ * @brief
+ * Conditional block that executes when a specific named arbiter is active.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @param with arbiter name (string key of the collision pair)
+ * @return
+ */
 #define PULSE2D_ON_COLLISION_WITH(with) if (world->arbiters.contains(#with))
 
 ////////////////
 // Background //
 ////////////////
 
-// Add parallax background scrolling layer
+/**
+ * @brief
+ * Add a parallax scrolling layer to the current scene. Layers are drawn
+ * in the order they are added.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE_START
+ * @param sprite_name named sprite to use as the layer
+ * @param width image width in pixels (used to wrap the scroll offset)
+ * @param speed scroll speed in pixels per second
+ * @return
+ */
 #define PULSE2D_ADD_PARALLAX_LAYER(sprite_name, width, speed)                \
     do {                                                                     \
         std::visit(                                                          \
@@ -295,7 +607,15 @@
             current_scene);                                                  \
     } while (0)
 
-// Add background layer
+/**
+ * @brief
+ * Add a static (non-scrolling) background layer to the current scene.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE_START
+ * @param sprite_name named sprite to use as the layer
+ * @param width image width in pixels
+ * @return
+ */
 #define PULSE2D_ADD_BACKGROUND_LAYER(sprite_name, width)                     \
     do {                                                                     \
         std::visit(                                                          \
@@ -309,7 +629,14 @@
             current_scene);                                                  \
     } while (0)
 
-// Ticks and renders all backgrounds directly to the screen
+/**
+ * @brief
+ * Advance each layer's scroll offset and blit all background layers to the
+ * framebuffer. Call before drawing any sprites — backgrounds are FIFO.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @return
+ */
 #define PULSE2D_RENDER_BACKGROUNDS()                                         \
     do {                                                                     \
         std::visit(                                                          \
@@ -328,7 +655,16 @@
 // Object Pools //
 //////////////////
 
-// Initializes a pool instance with a body descriptor template
+/**
+ * @brief
+ * Initialize a named kinematic pool with a body descriptor template.
+ * The descriptor sets the baseline properties for all spawned objects.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE_START
+ * @param pool_instance pool identifier
+ * @param ... Body_Descriptor initializer
+ * @return
+ */
 #define PULSE2D_INIT_POOL(pool_instance, ...)                                \
     do {                                                                     \
         std::visit(                                                          \
@@ -343,8 +679,20 @@
             current_scene);                                                  \
     } while (0)
 
-// Spawn an object from the pool at the given position and velocity on an
-// interval
+/**
+ * @brief
+ * Spawn an object from the pool at the given position and velocity.
+ * Rate-limited by delay — ignored if called before delay ms has elapsed.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @param pool_instance pool identifier
+ * @param delay minimum milliseconds between spawns
+ * @param pos_x initial world x position
+ * @param pos_y initial world y position
+ * @param vel_x initial x velocity
+ * @param vel_y initial y velocity
+ * @return
+ */
 #define PULSE2D_SPAWN(pool_instance, delay, pos_x, pos_y, vel_x, vel_y)   \
     do {                                                                  \
         auto& _timer =                                                    \
@@ -356,15 +704,32 @@
         }                                                                 \
     } while (0)
 
-// Release the kinematic object and returns memory to the pool
+/**
+ * @brief
+ * Release a pooled body and return its memory to the pool.
+ * Removes the body from the physics world.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @param pool_instance pool identifier
+ * @param body_ref pointer to the body to release
+ * @return
+ */
 #define PULSE2D_DESPAWN(pool_instance, body_ref)               \
     do {                                                       \
         active_scene.pool_manager.instances.at(#pool_instance) \
             .retract(&world, (body_ref));                      \
     } while (0)
 
-// Iterate over all active objects in pool and execute action for each in
-// reverse
+/**
+ * @brief
+ * Iterate over all active objects in a pool and execute an action for each.
+ * Iterates in reverse to allow safe despawning during iteration.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @param pool_instance pool identifier
+ * @param action lambda receiving a Body* for each active object
+ * @return
+ */
 #define PULSE2D_RENDER_POOL(pool_instance, action)                            \
     do {                                                                      \
         auto& _pool = active_scene.pool_manager.instances.at(#pool_instance); \
@@ -378,7 +743,18 @@
 // Sprites, Rendering //
 ////////////////////////
 
-// Set a sprite from flash memory
+/**
+ * @brief
+ * Register a flash-resident sprite array as a named sprite in the current
+ * scene's pool.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE_START
+ * @param name sprite identifier
+ * @param data_ptr pointer to the flash RGB565 pixel array
+ * @param w sprite width in pixels
+ * @param h sprite height in pixels
+ * @return
+ */
 #define PULSE2D_SPRITE_FLASH(name, data_ptr, w, h)                           \
     do {                                                                     \
         std::visit(                                                          \
@@ -391,13 +767,29 @@
             current_scene);                                                  \
     } while (0)
 
-// Get the projected pixel coordinates of a physics body on the screen
+/**
+ * @brief
+ * Project a physics body's world-space position to screen pixel coordinates.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @param body_ptr pointer to the body
+ * @return
+ */
 #define PULSE2D_BODY_COORDINATES(body_ptr)  \
     pulse2d::Renderer::project_coordinates( \
         (body_ptr)->position.x, (body_ptr)->position.y);
 
-// Project a body's world-space position to screen coordinates and queue its
-// sprite. Note: optional third argument to set a fixed rotation in radians
+/**
+ * @brief
+ * Project a named body to screen coordinates and queue its sprite for
+ * rendering.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @param body_name named body identifier
+ * @param sprite_name named sprite identifier
+ * @param ... optional rotation in radians
+ * @return
+ */
 #define PULSE2D_DRAW(body_name, sprite_name, ...)                            \
     do {                                                                     \
         auto& _body = active_scene.get_body(#body_name);                     \
@@ -410,7 +802,17 @@
                 __VA_ARGS__);                                                \
     } while (0)
 
-// Like PULSE2D_DRAW but takes a pointer instead of a name
+/**
+ * @brief
+ * Like PULSE2D_DRAW, but takes a body pointer instead of a name.
+ * Use inside PULSE2D_RENDER_POOL lambdas.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @param body_ptr pointer to the body
+ * @param sprite_name named sprite identifier
+ * @param ... optional rotation in radians
+ * @return
+ */
 #define PULSE2D_DRAW_BODY(body_ptr, sprite_name, ...)                        \
     do {                                                                     \
         auto [sx, sy] = pulse2d::Renderer::project_coordinates(              \
@@ -422,8 +824,16 @@
                 __VA_ARGS__);                                                \
     } while (0)
 
-// Allocate an immovable body in the current scene's pool and registers it with
-// the world.
+/**
+ * @brief
+ * Allocate an immovable body in the current scene's pool and register it
+ * with the physics world.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE_START
+ * @param name body identifier
+ * @param ... Body_Descriptor initializer
+ * @return
+ */
 #define PULSE2D_STATIC_BODY(name, ...)                                       \
     do {                                                                     \
         std::visit(                                                          \
@@ -439,8 +849,17 @@
             current_scene);                                                  \
     } while (0)
 
-// The same as PULSE2D_STATIC_BODY. However, semantically should be used
-// by objects that may be controlled by external forces (like a gamepad).
+/**
+ * @brief
+ * Allocate a body for player or externally driven objects. Semantically
+ * distinct from PULSE2D_STATIC_BODY — use when the body is moved by gamepad
+ * input or direct velocity assignment rather than physics forces.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE_START
+ * @param name body identifier
+ * @param ... Body_Descriptor initializer
+ * @return
+ */
 #define PULSE2D_CONTROLLED_BODY(name, ...)                                   \
     do {                                                                     \
         std::visit(                                                          \
@@ -456,8 +875,16 @@
             current_scene);                                                  \
     } while (0)
 
-// Allocate a dynamic body in the current scene's pool with active, in-motion
-// physics, and registers it with the world.
+/**
+ * @brief
+ * Allocate a fully simulated dynamic body and register it with the world.
+ * The body responds to forces, gravity, and collisions.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE_START
+ * @param name body identifier
+ * @param ... Body_Descriptor initializer
+ * @return
+ */
 #define PULSE2D_DYNAMIC_BODY(name, ...)                                      \
     do {                                                                     \
         std::visit(                                                          \
@@ -474,17 +901,35 @@
             current_scene);                                                  \
     } while (0)
 
-// Return a reference to a named body from active_scene
+/**
+ * @brief
+ * Return a reference to a named body from active_scene.
+ * Requires PULSE2D_TICK_WORLD to have been called first.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @param name body identifier
+ * @return
+ */
 #define PULSE2D_GET_BODY(name) active_scene.get_body(#name)
 
-// Load a sprite into the current scene's pool from the SD card
-#define PULSE2D_SPRITE(name, path, x, y)                                     \
+/**
+ * @brief
+ * Load a sprite into the current scene's pool from the SD card.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE_START
+ * @param name sprite identifier
+ * @param path sprite absolute path on sd card
+ * @param w sprite width
+ * @param h sprite height
+ * @return
+ */
+#define PULSE2D_SPRITE(name, path, w, h)                                     \
     do {                                                                     \
         std::visit(                                                          \
             [](auto& scene) {                                                \
                 if constexpr (!std::is_same_v<std::decay_t<decltype(scene)>, \
                                   std::monostate>) {                         \
-                    scene.set(#name, engine->storage(), path, x, y);         \
+                    scene.set(#name, engine->storage(), path, w, h);         \
                 }                                                            \
             },                                                               \
             current_scene);                                                  \
@@ -511,7 +956,14 @@ inline void etl_serial_error_handler(etl::exception const& e)
 #endif
 
 #if defined(DEBUG)
-// Print stack usage to serial every 300 frames
+/**
+ * @brief
+ * Print stack usage to serial every 300 frames (~5 seconds at 60 fps).
+ * Compiled away in non-debug builds.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @return
+ */
 #define PULSE2D_PRINT_STACKSIZE()                                            \
     do {                                                                     \
         static uint32_t frame = 0;                                           \
@@ -519,7 +971,14 @@ inline void etl_serial_error_handler(etl::exception const& e)
             Serial.printf("stack used: %lu bytes\n", pulse2d::stack_used()); \
     } while (0)
 
-// Register a Serial error handler for ETL assertion failures.
+/**
+ * @brief
+ * Register a Serial callback for ETL assertion failures.
+ * Compiled away in non-debug builds.
+ *
+ * @scope: PULSE2D_ON_GAMESTART
+ * @return
+ */
 #define PULSE2D_REGISTER_ETL_ERROR_HANDLER() \
     etl::error_handler::set_callback<pulse2d::debug::etl_serial_error_handler>()
 #else

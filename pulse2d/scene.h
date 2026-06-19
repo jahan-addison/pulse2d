@@ -64,6 +64,44 @@ struct CStrLess
 };
 #endif
 
+struct Sprite_Animator
+{
+    Sprite_Animator() = default;
+
+    // change states (e.g., from idle to walk)
+    void set_state(const pulse2d::assets::Animation_Def* new_def)
+    {
+        if (def !=
+            new_def) { // only reset if the animation is actually changing
+            def = new_def;
+            accumulator = 0.0f;
+            current_frame = 0;
+        }
+    }
+
+    // advance the loop and update the Sprite every frame
+    void tick(pulse2d::Sprite& target_sprite, float dt)
+    {
+        if (def == nullptr)
+            return;
+
+        accumulator += dt;
+        if (accumulator >= def->time_per_frame) {
+            accumulator -= def->time_per_frame;
+            current_frame = (uint16_t)(current_frame + 1) % def->total_frames;
+        }
+
+        // Overwrite the target sprite's data pointer with the new frame
+        uint32_t pixels_per_frame = def->frame_w * def->frame_h;
+        target_sprite.data =
+            def->flash_data + (current_frame * pixels_per_frame);
+    }
+
+    const assets::Animation_Def* def = nullptr;
+    float accumulator = 0.0f;
+    uint16_t current_frame = 0;
+};
+
 struct Pulse2d_Scene_Animation
 {
     void tick_and_draw_animations(pulse2d::Renderer& renderer, float dt)
@@ -82,7 +120,6 @@ struct Pulse2d_Scene_Animation
             if (it->current_frame >= it->def->total_frames) {
                 it = active_animations.erase(it);
             } else {
-                // draw the current frame
                 uint32_t pixels_per_frame = it->def->frame_w * it->def->frame_h;
                 const uint16_t* frame_ptr =
                     it->def->flash_data +
