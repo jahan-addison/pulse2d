@@ -60,7 +60,7 @@ PULSE2D_ON_GAMESCENE(Sample_Level)
     }
 
     if (!fired)
-        SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED(spell_object, 5.22f);
+        SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL_INVERTED(spell_object, 5.22f);
 
     if (!fired and SEESAW_BUTTON_INPUT(SEESAW_A)) {
         spell.set_velocity({ 12.555f, 0.0f });

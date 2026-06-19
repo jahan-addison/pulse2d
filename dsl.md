@@ -60,10 +60,10 @@ The pulse2d DSL is a set of macros in [`pulse2d/dsl.h`](pulse2d/dsl.h) inspired 
   - [PULSE2D_START_SEESAW_GAMEPAD](#pulse2d_start_seesaw_gamepad)
   - [PULSE2D_POLL_SEESAW_GAMEPAD](#pulse2d_poll_seesaw_gamepad)
   - [SEESAW_BUTTON_INPUT](#seesaw_button_input)
-  - [SEESAW_ARCADE_DIRECTIONAL_MOVEMENT](#seesaw_arcade_directional_movement)
-  - [SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED](#seesaw_arcade_directional_movement_inverted)
-  - [SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT](#seesaw_dynamic_directional_movement)
-  - [SEESAW_SLIDING_FRICTION_DIRECTIONAL_MOVEMENT](#seesaw_sliding_friction_directional_movement)
+  - [SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL](#seesaw_set_arcade_directional_control)
+  - [SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL_INVERTED](#seesaw_set_arcade_directional_control)
+  - [SEESAW_SETDYNAMIC_DIRECTIONAL_CONTROL](#seesaw_set_dynamic_directional_control)
+  - [SEESAW_SET_SLIDING_FRICTION_DIRECTIONAL_CONTROL](#seesaw_set_sliding_friction_directional_control)
   - [Analog Stick Input](#analog-stick-input)
   - [Direction Helpers](#direction-helpers)
 - [Engine Lifecycle](#engine-lifecycle)
@@ -313,7 +313,7 @@ PULSE2D_ON_GAMESCENE(Game_Level) {
     PULSE2D_TICK_WORLD(Game_Level);
     PULSE2D_POLL_SEESAW_GAMEPAD();
 
-    SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(player_object, 3.0f);
+    SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL(player_object, 3.0f);
 
     PULSE2D_DRAW(player_object, player_sprite);
     PULSE2D_RENDER(active_scene);
@@ -833,7 +833,7 @@ PULSE2D_ON_GAMESCENE(Platformer) {
     PULSE2D_TICK_WORLD(Platformer);
     PULSE2D_POLL_SEESAW_GAMEPAD();
 
-    SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(player_object, 3.0f);
+    SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL(player_object, 3.0f);
 
     if (SEESAW_DIRECTION_IS_LEFT() || SEESAW_DIRECTION_IS_RIGHT()) {
         PULSE2D_SET_ANIMATION(player_animator, anim_walk);
@@ -1129,7 +1129,7 @@ PULSE2D_ON_GAMESCENE(Shooter) {
     PULSE2D_POLL_SEESAW_GAMEPAD();
 
     auto& ship = PULSE2D_GET_BODY(ship);
-    SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(ship, 3.0f);
+    SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL(ship, 3.0f);
 
     // Fire bullets
     if (fire_cooldown > 0) fire_cooldown--;
@@ -1306,11 +1306,11 @@ if (SEESAW_BUTTON_INPUT(SEESAW_START)) { pause(); }
 
 ---
 
-### SEESAW_ARCADE_DIRECTIONAL_MOVEMENT
+### SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL
 
 ```cpp
-SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(body_name, max_speed);
-SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(body_name, max_speed, vertical_only, horizontal_only);
+SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL(body_name, max_speed);
+SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL(body_name, max_speed, vertical_only, horizontal_only);
 ```
 
 **Profile A: The Arcade Controller** (Pokémon, Zelda, Pac-Man)
@@ -1321,35 +1321,35 @@ Sets the body's velocity directly from the stick position for instant response a
 
 **Example:**
 ```cpp
-SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(player, 3.0f);                    // both axes
-SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(player, 3.0f, true, false);       // vertical only
-SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(player, 3.0f, false, true);       // horizontal only
+SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL(player, 3.0f);                    // both axes
+SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL(player, 3.0f, true, false);       // vertical only
+SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL(player, 3.0f, false, true);       // horizontal only
 ```
 
 ---
 
-### SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED
+### SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL_INVERTED
 
 ```cpp
-SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED(body_name, max_speed);
-SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED(body_name, max_speed, vertical_only, horizontal_only);
+SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL_INVERTED(body_name, max_speed);
+SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL_INVERTED(body_name, max_speed, vertical_only, horizontal_only);
 ```
 
-Same as `SEESAW_ARCADE_DIRECTIONAL_MOVEMENT`, but with inverted axes.
+Same as `SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL`, but with inverted axes.
 
 **Scope:** `PULSE2D_ON_GAMESCENE`
 
 **Example:**
 ```cpp
-SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED(ship, 4.0f);
+SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL_INVERTED(ship, 4.0f);
 ```
 
 ---
 
-### SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT
+### SEESAW_SETDYNAMIC_DIRECTIONAL_CONTROL
 
 ```cpp
-SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT(body_name, acceleration);
+SEESAW_SETDYNAMIC_DIRECTIONAL_CONTROL(body_name, acceleration);
 ```
 
 **Profile B: The Momentum Controller** (Asteroids, Mario)
@@ -1360,27 +1360,27 @@ Applies a thrust force scaled by `acceleration` each frame. Velocity builds up o
 
 **Example:**
 ```cpp
-SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT(ship, 0.8f);
+SEESAW_SETDYNAMIC_DIRECTIONAL_CONTROL(ship, 0.8f);
 ```
 
 ---
 
-### SEESAW_SLIDING_FRICTION_DIRECTIONAL_MOVEMENT
+### SEESAW_SET_SLIDING_FRICTION_DIRECTIONAL_CONTROL
 
 ```cpp
-SEESAW_SLIDING_FRICTION_DIRECTIONAL_MOVEMENT(body_name, drag_amount);
+SEESAW_SET_SLIDING_FRICTION_DIRECTIONAL_CONTROL(body_name, drag_amount);
 ```
 
 **Profile C: Top-Down Friction**
 
-Applies linear drag to the body each frame. Pair with `SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT` so the body doesn't slide forever.
+Applies linear drag to the body each frame. Pair with `SEESAW_SETDYNAMIC_DIRECTIONAL_CONTROL` so the body doesn't slide forever.
 
 **Scope:** `PULSE2D_ON_GAMESCENE`
 
 **Example:**
 ```cpp
-SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT(ship, 0.8f);
-SEESAW_SLIDING_FRICTION_DIRECTIONAL_MOVEMENT(ship, 0.92f);
+SEESAW_SETDYNAMIC_DIRECTIONAL_CONTROL(ship, 0.8f);
+SEESAW_SET_SLIDING_FRICTION_DIRECTIONAL_CONTROL(ship, 0.92f);
 ```
 
 ---
@@ -1616,7 +1616,7 @@ PULSE2D_ON_GAMESCENE(Space_Shooter) {
 
     PULSE2D_RENDER_BACKGROUNDS();
 
-    SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(ship_object, 3.5f);
+    SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL(ship_object, 3.5f);
 
     auto& ship = PULSE2D_GET_BODY(ship_object);
 
@@ -1685,7 +1685,5 @@ PULSE2D_ON_GAMELOOP() {
 
 ## See Also
 
-- [README](README.md) - Project overview and build instructions
 - [Physics README](pulse2d/graphics/readme.md) - Physics engine details
-- [shift game source](shift/game-teensy.cc) - Real-world example
-- [Blog series](https://soliloq.uy/tag/pulse2d/) - Development blog
+- [Blog series](https://soliloq.uy/tag/pulse2d/) - Embedded development blog

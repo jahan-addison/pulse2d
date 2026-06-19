@@ -224,18 +224,19 @@
 // Note: Enable "vertical only" or "horizontal only" movement by the third and
 // forth boolean arguments
 ////////////////////////////////////////////////////////////////////////////////
-#define SEESAW_ARCADE_DIRECTIONAL_MOVEMENT(body_name, max_speed, ...)         \
+#define SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL(body_name, max_speed, ...)      \
     do {                                                                      \
         auto& _body = active_scene.get_body(#body_name);                      \
         pulse2d::gamepad::util::apply_arcade_movement(                        \
             (_body), pad.get_state(), (max_speed)__VA_OPT__(, ) __VA_ARGS__); \
     } while (0)
 
-#define SEESAW_ARCADE_DIRECTIONAL_MOVEMENT_INVERTED(body_name, max_speed, ...) \
-    do {                                                                       \
-        auto& _body = active_scene.get_body(#body_name);                       \
-        pulse2d::gamepad::util::apply_inverted_arcade_movement(                \
-            (_body), pad.get_state(), (max_speed)__VA_OPT__(, ) __VA_ARGS__);  \
+#define SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL_INVERTED(                       \
+    body_name, max_speed, ...)                                                \
+    do {                                                                      \
+        auto& _body = active_scene.get_body(#body_name);                      \
+        pulse2d::gamepad::util::apply_inverted_arcade_movement(               \
+            (_body), pad.get_state(), (max_speed)__VA_OPT__(, ) __VA_ARGS__); \
     } while (0)
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -244,23 +245,24 @@
 // Applies a thrust force scaled by acceleration each frame - velocity builds up
 // over time.
 ////////////////////////////////////////////////////////////////////////////////
-#define SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT(body_name, acceleration) \
-    do {                                                             \
-        auto& _body = active_scene.get_body(#body_name);             \
-        pulse2d::gamepad::util::apply_dynamic_thrust(                \
-            (_body), pad.get_state(), (acceleration));               \
+#define SEESAW_SETDYNAMIC_DIRECTIONAL_CONTROL(body_name, acceleration) \
+    do {                                                               \
+        auto& _body = active_scene.get_body(#body_name);               \
+        pulse2d::gamepad::util::apply_dynamic_thrust(                  \
+            (_body), pad.get_state(), (acceleration));                 \
     } while (0)
 
 ////////////////////////////////////////////////////////////////////////////////
 // Profile C: Top-Down Friction. Applies linear drag to the body each frame.
 // @scope: PULSE2D_ON_GAMESCENE
-// Pair with SEESAW_DYNAMIC_DIRECTIONAL_MOVEMENT so the body doesn't slide
+// Pair with SEESAW_SETDYNAMIC_DIRECTIONAL_CONTROL so the body doesn't slide
 // forever.
 ////////////////////////////////////////////////////////////////////////////////
-#define SEESAW_SLIDING_FRICTION_DIRECTIONAL_MOVEMENT(body_name, drag_amount) \
-    do {                                                                     \
-        auto& _body = active_scene.get_body(#body_name);                     \
-        pulse2d::gamepad::util::apply_linear_drag((_body), (drag_amount));   \
+#define SEESAW_SET_SLIDING_FRICTION_DIRECTIONAL_CONTROL(                   \
+    body_name, drag_amount)                                                \
+    do {                                                                   \
+        auto& _body = active_scene.get_body(#body_name);                   \
+        pulse2d::gamepad::util::apply_linear_drag((_body), (drag_amount)); \
     } while (0)
 
 /**
