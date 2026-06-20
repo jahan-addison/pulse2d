@@ -145,7 +145,7 @@ PULSE_ON_GAMESCENE(Space_Shooter) {
         my_game.draw("enemy_object", "enemy_sprite");
     }
 
-    my_game.play_vfx();
+    my_game.tick_vfx();
     my_game.render();
 }
 
@@ -158,7 +158,7 @@ PULSE_ON_GAMESTART() {
 }
 
 PULSE_ON_GAMELOOP() {
-    PULSE2D_TICK_GAMESCENE();
+    PULSE_TICK_GAMESCENE();
 }
 ```
 

@@ -60,15 +60,8 @@
             Serial.println();           \
         }                               \
     } while (0)
-#define PULSE2D_POLL_SERIAL_CONNECTION()            \
-    do {                                            \
-        while (!Serial)                             \
-            ;                                       \
-        Serial.println("[DEBUG] setup: serial OK"); \
-    } while (0)
 #else
 #define PULSE2D_DEBUG_SERIAL(...)
-#define PULSE2D_POLL_SERIAL_CONNECTION()
 #endif
 
 namespace pulse2d {

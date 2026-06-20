@@ -190,7 +190,7 @@ PULSE_ON_GAMELOOP() {
 }
 ```
 
-Map to Arduino `setup()` and `loop()`. The game loop body is almost always just `PULSE2D_TICK_GAMESCENE()`.
+Map to Arduino `setup()` and `loop()`. The game loop body is almost always just `PULSE_TICK_GAMESCENE()`.
 
 **Scope:** `global`
 
@@ -204,7 +204,7 @@ PULSE_ON_GAMESTART() {
 }
 
 PULSE_ON_GAMELOOP() {
-    PULSE2D_TICK_GAMESCENE();
+    PULSE_TICK_GAMESCENE();
 }
 ```
 
@@ -313,7 +313,7 @@ PULSE_ON_GAMESCENE(scene_name) {
 }
 ```
 
-Defines the per-frame function for a scene. Registered as the active tick function by `PULSE_SET_SCENE` and called every frame by `PULSE2D_TICK_GAMESCENE`.
+Defines the per-frame function for a scene. Registered as the active tick function by `PULSE_SET_SCENE` and called every frame by `PULSE_TICK_GAMESCENE`.
 
 **Scope:** `global`
 
@@ -330,10 +330,10 @@ PULSE_ON_GAMESCENE(Game_Level) {
 
 ---
 
-#### PULSE2D_TICK_GAMESCENE
+#### PULSE_TICK_GAMESCENE
 
 ```cpp
-PULSE2D_TICK_GAMESCENE();
+PULSE_TICK_GAMESCENE();
 ```
 
 Calls the active scene's tick function, then resolves any pending transition. This is the only call needed in `PULSE_ON_GAMELOOP`.
@@ -342,7 +342,7 @@ Calls the active scene's tick function, then resolves any pending transition. Th
 
 ```cpp
 PULSE_ON_GAMELOOP() {
-    PULSE2D_TICK_GAMESCENE();
+    PULSE_TICK_GAMESCENE();
 }
 ```
 
@@ -579,6 +579,35 @@ Registers a Serial callback for ETL assertion failures. With `-fno-exceptions` (
 ```
 
 Call once in `PULSE_ON_GAMESTART()` after `Serial.begin()`. Compiled away in non-debug builds.
+
+---
+
+#### PULSE_POLL_SERIAL_CONNECTION
+
+```cpp
+PULSE_POLL_SERIAL_CONNECTION();
+```
+
+Blocks until the USB serial connection is established, then prints a confirmation line. Use this in `PULSE_ON_GAMESTART()` when you need serial output to be visible from the very first line - without it, output emitted before the host opens the port is silently dropped.
+
+**Scope:** `PULSE_ON_GAMESTART`
+
+```cpp
+PULSE_ON_GAMESTART() {
+    Serial.begin(115200);
+    PULSE_POLL_SERIAL_CONNECTION();
+    pulse_register_etl_error_handler();
+    my_game.init(0.0f, 0.0f, 10);
+    start_seesaw_gamepad();
+    PULSE_SET_SCENE(my_game, Level_One);
+}
+```
+
+Output on connect:
+
+```
+[DEBUG] setup: serial OK
+```
 
 ---
 
@@ -981,10 +1010,10 @@ my_game.play_vfx("explosion", 160, 120);
 
 ---
 
-#### play_vfx (advance all)
+#### tick_vfx
 
 ```cpp
-my_game.play_vfx();
+my_game.tick_vfx();
 ```
 
 Advances and draws all active VFX animations. Call after drawing game objects, but before `render()`.
@@ -994,7 +1023,7 @@ Advances and draws all active VFX animations. Call after drawing game objects, b
 ```cpp
 my_game.draw("player", "player_sprite");
 my_game.draw("enemy",  "enemy_sprite");
-my_game.play_vfx();   // draw VFX on top
+my_game.tick_vfx();   // draw VFX on top
 my_game.render();
 ```
 
@@ -1385,7 +1414,7 @@ PULSE_ON_GAMESCENE(Space_Shooter) {
         my_game.draw("enemy_object", "enemy_sprite");
     }
 
-    my_game.play_vfx();   // advance VFX
+    my_game.tick_vfx();   // advance VFX
     my_game.render();
 }
 
@@ -1398,7 +1427,7 @@ PULSE_ON_GAMESTART() {
 }
 
 PULSE_ON_GAMELOOP() {
-    PULSE2D_TICK_GAMESCENE();
+    PULSE_TICK_GAMESCENE();
 }
 ```
 

@@ -220,7 +220,7 @@ struct Runtime
      * @return
      */
     PULSE2D_INLINE void register_vfx(const char* anim_name,
-        uint16_t* data_ptr,
+        uint16_t const* data_ptr,
         uint16_t width,
         uint16_t height,
         uint16_t frames,
@@ -270,7 +270,7 @@ struct Runtime
      * @scope: PULSE2D_ON_GAMESCENE
      * @return
      */
-    PULSE2D_INLINE void play_vfx()
+    PULSE2D_INLINE void tick_vfx()
     {
         execute_scene([&](auto& scene) {
             scene.animation_manager.tick_and_draw_animations(
@@ -299,7 +299,7 @@ struct Runtime
      *
      * @scope: PULSE2D_ON_GAMESCENE
      * @param body_name body identifier (looked up by name in current scene)
-     * @param action callable invoked on match - typically a lambda
+     * @param action callable invoked on match
      * @return
      */
     template<typename Func>
@@ -307,10 +307,14 @@ struct Runtime
     {
         execute_scene([&](auto& scene) {
             pulse2d::graphics::Body* target = &scene.get_body(body_name);
-            for (auto& [key, arb] : world->arbiters) {
-                if (key.body1 == target || key.body2 == target) {
+
+            for (auto it = world->arbiters.begin();
+                it != world->arbiters.end();) {
+                if (it->first.body1 == target or it->first.body2 == target) {
                     action();
-                    break;
+                    it = world->arbiters.erase(it);
+                } else {
+                    ++it;
                 }
             }
         });
@@ -332,14 +336,15 @@ struct Runtime
         pulse2d::graphics::Body* target_body,
         Func&& action)
     {
-        for (auto& [key, arb] : world->arbiters) {
-            if (key.body1 == target_body) {
-                action(key.body2);
-                break;
-            }
-            if (key.body2 == target_body) {
-                action(key.body1);
-                break;
+        for (auto it = world->arbiters.begin(); it != world->arbiters.end();) {
+            if (it->first.body1 == target_body) {
+                action(it->first.body2);
+                it = world->arbiters.erase(it);
+            } else if (it->first.body2 == target_body) {
+                action(it->first.body1);
+                it = world->arbiters.erase(it);
+            } else {
+                ++it;
             }
         }
     }
@@ -360,12 +365,17 @@ struct Runtime
         pulse2d::graphics::Body* target_b,
         Func&& action)
     {
-        for (auto& [key, arb] : world->arbiters) {
-            bool match_ab = (key.body1 == target_a and key.body2 == target_b);
-            bool match_ba = (key.body1 == target_b and key.body2 == target_a);
+        for (auto it = world->arbiters.begin(); it != world->arbiters.end();) {
+            bool match_ab =
+                (it->first.body1 == target_a and it->first.body2 == target_b);
+            bool match_ba =
+                (it->first.body1 == target_b and it->first.body2 == target_a);
+
             if (match_ab or match_ba) {
                 action();
-                break;
+                it = world->arbiters.erase(it);
+            } else {
+                ++it;
             }
         }
     }
@@ -525,7 +535,7 @@ struct Runtime
      * @return
      */
     PULSE2D_INLINE void set_sprite_flash(const char* name,
-        uint16_t* data_ptr,
+        uint16_t const* data_ptr,
         uint16_t w,
         uint16_t h)
     {

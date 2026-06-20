@@ -216,7 +216,7 @@ namespace pulse2d_math = pulse2d::graphics::math;
  * @scope: PULSE2D_ON_GAMELOOP
  * @return
  */
-#define PULSE2D_TICK_GAMESCENE()             \
+#define PULSE_TICK_GAMESCENE()               \
     do {                                     \
         if (active_scene_fn != nullptr)      \
             active_scene_fn();               \
@@ -407,8 +407,15 @@ pulse2d::Renderer::Screen get_body_coordinates(pulse2d_body const* body_ptr)
 // Debug //
 ///////////
 
+#define PULSE_POLL_SERIAL_CONNECTION()              \
+    do {                                            \
+        while (!Serial)                             \
+            ;                                       \
+        Serial.println("[DEBUG] setup: serial OK"); \
+    } while (0)
+
 // Named free function required by etl::error_handler::set_callback<F>().
-#if defined(DEBUG) && defined(PULSE2D_TEENSY)
+#if defined(DEBUG)
 namespace pulse2d::debug {
 inline void etl_serial_error_handler(etl::exception const& e)
 {
@@ -421,9 +428,7 @@ inline void etl_serial_error_handler(etl::exception const& e)
     }
 }
 } // namespace pulse2d::debug
-#endif
 
-#if defined(DEBUG)
 /**
  * @brief
  * Print stack usage to serial every 300 frames (~5 seconds at 60 fps).
