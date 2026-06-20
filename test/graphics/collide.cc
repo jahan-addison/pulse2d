@@ -11,6 +11,8 @@
 #include <pulse2d/graphics/body.h>
 #include <pulse2d/graphics/math.h>
 
+using namespace pulse2d::graphics::math;
+
 TEST_CASE("collide.cc: collide returns 0 for clearly separated boxes")
 {
     pulse2d::graphics::Body a, b;
@@ -194,7 +196,7 @@ TEST_CASE("collide.cc: collide works when one box is rotated")
     b.set_motion({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
     b.position = { 0.5f, 0.0f };
-    b.rotation = pulse2d::graphics::k_pi / 4.0f;
+    b.rotation = k_pi / 4.0f;
 
     pulse2d::graphics::Arbiter::Contacts contacts;
     int n = pulse2d::graphics::collide(contacts, &a, &b);

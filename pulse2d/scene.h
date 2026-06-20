@@ -46,8 +46,8 @@ struct Animation_Def
 struct Animation_Instance
 {
     Animation_Def const* def;
-    float x;
-    float y;
+    int16_t x;
+    int16_t y;
     float accumulator = 0.0f;
     uint16_t current_frame = 0;
 };
@@ -130,9 +130,7 @@ struct Pulse2d_Scene_Animation
                     frame_ptr, it->def->frame_w, it->def->frame_h
                 };
 
-                renderer.add_sprite(&temp_spr,
-                    static_cast<int16_t>(it->x),
-                    static_cast<int16_t>(it->y));
+                renderer.add_sprite(&temp_spr, it->x, it->y);
 
                 ++it;
             }

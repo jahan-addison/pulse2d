@@ -120,7 +120,7 @@ struct World_Descriptor
 class World
 {
   public:
-    World(Vec2 gravity_, int iterations_)
+    World(math::Vec2 gravity_, int iterations_)
         : gravity(gravity_)
         , iterations(iterations_)
     {
@@ -173,7 +173,7 @@ class World
      * Standard Earth gravity pointing down: { 0.0f, -10.0f }.
      * Set to { 0.0f, 0.0f } for top-down or zero-gravity scenes.
      */
-    Vec2 gravity;
+    math::Vec2 gravity;
 
     /**
      * @brief

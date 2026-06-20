@@ -125,7 +125,7 @@ namespace pulse2d::graphics {
  * rotate, or respond to forces - use this for walls, floors, and
  * any fixed platform.
  */
-void Body::set_motion(const Vec2& w, float m)
+void Body::set_motion(const math::Vec2& w, float m)
 {
     position.set(0.0f, 0.0f);
     rotation = 0.0f;

@@ -139,7 +139,8 @@ TEST_CASE_FIXTURE(World_Fixture,
 TEST_CASE_FIXTURE(World_Fixture,
     "world.cc: World::step does not move static body")
 {
-    pulse2d::graphics::Vec2 pos_before = floor.position;
+    using namespace pulse2d::graphics::math;
+    Vec2 pos_before = floor.position;
     world.step(1.0f / 60.0f);
     CHECK(floor.position.x == pos_before.x);
     CHECK(floor.position.y == pos_before.y);

@@ -38,7 +38,7 @@
  *
  ****************************************************************************/
 
-namespace pulse2d::graphics {
+namespace pulse2d::graphics::math {
 
 constexpr float k_pi = 3.14159265358979323846264f;
 

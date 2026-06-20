@@ -68,7 +68,7 @@ enum EdgeNumbers
 struct ClipVertex
 {
     ClipVertex() { fp.value = 0; }
-    Vec2 v;
+    math::Vec2 v;
     Feature_Pair fp;
 };
 
@@ -83,8 +83,8 @@ struct ClipVertex
  */
 void flip(Feature_Pair& fp)
 {
-    swap_val(fp.e.in_edge1, fp.e.in_edge2);
-    swap_val(fp.e.out_edge1, fp.e.out_edge2);
+    math::swap_val(fp.e.in_edge1, fp.e.in_edge2);
+    math::swap_val(fp.e.out_edge1, fp.e.out_edge2);
 }
 
 /**
@@ -104,7 +104,7 @@ void flip(Feature_Pair& fp)
  */
 int clip_segment_to_line(ClipVertex v_out[2],
     ClipVertex v_in[2],
-    const Vec2& normal,
+    math::Vec2 const& normal,
     float offset,
     char clip_edge)
 {
@@ -154,19 +154,19 @@ int clip_segment_to_line(ClipVertex v_out[2],
  * valid contact points after clipping.
  */
 static void compute_incident_edge(ClipVertex c[2],
-    const Vec2& h,
-    const Vec2& pos,
-    const Mat22& rot,
-    const Vec2& normal)
+    math::Vec2 const& h,
+    math::Vec2 const& pos,
+    math::Mat22 const& rot,
+    math::Vec2 const& normal)
 {
     // The normal is from the reference box. Convert it
     // to the incident boxe's frame and flip sign.
-    Mat22 rot_t = rot.transpose();
-    Vec2 n = -(rot_t * normal);
-    Vec2 n_abs = abs_val(n);
+    math::Mat22 rot_t = rot.transpose();
+    math::Vec2 n = -(rot_t * normal);
+    math::Vec2 n_abs = abs_val(n);
 
     if (n_abs.x > n_abs.y) {
-        if (sign(n.x) > 0.0f) {
+        if (math::sign(n.x) > 0.0f) {
             c[0].v.set(h.x, -h.y);
             c[0].fp.e.in_edge2 = EDGE3;
             c[0].fp.e.out_edge2 = EDGE4;
@@ -184,7 +184,7 @@ static void compute_incident_edge(ClipVertex c[2],
             c[1].fp.e.out_edge2 = EDGE3;
         }
     } else {
-        if (sign(n.y) > 0.0f) {
+        if (math::sign(n.y) > 0.0f) {
             c[0].v.set(h.x, h.y);
             c[0].fp.e.in_edge2 = EDGE4;
             c[0].fp.e.out_edge2 = EDGE1;
@@ -255,6 +255,7 @@ static void compute_incident_edge(ClipVertex c[2],
 // The normal points from A to B
 int collide(Arbiter::Contacts& contacts, Body const* bodyA, Body const* bodyB)
 {
+    using namespace graphics::math;
     // Setup
     Vec2 h_a = 0.5f * bodyA->width;
     Vec2 h_b = 0.5f * bodyB->width;

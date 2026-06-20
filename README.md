@@ -114,7 +114,7 @@ PULSE2D_ON_GAMESCENE(Space_Shooter) {
 
     SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL(ship_object, 3.5f);
 
-    auto& ship = PULSE2D_GET_BODY(ship_object);
+    pulse2d_body& ship = PULSE2D_GET_BODY(ship_object);
 
     // Fire bullets
     if (cooldown > 0)
@@ -128,8 +128,8 @@ PULSE2D_ON_GAMESCENE(Space_Shooter) {
         cooldown = 10;
     }
 
-    PULSE2D_RENDER_POOL(bullet_pool, [&](auto* bullet) {
-        auto& enemy = PULSE2D_GET_BODY(enemy_object);
+    PULSE2D_RENDER_POOL(bullet_pool, [&](pulse2d_body* bullet) {
+        pulse2d_body& enemy = PULSE2D_GET_BODY(enemy_object);
 
         if (bullet->position.x > 6.0f) {
             PULSE2D_DESPAWN(bullet_pool, bullet);
@@ -140,8 +140,8 @@ PULSE2D_ON_GAMESCENE(Space_Shooter) {
         PULSE2D_ON_COLLISION(bullet, &enemy, [&] {
             if (!enemy_hit) {
                 enemy_hit = true;
-                auto [sx, sy] = PULSE2D_BODY_COORDINATES((&enemy));
-                PULSE2D_PLAY_VFX(explosion, sx, sy);
+                auto coords = PULSE2D_BODY_COORDINATES(&enemy);
+                PULSE2D_PLAY_VFX(explosion, coords.x, coords.y);
                 score += 100;
             }
             PULSE2D_DESPAWN(bullet_pool, bullet);

@@ -14,6 +14,8 @@
 
 #include <math.h>
 
+using namespace pulse2d::graphics::math;
+
 // Two dynamic boxes placed symmetrically around a pin at the origin.
 // With no gravity, only the joint acts.
 struct Joint_Fixture
@@ -83,7 +85,7 @@ TEST_CASE_FIXTURE(Joint_Fixture,
     pulse2d::graphics::Body c;
     c.set_motion({ 0.5f, 0.5f }, 1.0f);
     c.position = { -1.0f, 0.0f };
-    c.rotation = pulse2d::graphics::k_pi / 2.0f;
+    c.rotation = k_pi / 2.0f;
 
     pulse2d::graphics::Body d;
     d.set_motion({ 0.5f, 0.5f }, 1.0f);
@@ -192,10 +194,10 @@ TEST_CASE("joint.cc: Joint constraint keeps anchor points close after "
     // compute the world-space pin point on each body
     // rotation should be small after a pure x-velocity push so local frame
     // is approximately the world frame
-    pulse2d::graphics::Mat22 rot_a(a.rotation);
-    pulse2d::graphics::Mat22 rot_b(b.rotation);
-    pulse2d::graphics::Vec2 p1 = a.position + rot_a * pin.local_anchor1;
-    pulse2d::graphics::Vec2 p2 = b.position + rot_b * pin.local_anchor2;
+    Mat22 rot_a(a.rotation);
+    Mat22 rot_b(b.rotation);
+    Vec2 p1 = a.position + rot_a * pin.local_anchor1;
+    Vec2 p2 = b.position + rot_b * pin.local_anchor2;
 
     float error = (p2 - p1).length();
     CHECK(error < 1.0f); // constraint pulled them back - error is bounded
@@ -232,10 +234,10 @@ TEST_CASE("joint.cc: Joint with stiffer bias_factor corrects drift faster")
         for (int i = 0; i < 5; ++i)
             world.step(1.0f / 60.0f);
 
-        pulse2d::graphics::Mat22 rot_a(a.rotation);
-        pulse2d::graphics::Mat22 rot_b(b.rotation);
-        pulse2d::graphics::Vec2 p1 = a.position + rot_a * pin.local_anchor1;
-        pulse2d::graphics::Vec2 p2 = b.position + rot_b * pin.local_anchor2;
+        Mat22 rot_a(a.rotation);
+        Mat22 rot_b(b.rotation);
+        Vec2 p1 = a.position + rot_a * pin.local_anchor1;
+        Vec2 p2 = b.position + rot_b * pin.local_anchor2;
         return (p2 - p1).length();
     };
 

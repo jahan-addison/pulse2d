@@ -12,6 +12,8 @@
 
 #include <float.h>
 
+using namespace pulse2d::graphics::math;
+
 TEST_CASE("body.cc: Body default constructor is static")
 {
     pulse2d::graphics::Body b;

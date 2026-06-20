@@ -6,6 +6,7 @@ The pulse2d DSL is a set of macros in [`pulse2d/dsl.h`](pulse2d/dsl.h) inspired 
 
 ## Table of Contents
 
+- [Type Aliases, Math](#type-aliases-math)
 - [Game State, Setup](#game-state--setup)
   - [PULSE2D_START_PULSE](#pulse2d_start_pulse)
   - [PULSE2D_INIT](#pulse2d_init)
@@ -74,6 +75,75 @@ The pulse2d DSL is a set of macros in [`pulse2d/dsl.h`](pulse2d/dsl.h) inspired 
 - [Debug, Utilities](#debug--utilities)
   - [PULSE2D_PRINT_STACKSIZE](#pulse2d_print_stacksize)
   - [PULSE2D_REGISTER_ETL_ERROR_HANDLER](#pulse2d_register_etl_error_handler)
+
+---
+
+## Type Aliases, Math
+
+The DSL exposes short type aliases and cast macros so game code doesn't need to write out full namespaces.
+
+### Engine type aliases
+
+- `pulse2d_body` -> `pulse2d::graphics::Body`
+- `pulse2d_world` -> `pulse2d::graphics::World`
+- `pulse2d_arbiter` -> `pulse2d::graphics::Arbiter`
+- `pulse2d_joint` -> `pulse2d::graphics::Joint`
+
+Use these in pool lambda parameters and local variable declarations:
+
+```cpp
+pulse2d_body& ship = PULSE2D_GET_BODY(ship_object);
+
+PULSE2D_RENDER_POOL(laser_ammo, [&](pulse2d_body* laser) {
+    // ...
+});
+```
+
+### Primitive aliases
+
+- `p_bool` -> `bool`
+- `p_float` -> `float`
+- `p_uint32`, `p_int32` -> `uint32_t`, `int32_t`
+- `p_uint16`, `p_int16` -> `uint16_t`, `int16_t`
+- `p_uint8`, `p_int8` -> `uint8_t`, `int8_t`
+
+### Cast macros
+
+```cpp
+to_int16(x)   // static_cast<int16_t>(x)
+to_uint16(x)  // static_cast<uint16_t>(x)
+to_int32(x)   // static_cast<int32_t>(x)
+to_uint32(x)  // static_cast<uint32_t>(x)
+to_int8(x)    // static_cast<int8_t>(x)
+to_uint8(x)   // static_cast<uint8_t>(x)
+```
+
+Use `to_int16()` when doing arithmetic on screen coordinates before passing them to `PULSE2D_PLAY_VFX`, since integer promotion widens the result:
+
+```cpp
+auto coords = PULSE2D_BODY_COORDINATES(laser_object);
+PULSE2D_PLAY_VFX(explosion, to_int16(coords.x + 8), to_int16(coords.y - 8));
+```
+
+### Math
+
+`pulse2d_math` is an alias for `pulse2d::graphics::math`, which provides `Vec2`, `Mat22`, and random number helpers.
+
+`pulse2d_math::random()` returns a float in `[-1, 1]`. `pulse2d_math::random(lo, hi)` returns a float in `[lo, hi]`. Both use the hardware RNG on Teensy and `arc4random` on host:
+
+```cpp
+// Spawn a bullet with a small random vertical spread
+PULSE2D_SPAWN(laser_ammo,
+    250,
+    ship.position.x + 1.0f,
+    ship.position.y + pulse2d_math::random(-0.3f, 0.3f),
+    30.0f,
+    0.0f);
+
+// Random directional kick on spawn
+float angle = pulse2d_math::random(-0.5f, 0.5f);
+pulse2d_math::Vec2 dir = { 1.0f, angle };
+```
 
 ---
 
@@ -585,7 +655,7 @@ Same as `PULSE2D_DRAW`, but takes a body pointer instead of a name. Useful when 
 **Example:**
 ```cpp
 PULSE2D_RENDER_POOL(gun_ammo,
-    [](auto* bullet) {
+    [](pulse2d_body* bullet) {
         PULSE2D_DRAW_BODY(bullet, bullet_sprite);
     }
 );
@@ -596,19 +666,23 @@ PULSE2D_RENDER_POOL(gun_ammo,
 ### PULSE2D_BODY_COORDINATES
 
 ```cpp
-PULSE2D_BODY_COORDINATES(player_object);
+auto coords = PULSE2D_BODY_COORDINATES(body_ptr);
+// coords.x and coords.y are int16_t pixel coordinates
 ```
 
-Get the projected `x, y` pixel coordinates of a physics body on the screen.
+Projects a physics body's world-space position to screen pixel coordinates. Returns a `Renderer::Screen` struct with `int16_t x` and `int16_t y`. Use as an expression - assign to `auto` and access the fields directly. When passing coordinate arithmetic to `PULSE2D_PLAY_VFX`, wrap with `to_int16()` since integer promotion widens the result.
 
 **Scope:** `PULSE2D_ON_GAMESCENE`
 
 **Example:**
 ```cpp
-// Play at a body's position
-auto& enemy = PULSE2D_GET_BODY(enemy_object);
-auto [sx, sy] = PULSE2D_BODY_COORDINATES(enemy);
-PULSE2D_PLAY_VFX(explosion, sx, sy);
+// Basic: play VFX at a body's screen position
+auto coords = PULSE2D_BODY_COORDINATES(&PULSE2D_GET_BODY(enemy_object));
+PULSE2D_PLAY_VFX(explosion, coords.x, coords.y);
+
+// With offset: shift the VFX relative to the body
+auto coords = PULSE2D_BODY_COORDINATES(laser_object);
+PULSE2D_PLAY_VFX(laser_hit, to_int16(coords.x + 12), to_int16(coords.y - 8));
 ```
 
 ---
@@ -874,7 +948,7 @@ Registers a VFX animation definition in the current scene's animation manager. T
 
 **Example:**
 ```cpp
-#include "../include/explosion-anim.h"  // explosion_frames[8][64*64]
+#include "../include/explosion-anim.h"
 
 PULSE2D_ON_GAMESCENE_START(Game_Level) {
     PULSE2D_DEFINE_VFX(explosion, explosion_frames, 64, 64, 8, 12);
@@ -889,18 +963,19 @@ PULSE2D_ON_GAMESCENE_START(Game_Level) {
 PULSE2D_PLAY_VFX(anim_name, x, y);
 ```
 
-Spawns a new VFX animation instance at the given screen coordinates. Plays once and is automatically removed when complete. If the animation queue is full, the request is silently dropped.
+Spawns a new VFX animation instance at the given screen pixel coordinates. `x` and `y` are `int16_t`. Plays once and is automatically removed when complete. If the animation queue is full, the request is silently dropped.
 
 **Scope:** `PULSE2D_ON_GAMESCENE`
 
 **Example:**
 ```cpp
-// Play at a body's position on any collision
-if (PULSE2D_OBJECTS_COLLIDED()) {
-    auto& enemy = PULSE2D_GET_BODY(enemy_object);
-    auto [sx, sy] = PULSE2D_BODY_COORDINATES((&enemy));
-    PULSE2D_PLAY_VFX(explosion, sx, sy);
-}
+// Play at a body's position
+auto coords = PULSE2D_BODY_COORDINATES(&PULSE2D_GET_BODY(enemy_object));
+PULSE2D_PLAY_VFX(explosion, coords.x, coords.y);
+
+// With arithmetic offset - use to_int16() since int promotion widens the result
+auto coords = PULSE2D_BODY_COORDINATES(laser_object);
+PULSE2D_PLAY_VFX(laser_hit, to_int16(coords.x + 12), to_int16(coords.y - 8));
 
 // Or at a fixed screen position
 PULSE2D_PLAY_VFX(explosion, 160, 120);  // center of screen
@@ -959,16 +1034,16 @@ PULSE2D_ON_GAMESCENE(Shooter) {
     PULSE2D_TICK_WORLD(Shooter);
     PULSE2D_POLL_SEESAW_GAMEPAD();
 
-    auto& player_body = PULSE2D_GET_BODY(player);
-    auto& enemy_body  = PULSE2D_GET_BODY(enemy);
+    pulse2d_body& player_body = PULSE2D_GET_BODY(player);
+    pulse2d_body& enemy_body  = PULSE2D_GET_BODY(enemy);
 
     SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL(player, 4.0f);
 
     PULSE2D_ON_COLLISION(&player_body, &enemy_body, [&] {
         if (!enemy_destroyed) {
             enemy_destroyed = true;
-            auto [sx, sy] = PULSE2D_BODY_COORDINATES((&enemy_body));
-            PULSE2D_PLAY_VFX(explosion, sx, sy);
+            auto coords = PULSE2D_BODY_COORDINATES(&enemy_body);
+            PULSE2D_PLAY_VFX(explosion, coords.x, coords.y);
         }
     });
 
@@ -1040,7 +1115,7 @@ PULSE2D_ON_GAMESCENE(Shooter) {
     PULSE2D_POLL_SEESAW_GAMEPAD();
 
     if (SEESAW_BUTTON_INPUT(SEESAW_A)) {
-        auto& ship = PULSE2D_GET_BODY(ship_object);
+        pulse2d_body& ship = PULSE2D_GET_BODY(ship_object);
 
         // Fire bullet from ship position
         PULSE2D_SPAWN(bullet_pool,
@@ -1050,8 +1125,8 @@ PULSE2D_ON_GAMESCENE(Shooter) {
     }
 
     // Update and render bullets each frame
-    PULSE2D_RENDER_POOL(bullet_pool, [&](auto* bullet) {
-        if (bullet.position.x > 10.0f) {
+    PULSE2D_RENDER_POOL(bullet_pool, [&](pulse2d_body* bullet) {
+        if (bullet->position.x > 10.0f) {
             PULSE2D_DESPAWN(bullet_pool, bullet);
         } else {
             PULSE2D_DRAW_BODY(bullet, bullet_sprite);
@@ -1082,7 +1157,7 @@ Safely releases a pooled object and returns its memory to the named pool. The ob
 
 ```cpp
 PULSE2D_RENDER_POOL(pool_name,
-    [](auto* body) {
+    [](pulse2d_body* body) {
         // Update, draw, or despawn logic
     }
 );
@@ -1094,14 +1169,14 @@ Iterates over all active objects in a pool and executes an action for each. The 
 
 **Parameters:**
 - `pool_name` - The pool initialized with `PULSE2D_INIT_POOL`
-- `action` - Closure that receives a `Body*` for each active object
+- `action` - Closure that receives a `pulse2d_body*` for each active object
 
 **Example:**
 ```cpp
 // Update and render all active bullets
-PULSE2D_RENDER_POOL(bullet_pool, [&](auto* bullet) {
+PULSE2D_RENDER_POOL(bullet_pool, [&](pulse2d_body* bullet) {
     // Check bounds and despawn off-screen bullets
-    if (bullet.position.x > 10.0f || bullet.position.x < -10.0f) {
+    if (bullet->position.x > 10.0f || bullet->position.x < -10.0f) {
         PULSE2D_DESPAWN(bullet_pool, bullet);
         return;
     }
@@ -1138,7 +1213,7 @@ PULSE2D_ON_GAMESCENE(Shooter) {
     PULSE2D_TICK_WORLD(Shooter);
     PULSE2D_POLL_SEESAW_GAMEPAD();
 
-    auto& ship = PULSE2D_GET_BODY(ship);
+    pulse2d_body& ship = PULSE2D_GET_BODY(ship);
     SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL(ship, 3.0f);
 
     // Fire bullets
@@ -1153,8 +1228,8 @@ PULSE2D_ON_GAMESCENE(Shooter) {
     }
 
     // Update and draw all active bullets
-    PULSE2D_RENDER_POOL(bullet_pool, [&](auto* bullet) {
-        if (bullet.position.x > 8.0f) {
+    PULSE2D_RENDER_POOL(bullet_pool, [&](pulse2d_body* bullet) {
+        if (bullet->position.x > 8.0f) {
             PULSE2D_DESPAWN(bullet_pool, bullet);
         } else {
             PULSE2D_DRAW_BODY(bullet, bullet_sprite);
@@ -1176,19 +1251,19 @@ PULSE2D_ON_GAMESCENE(Shooter) {
 PULSE2D_ON_COLLISION(body_ptr_a, body_ptr_b, action);
 ```
 
-Fires `action` when a single arbiter holds exactly both `body_ptr_a` and `body_ptr_b`. Use this inside `PULSE2D_RENDER_POOL` when you have a pointer to a pooled object and want to detect its collision with a specific named body. `action` is a callable — typically a lambda.
+Fires `action` when a single arbiter holds exactly both `body_ptr_a` and `body_ptr_b`. Use this inside `PULSE2D_RENDER_POOL` when you have a pointer to a pooled object and want to detect its collision with a specific named body. `action` is a callable - typically a lambda.
 
 **Scope:** `PULSE2D_ON_GAMESCENE`
 
 **Parameters:**
-- `body_ptr_a` — first body pointer
-- `body_ptr_b` — second body pointer
-- `action` — callable invoked when both pointers appear in the same arbiter
+- `body_ptr_a` - first body pointer
+- `body_ptr_b` - second body pointer
+- `action` - callable invoked when both pointers appear in the same arbiter
 
 **Example:**
 ```cpp
-PULSE2D_RENDER_POOL(laser_ammo, [&](auto* laser_object) {
-    auto& meteor = PULSE2D_GET_BODY(meteor_object);
+PULSE2D_RENDER_POOL(laser_ammo, [&](pulse2d_body* laser_object) {
+    pulse2d_body& meteor = PULSE2D_GET_BODY(meteor_object);
 
     if (laser_object->position.x > 6.67f) {
         PULSE2D_DESPAWN(laser_ammo, laser_object);
@@ -1211,7 +1286,7 @@ PULSE2D_RENDER_POOL(laser_ammo, [&](auto* laser_object) {
 PULSE2D_ON_COLLISION_WITH(body_name, action);
 ```
 
-Iterates all active arbiters and calls `action` for each one where either body in the pair matches `body_name`. The matching arbiter is erased after the action fires, so each collision is handled once per frame. `action` is a callable — typically a lambda.
+Iterates all active arbiters and calls `action` for each one where either body in the pair matches `body_name`. The matching arbiter is erased after the action fires, so each collision is handled once per frame. `action` is a callable - typically a lambda.
 
 **Scope:** `PULSE2D_ON_GAMESCENE`
 
@@ -1244,7 +1319,7 @@ Like `PULSE2D_ON_COLLISION_WITH`, but matches by body pointer instead of name. U
 
 **Example:**
 ```cpp
-PULSE2D_RENDER_POOL(bullet_pool, [&](auto* bullet) {
+PULSE2D_RENDER_POOL(bullet_pool, [&](pulse2d_body* bullet) {
     PULSE2D_ON_COLLISION_WITH_BODY(bullet, [&]() {
         PULSE2D_DESPAWN(bullet_pool, bullet);
         score += 10;
@@ -1446,7 +1521,7 @@ Raw analog stick axes, normalized from −1.0 to +1.0.
 
 **Example:**
 ```cpp
-auto& ship = PULSE2D_GET_BODY(ship);
+pulse2d_body& ship = PULSE2D_GET_BODY(ship);
 ship.set_velocity({
     SEESAW_DIRECTIONAL_X_INPUT() * 5.0f,
     SEESAW_DIRECTIONAL_Y_INPUT() * 5.0f
@@ -1666,7 +1741,7 @@ PULSE2D_ON_GAMESCENE(Space_Shooter) {
 
     SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL(ship_object, 3.5f);
 
-    auto& ship = PULSE2D_GET_BODY(ship_object);
+    pulse2d_body& ship = PULSE2D_GET_BODY(ship_object);
 
     // Fire bullets
     if (cooldown > 0)
@@ -1681,8 +1756,8 @@ PULSE2D_ON_GAMESCENE(Space_Shooter) {
     }
 
     // Update live bullets
-    PULSE2D_RENDER_POOL(bullet_pool, [&](auto* bullet) {
-        auto& enemy = PULSE2D_GET_BODY(enemy_object);
+    PULSE2D_RENDER_POOL(bullet_pool, [&](pulse2d_body* bullet) {
+        pulse2d_body& enemy = PULSE2D_GET_BODY(enemy_object);
 
         if (bullet->position.x > 6.0f) {
             PULSE2D_DESPAWN(bullet_pool, bullet);
@@ -1693,8 +1768,8 @@ PULSE2D_ON_GAMESCENE(Space_Shooter) {
         PULSE2D_ON_COLLISION(bullet, &enemy, [&] {
             if (!enemy_hit) {
                 enemy_hit = true;
-                auto [sx, sy] = PULSE2D_BODY_COORDINATES((&enemy));
-                PULSE2D_PLAY_VFX(explosion, sx, sy);
+                auto coords = PULSE2D_BODY_COORDINATES(&enemy);
+                PULSE2D_PLAY_VFX(explosion, coords.x, coords.y);
                 score += 100;
             }
             PULSE2D_DESPAWN(bullet_pool, bullet);

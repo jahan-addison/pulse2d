@@ -14,6 +14,8 @@
 
 #include <math.h>
 
+using namespace pulse2d::graphics::math;
+
 // Two dynamic boxes fully overlapping - guarantees contacts.
 struct Arbiter_Fixture
 {

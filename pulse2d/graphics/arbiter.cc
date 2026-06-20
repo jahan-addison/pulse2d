@@ -191,6 +191,7 @@ void Arbiter::update(const Contacts& new_contacts, int num_new_contacts)
  */
 void Arbiter::pre_step(float inv_dt)
 {
+    using namespace graphics::math;
     const float k_allowed_penetration = 0.01f;
     float k_bias_factor = World::position_correction ? 0.2f : 0.0f;
 
@@ -277,6 +278,7 @@ void Arbiter::pre_step(float inv_dt)
  */
 void Arbiter::apply_impulse()
 {
+    using namespace graphics::math;
     Body* b1 = body1;
     Body* b2 = body2;
 

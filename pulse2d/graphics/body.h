@@ -94,13 +94,13 @@ namespace detail {
  */
 struct Body_Descriptor
 {
-    Vec2 position = { 0.0f, 0.0f };
+    math::Vec2 position = { 0.0f, 0.0f };
     float rotation = 0.0f;
-    Vec2 velocity = { 0.0f, 0.0f };
+    math::Vec2 velocity = { 0.0f, 0.0f };
     float angular_velocity = 0.0f;
-    Vec2 force = { 0.0f, 0.0f };
+    math::Vec2 force = { 0.0f, 0.0f };
     float torque = 0.0f;
-    Vec2 width = { 1.0f, 1.0f };
+    math::Vec2 width = { 1.0f, 1.0f };
     float friction = 0.2f;
     float mass = FLT_MAX;
     float inv_mass = 0.0f;
@@ -175,7 +175,7 @@ class Body
      *
      * clang-format on
      */
-    void set_motion(Vec2 const& w, float m);
+    void set_motion(math::Vec2 const& w, float m);
 
     Body& set_motion();
 
@@ -212,13 +212,13 @@ class Body
         detail::assign(&is_sensor, &desc.is_sensor);
     }
 
-    BODY_FIELD_BUILDER(position, Vec2)
+    BODY_FIELD_BUILDER(position, math::Vec2)
     BODY_FIELD_BUILDER(rotation, float)
-    BODY_FIELD_BUILDER(velocity, Vec2)
+    BODY_FIELD_BUILDER(velocity, math::Vec2)
     BODY_FIELD_BUILDER(angular_velocity, float)
-    BODY_FIELD_BUILDER(force, Vec2)
+    BODY_FIELD_BUILDER(force, math::Vec2)
     BODY_FIELD_BUILDER(torque, float)
-    BODY_FIELD_BUILDER(width, Vec2)
+    BODY_FIELD_BUILDER(width, math::Vec2)
     BODY_FIELD_BUILDER(friction, float)
     BODY_FIELD_BUILDER(mass, float)
     BODY_FIELD_BUILDER(inv_mass, float)
@@ -226,7 +226,7 @@ class Body
     BODY_FIELD_BUILDER(inv_i, float)
     BODY_FIELD_BUILDER(is_sensor, bool)
 
-    inline void add_force(Vec2 const& f) { force += f; }
+    inline void add_force(math::Vec2 const& f) { force += f; }
 
     /**
      * @brief
@@ -242,7 +242,7 @@ class Body
      *
      *   body.position = { 0.0f, 5.0f }; // place it 5 units above origin
      */
-    Vec2 position = { 0.0f, 0.0f };
+    math::Vec2 position = { 0.0f, 0.0f };
 
     /**
      * @brief
@@ -286,7 +286,7 @@ class Body
      * the physics integrator handles the acceleration naturally. Writing
      * velocity directly is best for one-shot effects like jumps.
      */
-    Vec2 velocity = { 0.0f, 0.0f };
+    math::Vec2 velocity = { 0.0f, 0.0f };
 
     /**
      * @brief
@@ -316,7 +316,7 @@ class Body
      *   velocity += dt * (gravity + inv_mass * force)
      *   force     = { 0, 0 }   // cleared by step()
      */
-    Vec2 force = { 0.0f, 0.0f };
+    math::Vec2 force = { 0.0f, 0.0f };
 
     /**
      * @brief Accumulated rotational force to apply this step, in N·m.
@@ -345,7 +345,7 @@ class Body
      *
      *   body.set_motion({ 2.0f, 0.5f }, 3.0f); // 2×0.5 box, 3 kg
      */
-    Vec2 width = { 1.0f, 1.0f };
+    math::Vec2 width = { 1.0f, 1.0f };
 
     /**
      * @brief

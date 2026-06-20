@@ -25,11 +25,48 @@
 // Teensy Development DSL  //
 /////////////////////////////
 
+#if defined(PULSE2D_TEENSY)
+
+//////////////////
+// Type aliases //
+//////////////////
+
+// Short names for engine types used throughout game code.
+using pulse2d_body = pulse2d::graphics::Body;
+using pulse2d_world = pulse2d::graphics::World;
+using pulse2d_arbiter = pulse2d::graphics::Arbiter;
+using pulse2d_joint = pulse2d::graphics::Joint;
+
+// Portable primitive aliases - useful for pool lambda parameters and state.
+using p_bool = bool;
+using p_float = float;
+
+using p_uint32 = uint32_t;
+using p_uint16 = uint16_t;
+using p_uint8 = uint8_t;
+using p_int32 = int32_t;
+using p_int16 = int16_t;
+using p_int8 = int8_t;
+
+//////////////////
+// Math helpers //
+//////////////////
+
+// Explicit narrowing casts: use these when passing arithmetic results to APIs
+// that take a specific integer width (e.g. to_int16(coords.x + offset)).
+#define to_uint32(x) static_cast<uint32_t>(x)
+#define to_uint16(x) static_cast<uint16_t>(x)
+#define to_uint8(x) static_cast<uint8_t>(x)
+#define to_int32(x) static_cast<int32_t>(x)
+#define to_int16(x) static_cast<int16_t>(x)
+#define to_int8(x) static_cast<int8_t>(x)
+
+// Alias for the physics math namespace (Vec2, Mat22, etc.).
+namespace pulse2d_math = pulse2d::graphics::math;
+
 ////////////////
 // Game State //
 ////////////////
-
-#if defined(PULSE2D_TEENSY)
 
 /**
  * @brief
@@ -109,8 +146,7 @@
             "Pulse2d World not defined, did you call "                        \
             "PULSE2D_START_PULSE()?");                                        \
         engine.emplace();                                                     \
-        world.emplace(                                                        \
-            pulse2d::graphics::Vec2{ gravity_1, gravity_2 }, solver);         \
+        world.emplace(pulse2d_math::Vec2{ gravity_1, gravity_2 }, solver);    \
         engine->init();                                                       \
     } while (0)
 
@@ -533,8 +569,8 @@
                     if (!anim_mgr.active_animations.full()) {                \
                         anim_mgr.active_animations.push_back(                \
                             { &anim_mgr.anim_defs[#anim_name],               \
-                                (float)(pos_x),                              \
-                                (float)(pos_y),                              \
+                                (int16_t)pos_x,                              \
+                                (int16_t)pos_y,                              \
                                 0.0f,                                        \
                                 0 });                                        \
                     }                                                        \
@@ -578,7 +614,7 @@
  *
  * @scope: PULSE2D_ON_GAMESCENE
  * @param with body identifier (looked up by name in active_scene)
- * @param action callable invoked on match — typically a lambda
+ * @param action callable invoked on match - typically a lambda
  * @return
  */
 #define PULSE2D_ON_COLLISION_WITH(with, action)                   \
@@ -633,7 +669,7 @@
  * Fire action when a single arbiter holds exactly the two given body pointers.
  * Checks that one arbiter entry contains both with and with2 (in either slot),
  * calls action, then erases the arbiter. Use this to detect a collision between
- * two specific objects — e.g. a pooled projectile and a named enemy body.
+ * two specific objects - e.g. a pooled projectile and a named enemy body.
  *
  * @scope: PULSE2D_ON_GAMESCENE
  * @param with first body pointer
@@ -847,14 +883,18 @@
 /**
  * @brief
  * Project a physics body's world-space position to screen pixel coordinates.
+ * Returns a Renderer::Screen {int16_t x, int16_t y} struct. Use as an
+ * expression: auto coords = PULSE2D_BODY_COORDINATES(ptr); then access
+ * coords.x and coords.y. Apply to_int16() when doing arithmetic on the fields
+ * before passing to PULSE2D_PLAY_VFX.
  *
  * @scope: PULSE2D_ON_GAMESCENE
  * @param body_ptr pointer to the body
- * @return
+ * @return Renderer::Screen with int16_t x and y pixel coordinates
  */
 #define PULSE2D_BODY_COORDINATES(body_ptr)  \
     pulse2d::Renderer::project_coordinates( \
-        (body_ptr)->position.x, (body_ptr)->position.y);
+        (body_ptr)->position.x, (body_ptr)->position.y)
 
 /**
  * @brief

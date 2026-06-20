@@ -113,9 +113,10 @@ struct Contact
 
     Feature_Pair feature;
 
-    Vec2 position{}; // world-space position of the contact point
-    Vec2 normal{};   // direction from body1 toward body2 at the contact
-    Vec2 r1{}, r2{}; // offset from each body's center to the contact point
+    math::Vec2 position{}; // world-space position of the contact point
+    math::Vec2 normal{};   // direction from body1 toward body2 at the contact
+    math::Vec2 r1{},
+        r2{}; // offset from each body's center to the contact point
 };
 
 /**

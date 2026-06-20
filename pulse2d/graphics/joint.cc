@@ -76,15 +76,15 @@ namespace pulse2d::graphics {
  * (rigid constraint), and bias_factor to 0.2 (default correction strength).
  * Adjust these after calling set() if needed.
  */
-void Joint::set(Body* b1, Body* b2, const Vec2& anchor)
+void Joint::set(Body* b1, Body* b2, math::Vec2 const& anchor)
 {
     body1 = b1;
     body2 = b2;
 
-    Mat22 rot_1(body1->rotation);
-    Mat22 rot_2(body2->rotation);
-    Mat22 rot_1t = rot_1.transpose();
-    Mat22 rot_2t = rot_2.transpose();
+    math::Mat22 rot_1(body1->rotation);
+    math::Mat22 rot_2(body2->rotation);
+    math::Mat22 rot_1t = rot_1.transpose();
+    math::Mat22 rot_2t = rot_2.transpose();
 
     local_anchor1 = rot_1t * (anchor - body1->position);
     local_anchor2 = rot_2t * (anchor - body2->position);
@@ -134,6 +134,7 @@ void Joint::set(Body* b1, Body* b2, const Vec2& anchor)
  */
 void Joint::pre_step(float inv_dt)
 {
+    using namespace graphics::math;
     // Pre-compute anchors, mass matrix, and bias.
     Mat22 rot_1(body1->rotation);
     Mat22 rot_2(body2->rotation);
@@ -223,6 +224,7 @@ void Joint::pre_step(float inv_dt)
  */
 void Joint::apply_impulse()
 {
+    using namespace graphics::math;
     Vec2 dv = body2->velocity + cross(body2->angular_velocity, r2) -
               body1->velocity - cross(body1->angular_velocity, r1);
 

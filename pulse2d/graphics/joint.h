@@ -96,18 +96,18 @@ class Joint
     }
 
   public:
-    void set(Body* body1, Body* body2, const Vec2& anchor);
+    void set(Body* body1, Body* body2, const math::Vec2& anchor);
 
     void pre_step(float inv_dt);
     void apply_impulse();
 
   public:
-    Mat22 M; // effective mass matrix; computed by pre_step()
-    Vec2 local_anchor1,
+    math::Mat22 M; // effective mass matrix; computed by pre_step()
+    math::Vec2 local_anchor1,
         local_anchor2; // anchor offsets in each body's local space
-    Vec2 r1, r2;       // anchor offsets rotated to world space this step
-    Vec2 bias;         // position correction velocity target
-    Vec2 P;            // accumulated impulse across solver iterations
+    math::Vec2 r1, r2; // anchor offsets rotated to world space this step
+    math::Vec2 bias;   // position correction velocity target
+    math::Vec2 P;      // accumulated impulse across solver iterations
     Body* body1;
     Body* body2;
     float bias_factor; // position correction strength per step (default 0.2,
