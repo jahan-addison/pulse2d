@@ -9,7 +9,6 @@
 
 #include <pulse2d/audio.h>    // for Audio
 #include <pulse2d/display.h>  // for Display
-#include <pulse2d/dsl.h>      // for dsl
 #include <pulse2d/renderer.h> // for Renderer
 #include <pulse2d/storage.h>  // for Storage
 #include <pulse2d/util.h>     // for utilities
@@ -73,3 +72,5 @@ class Pulse2d
 };
 
 } // namespace pulse2d
+
+#include <pulse2d/dsl.h> // must follow Pulse2d definition

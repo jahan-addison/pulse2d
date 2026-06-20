@@ -25,6 +25,9 @@
 #endif
 
 #if defined(PULSE2D_TEENSY)
+
+#define PULSE2D_INLINE inline __attribute__((always_inline))
+
 /**
  * @brief Place a variable in OCRAM (the secondary 512 KB RAM bank on the
  *  i.MX RT1062)

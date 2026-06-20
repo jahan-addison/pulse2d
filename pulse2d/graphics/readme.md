@@ -10,7 +10,7 @@ Box2D-lite is a minimal rigid-body physics engine originally written by Erin Cat
 - **`float`** - all types narrowed from `double` to `float` for the FPv5-D16 hard-float unit.
 - **Full-dimension `width`** - original `Body` stored half-extents in `h`. This fork stores full width and height in `width`. `collide.cc` computes half-extents internally as `h = 0.5 * width`.
 - **`Body::set_motion()`** - original `Body::Set(Vec2, float)` renamed to `set_motion()`. A zero-argument overload computes `inv_mass`, `I`, and `inv_i` from the current `mass` and `width` without resetting position or velocity.
-- **Body descriptor pattern** - `Body_Descriptor` struct with designated initializers; `Body::set(Body_Descriptor)` applies it field by field. Used by the DSL macros (`PULSE2D_STATIC_BODY`, `PULSE2D_DYNAMIC_BODY`, etc.).
+- **Body descriptor pattern** - `Body_Descriptor` struct with designated initializers; `Body::set(Body_Descriptor)` applies it field by field. Used by the Core API (`my_game.set_static_body()`, `my_game.set_dynamic_body()`, etc.).
 - **`World::remove(Body*)`** - removes a single body from the simulation without clearing the world. Used internally by kinematic pools to despawn individual projectiles.
 - **`Body::is_sensor`** - non-solid trigger zone flag. Overlap is detected and recorded in `world.arbiters` but no pushback impulse is applied. See [Sensors](#sensors) below.
 
@@ -122,7 +122,7 @@ world.clear();
 
 ### Joints
 
-A `Joint` pins two bodies together at a point in the world so they cannot drift apart. The engine enforces the constraint by applying a small corrective push each iteration.
+A `Joint` pins two bodies together at a point in the world so they cannot drift apamy_game. The engine enforces the constraint by applying a small corrective push each iteration.
 
 Call `set()` with both bodies and the anchor point in world space, then add the joint to the world. The joint does not need any per-frame calls - `step()` handles it automatically:
 
@@ -151,9 +151,9 @@ A sensor is a non-solid body that detects overlaps without applying any pushback
 Set `is_sensor = true` on a `Body_Descriptor` when creating the body:
 
 ```cpp
-PULSE2D_STATIC_BODY(pickup_zone, {
-    .position = { 2.0f, 0.0f },
-    .width    = { 1.0f, 1.0f },
+my_game.set_static_body("pickup_zone", {
+    .position  = { 2.0f, 0.0f },
+    .width     = { 1.0f, 1.0f },
     .is_sensor = true
 });
 ```
@@ -168,10 +168,10 @@ zone.is_sensor = true;
 world.add(&zone);
 ```
 
-While a body overlaps the sensor, `world.arbiters` contains an entry for that pair - the same map used for physical collisions. Use `PULSE2D_ON_COLLISION_WITH` to respond:
+While a body overlaps the sensor, `world.arbiters` contains an entry for that pair - the same map used for physical collisions. Use `my_game.on_collision_with` to respond:
 
 ```cpp
-PULSE2D_ON_COLLISION_WITH(pickup_zone, [&]() {
+my_game.on_collision_with("pickup_zone", [&]() {
     if (!item_collected) {
         item_collected = true;
         score += 50;

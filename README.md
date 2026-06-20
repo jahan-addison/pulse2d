@@ -13,9 +13,9 @@
 
 The Teensy 4.1 is a microcontroller development board based on the NXP i.MX RT1062, an ARM Cortex-M7 running at up to 600 MHz. `pulse2d` enables you to turn the microcontroller into a 2D game platform with a display and controller, as it has hardware floating-point, a dedicated SPI bus, and a built-in SDIO SD card slot. 🎮
 
-The project builds a sample game for desktop and the teensy hardware called `shift`.
+The project includes a small sample game for SDL and the teensy hardware.
 
-> The pilot game, [asterisk](https://github.com/jahan-addison/asterisk), is a feature complete space-shooter using the pulse2d engine. It is **recommended as a starting point for development of new games**.
+The pilot game, [asterisk](https://github.com/jahan-addison/asterisk), is a feature complete space-shooter using the pulse2d engine. It is **recommended as a starting point for development of new games**.
 
 Check out the [blog series](https://soliloq.uy/tag/pulse2d/)!
 
@@ -51,13 +51,15 @@ This installs the Teensy core, libraries, and linker scripts into your local Ard
 
 ## Game Development
 
-### DSL
+Game development in pulse2d is organized into two layers:
 
-The DSL is a set of macros in `pulse2d/dsl.h` inspired by the [Catch2](https://github.com/catchorg/Catch2/blob/85eb4652b46cc69c4ad7915c9fd3b009d99e9fb7/examples/120-Bdd-ScenarioGivenWhenThen.cpp#L15) library that enables development of Teensy games. It wraps the engine, physics world, scene management, animations, object pools, and render pipeline into a declarative "fantasy" scripting language, without the need to understand bare-metal embedded programming.
+* **Internal DSL** - macros for the game's structural skeleton: type aliases, lifecycle hooks (`PULSE_ON_GAMESTART`, `PULSE_ON_GAMESCENE`), scene declarations, animation blueprints, and debug helpers.
 
-📖 [See DSL documentation here](dsl.md)
+* **Core API** - the `Runtime<Scenes...>` struct, which owns the engine, physics world, and active scene. All game actions (draw, spawn, collide, animate, etc.) are methods on this struct.
 
-A game example that demostrates most features:
+📖 [See the full API reference here](api.md)
+
+A game that demonstrates most features:
 
 ```cpp
 #include PULSE2D_HEADER
@@ -65,114 +67,97 @@ A game example that demostrates most features:
 #include "../include/explosion-anim.h"
 #include "../include/stars-bg.h"
 
+PULSE_DEFINE_SCENE(Space_Shooter, 20, 6);
+
 PULSE2D_START_PULSE();
-PULSE2D_ENABLE_SEESAW_GAMEPAD();
+PULSE_INIT_GAME(my_game, Space_Shooter);
 
-PULSE2D_DEFINE_SCENE(Space_Shooter, 20, 6);
-PULSE2D_GAME_SCENES(Space_Shooter);
+PULSE_DEFINE int score = 0;
+PULSE_DEFINE bool enemy_hit = false;
+PULSE_DEFINE uint32_t cooldown = 0;
 
-PULSE2D_DEFINE int score = 0;
-PULSE2D_DEFINE bool enemy_hit = false;
+PULSE_ON_GAMESCENE_START(Space_Shooter) {
+    my_game.set_sprite_flash("bg_stars",     stars_bg,         320, 240);
+    my_game.set_sprite("ship_sprite",        "ship.bin",        48,  48);
+    my_game.set_sprite("enemy_sprite",       "enemy.bin",       48,  48);
+    my_game.set_sprite("bullet_sprite",      "bullet.bin",      12,   8);
 
-PULSE2D_ON_GAMESCENE_START(Space_Shooter) {
-    PULSE2D_SPRITE_FLASH(bg_stars, stars_bg, 320, 240);
+    my_game.add_parallax_layer("bg_stars", 320.0f, 15.0f);
 
-    PULSE2D_SPRITE(ship_sprite, "ship.bin", 48, 48);
-    PULSE2D_SPRITE(enemy_sprite, "enemy.bin", 48, 48);
-    PULSE2D_SPRITE(bullet_sprite, "bullet.bin", 12, 8);
+    my_game.register_vfx("explosion", explosion_frames, 64, 64, 8, 12.0f);
 
-    PULSE2D_ADD_PARALLAX_LAYER(bg_stars, 320.0f, 15.0f);
-
-    PULSE2D_DEFINE_VFX(explosion, explosion_frames, 64, 64, 8, 12);
-
-    PULSE2D_INIT_POOL(bullet_pool, {
-        .width = { 0.15f, 0.08f }
+    my_game.init_pool("bullets", {
+      .width = { 0.15f, 0.08f }
     });
 
-    // Player
-    PULSE2D_CONTROLLED_BODY(ship_object, {
+    my_game.set_controlled_body("ship_object", {
         .position = { -4.0f, 0.0f },
-        .width = { 0.5f, 0.5f }
+        .width    = { 0.5f, 0.5f }
     });
-
-    // Enemy
-    PULSE2D_DYNAMIC_BODY(enemy_object, {
+    my_game.set_dynamic_body("enemy_object", {
         .position = { 3.0f, 0.0f },
-        .mass = 1.0f,
-        .width = { 0.6f, 0.6f }
+        .mass     = 1.0f,
+        .width    = { 0.6f, 0.6f }
     });
 }
 
-PULSE2D_DEFINE uint32_t cooldown = 0;
+PULSE_ON_GAMESCENE(Space_Shooter) {
+    my_game.tick();
+    PULSE_POLL_SEESAW_GAMEPAD();
 
-PULSE2D_ON_GAMESCENE(Space_Shooter) {
-    PULSE2D_TICK_WORLD(Space_Shooter);
+    my_game.render_backgrounds();
+    my_game.set_arcade_directional_control("ship_object", 3.5f);
 
-    PULSE2D_POLL_SEESAW_GAMEPAD();
+    pulse2d_body& ship = my_game.get_body("ship_object");
 
-    PULSE2D_RENDER_BACKGROUNDS();
-
-    SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL(ship_object, 3.5f);
-
-    pulse2d_body& ship = PULSE2D_GET_BODY(ship_object);
-
-    // Fire bullets
-    if (cooldown > 0)
-      cooldown--;
+    if (cooldown > 0) cooldown--;
     if (SEESAW_BUTTON_INPUT(SEESAW_A) && cooldown == 0) {
-        PULSE2D_SPAWN(bullet_pool,
-            100,
+        my_game.spawn("bullets", 100,
             ship.position.x + 0.6f, ship.position.y,
-            8.0f, 0.0f
-        );
+            8.0f, 0.0f);
         cooldown = 10;
     }
 
-    PULSE2D_RENDER_POOL(bullet_pool, [&](pulse2d_body* bullet) {
-        pulse2d_body& enemy = PULSE2D_GET_BODY(enemy_object);
-
+    my_game.render_pool("bullets", [&](pulse2d_body* bullet) {
+        pulse2d_body& enemy = my_game.get_body("enemy_object");
         if (bullet->position.x > 6.0f) {
-            PULSE2D_DESPAWN(bullet_pool, bullet);
+            my_game.despawn("bullets", bullet);
         } else {
-            PULSE2D_DRAW_BODY(bullet, bullet_sprite);
+            my_game.draw_body(bullet, "bullet_sprite");
         }
-
-        PULSE2D_ON_COLLISION(bullet, &enemy, [&] {
+        my_game.on_collision(bullet, &enemy, [&] {
             if (!enemy_hit) {
                 enemy_hit = true;
-                auto coords = PULSE2D_BODY_COORDINATES(&enemy);
-                PULSE2D_PLAY_VFX(explosion, coords.x, coords.y);
+                auto coords = get_body_coordinates(&enemy);
+                my_game.play_vfx("explosion", coords.x, coords.y);
                 score += 100;
             }
-            PULSE2D_DESPAWN(bullet_pool, bullet);
+            my_game.despawn("bullets", bullet);
         });
     });
 
-    // Reset
     if (SEESAW_BUTTON_INPUT(SEESAW_START)) {
-        PULSE2D_SET_SCENE(Space_Shooter);
+        PULSE_SET_SCENE(my_game, Space_Shooter);
     }
 
-    PULSE2D_DRAW(ship_object, ship_sprite);
-
+    my_game.draw("ship_object", "ship_sprite");
     if (!enemy_hit) {
-        PULSE2D_DRAW(enemy_object, enemy_sprite);
+        my_game.draw("enemy_object", "enemy_sprite");
     }
 
-    PULSE2D_TICK_VFX();
-    PULSE2D_RENDER(active_scene);
+    my_game.play_vfx();
+    my_game.render();
 }
 
-PULSE2D_ON_GAMESTART() {
+PULSE_ON_GAMESTART() {
     Serial.begin(115200);
-
-    PULSE2D_REGISTER_ETL_ERROR_HANDLER();
-    PULSE2D_INIT(0.0f, 0.0f, 10);
-    PULSE2D_START_SEESAW_GAMEPAD();
-    PULSE2D_SET_SCENE(Space_Shooter);
+    pulse_register_etl_error_handler();
+    my_game.init(0.0f, 0.0f, 10);
+    start_seesaw_gamepad();
+    PULSE_SET_SCENE(my_game, Space_Shooter);
 }
 
-PULSE2D_ON_GAMELOOP() {
+PULSE_ON_GAMELOOP() {
     PULSE2D_TICK_GAMESCENE();
 }
 ```
@@ -180,14 +165,14 @@ PULSE2D_ON_GAMELOOP() {
 #### Features
 
 - Scene management - organize game states as scenes with isolated body and sprite pools
-- Physics management - fixed, controlled, and dynamic objects with collision detection
+- Physics management - static, controlled, and dynamic objects with collision detection
 - Animations - spritesheet animations for VFX and persistent looping with automatic frame advancement
 - Kinematic pools - pre-allocated object pools for bullets, particles, powerups
 - Parallax backgrounds - multi-layer scrolling backgrounds from flash memory
 - Gamepad profiles - arcade (instant), momentum (acceleration), and friction movement
 - Debug tools - stack usage tracking and ETL error reporting
 
-See [dsl.md](dsl.md) for the complete reference with detailed examples.
+See [api.md](api.md) for the complete reference with detailed examples.
 
 ---
 
@@ -213,9 +198,9 @@ target_link_libraries(my_game PRIVATE pulse2d::pulse2d)
 
 ---
 
-### Build sample game: `shift`
+### Build sample game:
 
-The included sample game `shift` targets both SDL2 and Teensy 4.1:
+The included sample game targets both SDL2 and Teensy 4.1:
 
 ### Host
 
@@ -225,7 +210,7 @@ brew install sdl2
 
 cmake -Bbuild -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER="Address;Undefined" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DSDL2_DIR=$(brew --prefix sdl2)/lib/cmake/SDL2
 cmake --build build
-./build/shift_game
+./build/sample_game
 
 # Ubuntu
 sudo apt update
@@ -233,7 +218,7 @@ sudo apt install libsdl2-dev
 
 cmake -Bbuild -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 cmake --build build
-./build/shift_game
+./build/sample_game
 
 
 ```

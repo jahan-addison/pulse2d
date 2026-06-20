@@ -172,26 +172,26 @@ if(PULSE2D_USE_SDL2)
 endif()
 
 # Sample game
-add_executable(shift "${CMAKE_CURRENT_SOURCE_DIR}/shift/game.cc")
-target_link_libraries(shift PRIVATE libpulse2d)
-set_target_properties(shift PROPERTIES OUTPUT_NAME "shift_game")
+add_executable(sample "${CMAKE_CURRENT_SOURCE_DIR}/sample/sample-host.cc")
+target_link_libraries(sample PRIVATE libpulse2d)
+set_target_properties(sample PROPERTIES OUTPUT_NAME "sample_game")
 # Enforce Teensy-like constraints on the host build
 if(PULSE2D_TEENSY_CONSTRAINTS)
   message(STATUS "Enabling Teensy-like constraints on host build")
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_compile_options(shift PRIVATE -Wstack-usage=256 -fstack-usage)
+    target_compile_options(sample PRIVATE -Wstack-usage=256 -fstack-usage)
   elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    target_compile_options(shift PRIVATE -Wframe-larger-than=256
-                                         -Wno-error=frame-larger-than)
+    target_compile_options(sample PRIVATE -Wframe-larger-than=256
+                                          -Wno-error=frame-larger-than)
   endif()
 endif()
 add_custom_command(
-  TARGET shift
+  TARGET sample
   POST_BUILD
   COMMAND
     ${CMAKE_COMMAND} -E copy_directory
-    "${CMAKE_CURRENT_SOURCE_DIR}/shift/images"
-    "${CMAKE_BINARY_DIR}/shift/images"
-  COMMENT "Syncing shift/images to build directory")
+    "${CMAKE_CURRENT_SOURCE_DIR}/sample/images"
+    "${CMAKE_BINARY_DIR}/sample/images"
+  COMMENT "Syncing sample/images to build directory")
 
 include(cmake/doctest.cmake)

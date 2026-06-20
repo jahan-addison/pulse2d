@@ -257,4 +257,9 @@ inline void apply_linear_drag(T& body, float drag_coefficient)
 
 } // namespace gamepad
 
+#if !defined(PULSE2D_DISABLE_GAMEPAD)
+static pulse2d::gamepad::Teensy_I2CDriver driver;
+static pulse2d::gamepad::Seesaw_Gamepad pad(driver);
+#endif
+
 #endif

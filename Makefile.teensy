@@ -66,7 +66,7 @@ ETL_INCLUDE ?= $(firstword $(shell find $(HOME)/.cache/CPM/etl -maxdepth 4 -name
 #####################################################
 
 PULSE2D_ROOT ?= $(CURDIR)
-GAME_SRCS    ?= $(PULSE2D_ROOT)/shift/game-teensy.cc
+GAME_SRCS    ?= $(PULSE2D_ROOT)/sample/sample-teensy.cc
 GAME_NAME    ?= game-teensy
 
 #####################################################
