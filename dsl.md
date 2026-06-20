@@ -55,6 +55,7 @@ The pulse2d DSL is a set of macros in [`pulse2d/dsl.h`](pulse2d/dsl.h) inspired 
 - [Collision](#collision)
   - [PULSE2D_ON_COLLISION](#pulse2d_on_collision)
   - [PULSE2D_ON_COLLISION_WITH](#pulse2d_on_collision_with)
+  - [PULSE2D_ON_COLLISION_WITH_BODY](#pulse2d_on_collision_with_body)
 - [Gamepad Input](#gamepad-input)
   - [PULSE2D_ENABLE_SEESAW_GAMEPAD](#pulse2d_enable_seesaw_gamepad)
   - [PULSE2D_START_SEESAW_GAMEPAD](#pulse2d_start_seesaw_gamepad)
@@ -894,14 +895,15 @@ Spawns a new VFX animation instance at the given screen coordinates. Plays once 
 
 **Example:**
 ```cpp
-PULSE2D_ON_COLLISION() {
-    PULSE2D_PLAY_VFX(explosion, 160, 120);  // center of screen
+// Play at a body's position on any collision
+if (PULSE2D_OBJECTS_COLLIDED()) {
+    auto& enemy = PULSE2D_GET_BODY(enemy_object);
+    auto [sx, sy] = PULSE2D_BODY_COORDINATES((&enemy));
+    PULSE2D_PLAY_VFX(explosion, sx, sy);
 }
 
-// Play at a body's position
-auto& enemy = PULSE2D_GET_BODY(enemy_object);
-auto [sx, sy] = PULSE2D_BODY_COORDINATES(enemy);
-PULSE2D_PLAY_VFX(explosion, sx, sy);
+// Or at a fixed screen position
+PULSE2D_PLAY_VFX(explosion, 160, 120);  // center of screen
 ```
 
 ---
@@ -940,6 +942,10 @@ PULSE2D_GAME_SCENES(Shooter);
 
 PULSE2D_ON_GAMESCENE_START(Shooter) {
     PULSE2D_DEFINE_VFX(explosion, explosion_frames, 64, 64, 8, 12);
+    PULSE2D_CONTROLLED_BODY(player, {
+        .position = { -3.0f, 0.0f },
+        .width = { 0.5f, 0.5f }
+    });
     PULSE2D_DYNAMIC_BODY(enemy, {
         .position = { 3.0f, 0.0f },
         .mass = 1.0f
@@ -953,14 +959,18 @@ PULSE2D_ON_GAMESCENE(Shooter) {
     PULSE2D_TICK_WORLD(Shooter);
     PULSE2D_POLL_SEESAW_GAMEPAD();
 
-    PULSE2D_ON_COLLISION() {
+    auto& player_body = PULSE2D_GET_BODY(player);
+    auto& enemy_body  = PULSE2D_GET_BODY(enemy);
+
+    SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL(player, 4.0f);
+
+    PULSE2D_ON_COLLISION(&player_body, &enemy_body, [&] {
         if (!enemy_destroyed) {
             enemy_destroyed = true;
-            auto& enemy = PULSE2D_GET_BODY(enemy);
-            auto [sx, sy] = PULSE2D_BODY_COORDINATES(enemy);
+            auto [sx, sy] = PULSE2D_BODY_COORDINATES((&enemy_body));
             PULSE2D_PLAY_VFX(explosion, sx, sy);
         }
-    }
+    });
 
     if (!enemy_destroyed) {
         PULSE2D_DRAW(enemy, enemy_sprite);
@@ -1163,26 +1173,34 @@ PULSE2D_ON_GAMESCENE(Shooter) {
 ### PULSE2D_ON_COLLISION
 
 ```cpp
-PULSE2D_ON_COLLISION() {
-    // Collision handling code
-}
+PULSE2D_ON_COLLISION(body_ptr_a, body_ptr_b, action);
 ```
 
-A conditional block that executes when at least one collision is active in the physics world.
+Fires `action` when a single arbiter holds exactly both `body_ptr_a` and `body_ptr_b`. Use this inside `PULSE2D_RENDER_POOL` when you have a pointer to a pooled object and want to detect its collision with a specific named body. `action` is a callable — typically a lambda.
 
 **Scope:** `PULSE2D_ON_GAMESCENE`
 
+**Parameters:**
+- `body_ptr_a` — first body pointer
+- `body_ptr_b` — second body pointer
+- `action` — callable invoked when both pointers appear in the same arbiter
+
 **Example:**
 ```cpp
-PULSE2D_ON_GAMESCENE(Game_Level) {
-    PULSE2D_TICK_WORLD(Game_Level);
+PULSE2D_RENDER_POOL(laser_ammo, [&](auto* laser_object) {
+    auto& meteor = PULSE2D_GET_BODY(meteor_object);
 
-    PULSE2D_ON_COLLISION() {
-        game_over = true;
+    if (laser_object->position.x > 6.67f) {
+        PULSE2D_DESPAWN(laser_ammo, laser_object);
+    } else {
+        PULSE2D_DRAW_BODY(laser_object, laser_sprite);
     }
 
-    PULSE2D_RENDER(active_scene);
-}
+    PULSE2D_ON_COLLISION(laser_object, &meteor, [&] {
+        PULSE2D_DESPAWN(laser_ammo, laser_object);
+        score += 10;
+    });
+});
 ```
 
 ---
@@ -1190,24 +1208,54 @@ PULSE2D_ON_GAMESCENE(Game_Level) {
 ### PULSE2D_ON_COLLISION_WITH
 
 ```cpp
-PULSE2D_ON_COLLISION_WITH(arbiter_name) {
-    // Collision handling code
-}
+PULSE2D_ON_COLLISION_WITH(body_name, action);
 ```
 
-A conditional block that executes when a specific named arbiter (collision pair) is active.
+Iterates all active arbiters and calls `action` for each one where either body in the pair matches `body_name`. The matching arbiter is erased after the action fires, so each collision is handled once per frame. `action` is a callable — typically a lambda.
 
 **Scope:** `PULSE2D_ON_GAMESCENE`
 
 **Example:**
 ```cpp
-PULSE2D_ON_COLLISION_WITH(player_enemy) {
-    health -= 10;
-}
+PULSE2D_ON_COLLISION_WITH(enemy_object, [&]() {
+    if (!enemy_hit) {
+        enemy_hit = true;
+        health -= 10;
+    }
+});
 
-PULSE2D_ON_COLLISION_WITH(player_powerup) {
+PULSE2D_ON_COLLISION_WITH(powerup_object, [&]() {
     score += 100;
-}
+    PULSE2D_SET_SCENE(Level_One);
+});
+```
+
+---
+
+### PULSE2D_ON_COLLISION_WITH_BODY
+
+```cpp
+PULSE2D_ON_COLLISION_WITH_BODY(body_ptr, action);
+```
+
+Like `PULSE2D_ON_COLLISION_WITH`, but matches by body pointer instead of name. Use this inside `PULSE2D_RENDER_POOL` lambdas where you already have a pointer to the active object and want to detect any collision it is involved in regardless of the other body.
+
+**Scope:** `PULSE2D_ON_GAMESCENE`
+
+**Example:**
+```cpp
+PULSE2D_RENDER_POOL(bullet_pool, [&](auto* bullet) {
+    PULSE2D_ON_COLLISION_WITH_BODY(bullet, [&]() {
+        PULSE2D_DESPAWN(bullet_pool, bullet);
+        score += 10;
+    });
+
+    if (bullet->position.x > 6.0f) {
+        PULSE2D_DESPAWN(bullet_pool, bullet);
+    } else {
+        PULSE2D_DRAW_BODY(bullet, bullet_sprite);
+    }
+});
 ```
 
 ---
@@ -1634,22 +1682,24 @@ PULSE2D_ON_GAMESCENE(Space_Shooter) {
 
     // Update live bullets
     PULSE2D_RENDER_POOL(bullet_pool, [&](auto* bullet) {
-        if (bullet.position.x > 6.0f) {
-            PULSE2D_DESPAWN(bullet_pool, bullet);
-            return;
-        }
-        PULSE2D_DRAW_BODY(bullet, bullet_sprite);
-    });
+        auto& enemy = PULSE2D_GET_BODY(enemy_object);
 
-    PULSE2D_ON_COLLISION() {
-        if (!enemy_hit) {
-            enemy_hit = true;
-            auto& enemy = PULSE2D_GET_BODY(enemy_object);
-            auto [sx, sy] = PULSE2D_BODY_COORDINATES(enemy);
-            PULSE2D_PLAY_VFX(explosion, sx, sy);
-            score += 100;
+        if (bullet->position.x > 6.0f) {
+            PULSE2D_DESPAWN(bullet_pool, bullet);
+        } else {
+            PULSE2D_DRAW_BODY(bullet, bullet_sprite);
         }
-    }
+
+        PULSE2D_ON_COLLISION(bullet, &enemy, [&] {
+            if (!enemy_hit) {
+                enemy_hit = true;
+                auto [sx, sy] = PULSE2D_BODY_COORDINATES((&enemy));
+                PULSE2D_PLAY_VFX(explosion, sx, sy);
+                score += 100;
+            }
+            PULSE2D_DESPAWN(bullet_pool, bullet);
+        });
+    });
 
     // Reset
     if (SEESAW_BUTTON_INPUT(SEESAW_START)) {

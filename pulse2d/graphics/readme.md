@@ -4,17 +4,15 @@
 
 Box2D-lite is a minimal rigid-body physics engine originally written by Erin Catto as part of his GDC 2006 presentation. It implements sequential impulse-based constraint solving over a fixed timestep with contact caching, well-suited for modification on embedded devices.
 
-Dynamic memory allocation has been removed in favor of fixed-size `etlcpp` storage. Floating-point types are narrowed to `float` to match the FPv5-D16 hard-float pipeline on the i.MX RT1062.
-
 ### Modifications
 
-- **No heap allocation** - `std::vector`, `std::map`, and native arrays replaced with `etl::vector`, `etl::map`, and `etl::array`. Pool sizes are set at compile time via `MAX_PHYSICS_BODIES`, `MAX_PHYSICS_JOINTS`, etc in `pulse2d/config.h`.
-- **`float`** - original used `double`, all types narrowed to `float` for the FPv5-D16 hard-float unit.
-- **Full-dimension `width`** - original `Body` stored half-extents in `h`. This fork stores full width and height in `width`; `collide.cc` computes half-extents internally as `h = 0.5 * width`.
+- **No heap allocation** - `std::vector`, `std::map`, and native arrays replaced with `etl::vector`, `etl::map`, and `etl::array`. Pool sizes are set at compile time via `MAX_PHYSICS_BODIES`, `MAX_PHYSICS_JOINTS`, etc. in `pulse2d/config.h`.
+- **`float`** - all types narrowed from `double` to `float` for the FPv5-D16 hard-float unit.
+- **Full-dimension `width`** - original `Body` stored half-extents in `h`. This fork stores full width and height in `width`. `collide.cc` computes half-extents internally as `h = 0.5 * width`.
 - **`Body::set_motion()`** - original `Body::Set(Vec2, float)` renamed to `set_motion()`. A zero-argument overload computes `inv_mass`, `I`, and `inv_i` from the current `mass` and `width` without resetting position or velocity.
 - **Body descriptor pattern** - `Body_Descriptor` struct with designated initializers; `Body::set(Body_Descriptor)` applies it field by field. Used by the DSL macros (`PULSE2D_STATIC_BODY`, `PULSE2D_DYNAMIC_BODY`, etc.).
 - **`World::remove(Body*)`** - removes a single body from the simulation without clearing the world. Used internally by kinematic pools to despawn individual projectiles.
-- **`Body::is_sensor`** - non-solid trigger zone flag. Overlap is detected and recorded in `world.arbiters` but no pushback impulse is applied. Not present in box2d-lite. See [Sensors](#sensors) below.
+- **`Body::is_sensor`** - non-solid trigger zone flag. Overlap is detected and recorded in `world.arbiters` but no pushback impulse is applied. See [Sensors](#sensors) below.
 
 ---
 
@@ -173,13 +171,15 @@ world.add(&zone);
 While a body overlaps the sensor, `world.arbiters` contains an entry for that pair - the same map used for physical collisions. Use `PULSE2D_ON_COLLISION_WITH` to respond:
 
 ```cpp
-PULSE2D_ON_COLLISION_WITH(pickup_zone) {
+PULSE2D_ON_COLLISION_WITH(pickup_zone, [&]() {
     if (!item_collected) {
         item_collected = true;
         score += 50;
     }
-}
+});
 ```
+
+Sensors correctly detect overlaps with static bodies. The `broad_phase()` static-static skip (`inv_mass == 0` on both bodies) is bypassed when either body has `is_sensor = true`, so a sensor placed on a wall or floor still fires.
 
 Sensors are useful anywhere you need a spatial trigger with no physics effect:
 

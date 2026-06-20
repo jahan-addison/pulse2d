@@ -569,17 +569,92 @@
  * @scope: PULSE2D_ON_GAMESCENE
  * @return
  */
-#define PULSE2D_ON_COLLISION() if (!world->arbiters.empty())
+#define PULSE2D_OBJECTS_COLLIDED() (!world->arbiters.empty())
 
 /**
  * @brief
- * Conditional block that executes when a specific named arbiter is active.
+ * Iterate all active arbiters and call action when either body in a pair
+ * matches the named body. The matching arbiter is erased after action fires.
  *
  * @scope: PULSE2D_ON_GAMESCENE
- * @param with arbiter name (string key of the collision pair)
+ * @param with body identifier (looked up by name in active_scene)
+ * @param action callable invoked on match — typically a lambda
  * @return
  */
-#define PULSE2D_ON_COLLISION_WITH(with) if (world->arbiters.contains(#with))
+#define PULSE2D_ON_COLLISION_WITH(with, action)                   \
+    do {                                                          \
+        if (!world->arbiters.empty()) {                           \
+            for (auto& [key, arb] : world->arbiters) {            \
+                if (key.body1 == &active_scene.get_body(#with)) { \
+                    action();                                     \
+                    world->arbiters.erase(key);                   \
+                    break;                                        \
+                }                                                 \
+                if (key.body2 == &active_scene.get_body(#with)) { \
+                    action();                                     \
+                    world->arbiters.erase(key);                   \
+                    break;                                        \
+                }                                                 \
+            }                                                     \
+        }                                                         \
+    } while (0)
+
+/**
+ * @brief
+ * Like PULSE2D_ON_COLLISION_WITH, but matches by body pointer instead of name.
+ * Use inside PULSE2D_RENDER_POOL lambdas where a pointer to the active object
+ * is already in scope.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @param with body pointer to match against each arbiter entry
+ * @param action callable (lambda) invoked on match
+ * @return
+ */
+#define PULSE2D_ON_COLLISION_WITH_BODY(with, action)   \
+    do {                                               \
+        if (!world->arbiters.empty()) {                \
+            for (auto& [key, arb] : world->arbiters) { \
+                if (key.body1 == with) {               \
+                    action();                          \
+                    world->arbiters.erase(key);        \
+                    break;                             \
+                }                                      \
+                if (key.body2 == with) {               \
+                    action();                          \
+                    world->arbiters.erase(key);        \
+                    break;                             \
+                }                                      \
+            }                                          \
+        }                                              \
+    } while (0)
+
+/**
+ * @brief
+ * Fire action when a single arbiter holds exactly the two given body pointers.
+ * Checks that one arbiter entry contains both with and with2 (in either slot),
+ * calls action, then erases the arbiter. Use this to detect a collision between
+ * two specific objects — e.g. a pooled projectile and a named enemy body.
+ *
+ * @scope: PULSE2D_ON_GAMESCENE
+ * @param with first body pointer
+ * @param with2 second body pointer
+ * @param action callable (lambda) invoked on match
+ * @return
+ */
+#define PULSE2D_ON_COLLISION(with, with2, action)                          \
+    do {                                                                   \
+        if (!world->arbiters.empty()) {                                    \
+            for (auto& [key, arb] : world->arbiters) {                     \
+                auto test_body1 = key.body1 == with or key.body1 == with2; \
+                auto test_body2 = key.body2 == with or key.body2 == with2; \
+                if (test_body1 and test_body2) {                           \
+                    action();                                              \
+                    world->arbiters.erase(key);                            \
+                    break;                                                 \
+                }                                                          \
+            }                                                              \
+        }                                                                  \
+    } while (0)
 
 ////////////////
 // Background //

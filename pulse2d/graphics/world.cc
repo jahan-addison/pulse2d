@@ -193,8 +193,10 @@ void World::broad_phase()
         for (std::size_t j = i + 1; j < bodies.size(); ++j) {
             Body* bj = bodies[j];
 
-            if (bi->inv_mass == 0.0f and bj->inv_mass == 0.0f)
-                continue;
+            if (!bi->is_sensor and not bj->is_sensor) {
+                if (bi->inv_mass == 0.0f and bj->inv_mass == 0.0f)
+                    continue;
+            }
 
             Arbiter new_arb(bi, bj);
             Arbiter_Key key(bi, bj);

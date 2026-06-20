@@ -129,22 +129,24 @@ PULSE2D_ON_GAMESCENE(Space_Shooter) {
     }
 
     PULSE2D_RENDER_POOL(bullet_pool, [&](auto* bullet) {
-        if (bullet.position.x > 6.0f) {
-            PULSE2D_DESPAWN(bullet_pool, bullet);
-            return;
-        }
-        PULSE2D_DRAW_BODY(bullet, bullet_sprite);
-    });
+        auto& enemy = PULSE2D_GET_BODY(enemy_object);
 
-    PULSE2D_ON_COLLISION() {
-        if (!enemy_hit) {
-            enemy_hit = true;
-            auto& enemy = PULSE2D_GET_BODY(enemy_object);
-            auto [sx, sy] = PULSE2D_BODY_COORDINATES(enemy);
-            PULSE2D_PLAY_VFX(explosion, sx, sy);
-            score += 100;
+        if (bullet->position.x > 6.0f) {
+            PULSE2D_DESPAWN(bullet_pool, bullet);
+        } else {
+            PULSE2D_DRAW_BODY(bullet, bullet_sprite);
         }
-    }
+
+        PULSE2D_ON_COLLISION(bullet, &enemy, [&] {
+            if (!enemy_hit) {
+                enemy_hit = true;
+                auto [sx, sy] = PULSE2D_BODY_COORDINATES((&enemy));
+                PULSE2D_PLAY_VFX(explosion, sx, sy);
+                score += 100;
+            }
+            PULSE2D_DESPAWN(bullet_pool, bullet);
+        });
+    });
 
     // Reset
     if (SEESAW_BUTTON_INPUT(SEESAW_START)) {
@@ -179,7 +181,7 @@ PULSE2D_ON_GAMELOOP() {
 
 - Scene management - organize game states as scenes with isolated body and sprite pools
 - Physics management - fixed, controlled, and dynamic objects with collision detection
-- Animations - spritesheet animations with automatic frame advancement
+- Animations - spritesheet animations for VFX and persistent looping with automatic frame advancement
 - Kinematic pools - pre-allocated object pools for bullets, particles, powerups
 - Parallax backgrounds - multi-layer scrolling backgrounds from flash memory
 - Gamepad profiles - arcade (instant), momentum (acceleration), and friction movement
@@ -328,31 +330,6 @@ The `Renderer` holds the full-screen RGB565 framebuffer for razterization and bl
 ## Gamepad
 
 The gamepad driver targets the [Adafruit Seesaw Gamepad QT](https://www.adafruit.com/product/5743) over I2C. The DSL wraps setup, polling, and input.
-
-A minimal setup:
-
-```cpp
-PULSE2D_START_PULSE();
-PULSE2D_ENABLE_SEESAW_GAMEPAD();
-
-PULSE2D_ON_GAMESTART() {
-    ...
-    PULSE2D_START_SEESAW_GAMEPAD();
-    PULSE2D_SET_SCENE(Game_Level);
-}
-
-PULSE2D_ON_GAMESCENE(Game_Level) {
-    PULSE2D_TICK_WORLD(Game_Level);
-    PULSE2D_POLL_SEESAW_GAMEPAD();
-
-    SEESAW_SET_ARCADE_DIRECTIONAL_CONTROL(player_object, 3.0f);
-
-    if (SEESAW_BUTTON_INPUT(SEESAW_A)) { fire(); }
-    if (SEESAW_BUTTON_INPUT(SEESAW_B)) { jump(); }
-
-    PULSE2D_RENDER(active_scene);
-}
-```
 
 ---
 
