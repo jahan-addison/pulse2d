@@ -7,6 +7,53 @@
 
 #pragma once
 
+/****************************************************************************
+ * Core API - Runtime
+ *
+ * Runtime<Scenes...> is the main interface for game logic. It owns the
+ * engine, physics world, and the active scene as a std::variant, and
+ * exposes every game action - draw, spawn, collide, animate, control - as
+ * methods. Instantiate it once at file scope with PULSE_INIT_GAME:
+ *
+ *   PULSE_INIT_GAME(my_game, Main_Menu, Level_One, Boss_Fight);
+ *
+ * All methods dispatch into the current scene via execute_scene(), which
+ * visits the variant and skips std::monostate (no active scene). This
+ * means every call is safe to make before the first PULSE_SET_SCENE.
+ *
+ * The four gamepad control profiles map directly to Runtime methods:
+ *
+ *   set_arcade_directional_control("ship", 5.0f)
+ *       - instant velocity from stick (Zelda, Pac-Man)
+ *
+ *   set_arcade_directional_inverted_control("ship", 5.0f)
+ *       - same with Y axis flipped
+ *
+ *   set_dynamic_directional_control("ship", 12.0f)
+ *       - thrust force each frame, velocity builds over time (Asteroids)
+ *
+ *   set_sliding_friction_directional_control("ship", 0.85f)
+ *       - linear drag each frame, pair with dynamic control
+ *
+ * VFX animations are registered once in PULSE_ON_GAMESCENE_START and
+ * spawned as one-shot instances during gameplay:
+ *
+ *   PULSE_ON_GAMESCENE_START(Level_One) {
+ *       my_game.register_vfx("explosion", explosion_frames, 64, 64, 8, 12.0f);
+ *   }
+ *
+ *   PULSE_ON_GAMESCENE(Level_One) {
+ *       my_game.on_collision(laser, &enemy, [&] {
+ *           auto coords = get_body_coordinates(laser);
+ *           my_game.play_vfx("explosion", coords.x, coords.y);
+ *           my_game.despawn("lasers", laser);
+ *       });
+ *       my_game.tick_vfx();
+ *       my_game.render();
+ *   }
+ *
+ ****************************************************************************/
+
 #include <etl/array.h>
 #include <etl/error_handler.h>
 #include <etl/map.h>

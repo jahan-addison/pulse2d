@@ -9,6 +9,36 @@
 
 #include <pulse2d/util.h> // for PULSE2D_TEENSY
 
+/****************************************************************************
+ * Config
+ *
+ * Compile-time pool sizes and display constants for pulse2d. Every capacity
+ * limit is guarded by #ifndef so a game can override any of them by defining
+ * the symbol before including this header or via a -D flag in the build
+ * system.
+ *
+ * The defaults are tuned for the Teensy 4.1 (512 KB OCRAM, 8 MB flash):
+ *
+ *   MAX_PHYSICS_BODIES            256   bodies per world
+ *   MAX_PHYSICS_JOINTS             32   joints per world
+ *   MAX_LOADED_SPRITES             12   sprites per scene
+ *   MAX_BACKGROUND_LAYERS           8   parallax layers per scene
+ *   MAX_ACTIVE_KINEMATIC_POOL      32   live pool slots across all pools
+ *   MAX_ACTIVE_KINEMATIC_INSTANCE   8   named pools per scene
+ *   MAX_ANIMATION_DEFINITION       16   registered VFX definitions per scene
+ *   MAX_ACTIVE_ANIMATION           32   simultaneously playing VFX instances
+ *
+ * To raise a limit for a large scene, add a -D before including core.h:
+ *
+ *   // my_game/Makefile (or CMakeLists.txt)
+ *   -DMAX_LOADED_SPRITES=20
+ *   -DMAX_ACTIVE_KINEMATIC_POOL=64
+ *
+ * config::width / config::height are the ILI9341 native resolution (320x240).
+ * config::scale is the SDL2 window multiplier for host development (960x720).
+ *
+ ****************************************************************************/
+
 #ifndef MAX_PHYSICS_BODIES
 #define MAX_PHYSICS_BODIES 256
 #endif

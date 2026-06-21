@@ -7,6 +7,55 @@
 
 #pragma once
 
+/****************************************************************************
+ * Internal DSL
+ *
+ * Macros and inline free functions that form the structural skeleton of a
+ * pulse2d game. The DSL handles everything that belongs at file scope or
+ * that does not require the engine or physics world at the call site:
+ * type aliases, lifecycle hooks, scene declarations, animation blueprints,
+ * gamepad input, coordinate helpers, and debug utilities.
+ *
+ * All content is gated behind #if defined(PULSE2D_TEENSY). On host
+ * the same source compiles against the SDL2 backend via pulse2d.h, and
+ * the DSL layer is not active.
+ *
+ * A minimal game skeleton looks like this:
+ *
+ *   #include PULSE2D_HEADER
+ *   #include PULSE2D_GRAPHICS
+ *
+ *   PULSE2D_START_PULSE();
+ *
+ *   PULSE_DEFINE_SCENE(Level_One, 8, 6);
+ *   PULSE_INIT_GAME(my_game, Level_One);
+ *
+ *   PULSE_ON_GAMESCENE_START(Level_One) {
+ *       my_game.set_sprite("ship", "ship.bin", 48, 48);
+ *       my_game.set_controlled_body("ship", {
+ *          .position = { 0.0f, 0.0f },
+ *          .width    = { 1.0f, 1.0f } });
+ *   }
+ *
+ *   PULSE_ON_GAMESCENE(Level_One) {
+ *       my_game.tick();
+ *       PULSE_POLL_SEESAW_GAMEPAD();
+ *       my_game.set_arcade_directional_control("ship", 5.0f);
+ *       my_game.draw("ship", "ship");
+ *       my_game.render();
+ *   }
+ *
+ *   PULSE_ON_GAMESTART() {
+ *       Serial.begin(115200);
+ *       my_game.init(0.0f, 0.0f, 10);
+ *       PULSE_ENABLE_SEESAW_GAMEPAD();
+ *       PULSE_SET_SCENE(my_game, Level_One);
+ *   }
+ *
+ *   PULSE_ON_GAMELOOP() { PULSE_TICK_GAMESCENE(); }
+ *
+ ****************************************************************************/
+
 #include <etl/array.h>
 #include <etl/error_handler.h>
 #include <etl/map.h>

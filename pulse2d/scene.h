@@ -7,6 +7,42 @@
 
 #pragma once
 
+/****************************************************************************
+ * Scene
+ *
+ * A scene is the organizational unit for a game level, menu, or state.
+ * Each scene owns fixed-size pools for bodies, sprites, joints, kinematic
+ * objects, animations, and parallax backgrounds. Pool capacities are set
+ * at declaration time via PULSE_DEFINE_SCENE and checked at compile time
+ * against the limits in config.h.
+ *
+ * Scenes are not constructed or managed directly:
+ * - PULSE_DEFINE_SCENE declares a scene struct
+ * - PULSE_INIT_GAME holds them in a std::variant inside Runtime
+ * - PULSE_SET_SCENE transitions between them
+ *
+ *   PULSE_DEFINE_SCENE(Main_Menu, 2, 4);
+ *   PULSE_DEFINE_SCENE(Level_One, 10, 8);
+ *   PULSE_INIT_GAME(my_game, Main_Menu, Level_One);
+ *
+ *   PULSE_ON_GAMESTART() {
+ *       my_game.init(0.0f, -10.0f, 10);
+ *       PULSE_SET_SCENE(my_game, Main_Menu);
+ *   }
+ *
+ * This file defines the internal building blocks:
+ *
+ *   Sprite_Animator              - persistent per-object spritesheet animator
+ *   Pulse2d_Scene_Animation      - VFX animation manager (one-shot instances)
+ *   Pulse2d_Scene_Kinematic_Pool - named pre-allocated object pools
+ *   Pulse2d_Scene_Background     - parallax layer manager
+ *   Pulse2d_Scene_Base           - aggregate and body, sprite pools
+ *   Pulse2d_Scene                - Scene type with compile-time guards
+ *
+ * You do not use any of these types directly in game code.
+ *
+ ****************************************************************************/
+
 #include <algorithm>
 #include <cmath>
 #include <etl/array.h>
