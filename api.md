@@ -178,7 +178,7 @@ After this, `my_game.init()`, `my_game.draw()`, `my_game.spawn()`, etc. are avai
 
 ---
 
-#### PULSE_ON_GAMESTART / PULSE_ON_GAMELOOP
+#### PULSE_ON_GAMESTART, PULSE_ON_GAMELOOP
 
 ```cpp
 PULSE_ON_GAMESTART() {
