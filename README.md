@@ -67,9 +67,9 @@ A game that demonstrates most features:
 #include "../include/explosion-anim.h"
 #include "../include/stars-bg.h"
 
-PULSE_DEFINE_SCENE(Space_Shooter, 20, 6);
-
 PULSE2D_START_PULSE();
+
+PULSE_DEFINE_SCENE(Space_Shooter, 20, 6);
 PULSE_INIT_GAME(my_game, Space_Shooter);
 
 PULSE_DEFINE int score = 0;
