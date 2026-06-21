@@ -76,32 +76,37 @@ PULSE_DEFINE int score = 0;
 PULSE_DEFINE bool enemy_hit = false;
 PULSE_DEFINE uint32_t cooldown = 0;
 
-PULSE_ON_GAMESCENE_START(Space_Shooter) {
-    my_game.set_sprite_flash("bg_stars",     stars_bg,         320, 240);
-    my_game.set_sprite("ship_sprite",        "ship.bin",        48,  48);
-    my_game.set_sprite("enemy_sprite",       "enemy.bin",       48,  48);
-    my_game.set_sprite("bullet_sprite",      "bullet.bin",      12,   8);
+PULSE_ON_GAMESCENE_START(Space_Shooter)
+{
+    my_game.set_sprite_flash("bg_stars", stars_bg, 320, 240);
+    my_game.set_sprite("ship_sprite", "ship.bin", 48, 48);
+    my_game.set_sprite("enemy_sprite", "enemy.bin", 48, 48);
+    my_game.set_sprite("bullet_sprite", "bullet.bin", 12, 8);
 
     my_game.add_parallax_layer("bg_stars", 320.0f, 15.0f);
 
     my_game.register_vfx("explosion", explosion_frames, 64, 64, 8, 12.0f);
 
-    my_game.init_pool("bullets", {
-      .width = { 0.15f, 0.08f }
+    my_game.init_pool("bullets",
+        {
+            .width = { 0.15f, 0.08f }
     });
 
-    my_game.set_controlled_body("ship_object", {
-        .position = { -4.0f, 0.0f },
-        .width    = { 0.5f, 0.5f }
+    my_game.set_controlled_body("ship_object",
+        {
+            .position = { -4.0f, 0.0f },
+              .width = { 0.5f,  0.5f }
     });
-    my_game.set_dynamic_body("enemy_object", {
-        .position = { 3.0f, 0.0f },
-        .mass     = 1.0f,
-        .width    = { 0.6f, 0.6f }
+    my_game.set_dynamic_body("enemy_object",
+        {
+            .position = { 3.0f, 0.0f },
+            .mass = 1.0f,
+            .width = { 0.6f, 0.6f }
     });
 }
 
-PULSE_ON_GAMESCENE(Space_Shooter) {
+PULSE_ON_GAMESCENE(Space_Shooter)
+{
     my_game.tick();
     PULSE_POLL_SEESAW_GAMEPAD();
 
@@ -110,21 +115,27 @@ PULSE_ON_GAMESCENE(Space_Shooter) {
 
     pulse2d_body& ship = my_game.get_body("ship_object");
 
-    if (cooldown > 0) cooldown--;
+    if (cooldown > 0)
+        cooldown--;
     if (SEESAW_BUTTON_INPUT(SEESAW_A) && cooldown == 0) {
-        my_game.spawn("bullets", 100,
-            ship.position.x + 0.6f, ship.position.y,
-            8.0f, 0.0f);
+        my_game.spawn("bullets",
+            100,
+            ship.position.x + 0.6f,
+            ship.position.y,
+            8.0f,
+            0.0f);
         cooldown = 10;
     }
 
     my_game.render_pool("bullets", [&](pulse2d_body* bullet) {
         pulse2d_body& enemy = my_game.get_body("enemy_object");
+
         if (bullet->position.x > 6.0f) {
             my_game.despawn("bullets", bullet);
         } else {
             my_game.draw_body(bullet, "bullet_sprite");
         }
+
         my_game.on_collision(bullet, &enemy, [&] {
             if (!enemy_hit) {
                 enemy_hit = true;
@@ -149,7 +160,8 @@ PULSE_ON_GAMESCENE(Space_Shooter) {
     my_game.render();
 }
 
-PULSE_ON_GAMESTART() {
+PULSE_ON_GAMESTART()
+{
     Serial.begin(115200);
     pulse_register_etl_error_handler();
     my_game.init(0.0f, 0.0f, 10);
@@ -157,7 +169,8 @@ PULSE_ON_GAMESTART() {
     PULSE_SET_SCENE(my_game, Space_Shooter);
 }
 
-PULSE_ON_GAMELOOP() {
+PULSE_ON_GAMELOOP()
+{
     PULSE_TICK_GAMESCENE();
 }
 ```
