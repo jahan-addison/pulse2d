@@ -57,15 +57,12 @@ using pulse2d_joint   = pulse2d::graphics::Joint;
 Portable primitive aliases - useful for pool lambda parameters and state variables:
 
 ```cpp
-using p_bool = bool;
-using p_float = float;
-
-using p_uint32 = uint32_t;
-using p_uint16 = uint16_t;
-using p_uint8  = uint8_t;
-using p_int32  = int32_t;
-using p_int16  = int16_t;
-using p_int8   = int8_t;
+using p_ui32 = uint32_t;
+using p_ui16 = uint16_t;
+using p_ui8  = uint8_t;
+using p_i32  = int32_t;
+using p_i16  = int16_t;
+using p_i8   = int8_t;
 ```
 
 ---
@@ -199,7 +196,7 @@ PULSE_ON_GAMESTART() {
     Serial.begin(115200);
     pulse_register_etl_error_handler();
     my_game.init(0.0f, 0.0f, 10);
-    start_seesaw_gamepad();
+    PULSE_ENABLE_SEESAW_GAMEPAD();
     PULSE_SET_SCENE(my_game, Main_Menu);
 }
 
@@ -350,14 +347,14 @@ PULSE_ON_GAMELOOP() {
 
 ### Gamepad Input (DSL)
 
-The gamepad system supports the [Adafruit Seesaw Gamepad QT](https://www.adafruit.com/product/5743) with analog thumbstick and 6 buttons over I2C. The hardware globals (`driver`, `pad`) are declared automatically when `PULSE2D_HEADER` is included, unless `PULSE2D_DISABLE_GAMEPAD` is defined before inclusion.
+The gamepad system supports the [Adafruit Seesaw Gamepad QT](https://www.adafruit.com/product/5743) with analog thumbstick and 6 buttons over I2C.
 
 ---
 
-#### start_seesaw_gamepad
+#### PULSE_ENABLE_SEESAW_GAMEPAD
 
 ```cpp
-start_seesaw_gamepad();
+PULSE_ENABLE_SEESAW_GAMEPAD();
 ```
 
 Initializes the I2C bus and gamepad hardware. Call once in `PULSE_ON_GAMESTART`.
@@ -368,7 +365,7 @@ Initializes the I2C bus and gamepad hardware. Call once in `PULSE_ON_GAMESTART`.
 PULSE_ON_GAMESTART() {
     Serial.begin(115200);
     my_game.init(0.0f, 0.0f, 10);
-    start_seesaw_gamepad();
+    PULSE_ENABLE_SEESAW_GAMEPAD();
     PULSE_SET_SCENE(my_game, Main_Menu);
 }
 ```
@@ -598,7 +595,7 @@ PULSE_ON_GAMESTART() {
     PULSE_POLL_SERIAL_CONNECTION();
     pulse_register_etl_error_handler();
     my_game.init(0.0f, 0.0f, 10);
-    start_seesaw_gamepad();
+    PULSE_ENABLE_SEESAW_GAMEPAD();
     PULSE_SET_SCENE(my_game, Level_One);
 }
 ```
@@ -1422,7 +1419,7 @@ PULSE_ON_GAMESTART() {
     Serial.begin(115200);
     pulse_register_etl_error_handler();
     my_game.init(0.0f, 0.0f, 10);
-    start_seesaw_gamepad();
+    PULSE_ENABLE_SEESAW_GAMEPAD();
     PULSE_SET_SCENE(my_game, Space_Shooter);
 }
 

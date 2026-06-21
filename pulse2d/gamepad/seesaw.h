@@ -33,14 +33,15 @@
 
 #if defined(PULSE2D_TEENSY)
 
-#include <Wire.h>  // for Wire
-#include <cstdint> // for uint8_t
+#include <Wire.h>         // for Wire
+#include <cstdint>        // for uint8_t
+#include <pulse2d/util.h> // for HARDWARE_Deferred_Init
 
 namespace pulse2d::gamepad {
 
 /**
  * @brief
- *   HAL Hardware Abstraction Layer
+ *   I2C Driver
  */
 struct I2CDriver
 {
@@ -257,9 +258,20 @@ inline void apply_linear_drag(T& body, float drag_coefficient)
 
 } // namespace gamepad
 
-#if !defined(PULSE2D_DISABLE_GAMEPAD)
-static pulse2d::gamepad::Teensy_I2CDriver driver;
-static pulse2d::gamepad::Seesaw_Gamepad pad(driver);
-#endif
+struct Pulse2d_Gamepad
+{
+    pulse2d::HARDWARE_Deferred_Init<pulse2d::gamepad::Teensy_I2CDriver> driver;
+    pulse2d::HARDWARE_Deferred_Init<pulse2d::gamepad::Seesaw_Gamepad> pad;
+
+    PULSE2D_INLINE void start()
+    {
+        pad.emplace(driver.emplace());
+        if (!pad->init()) {
+            Serial.println("[ERROR]: Seesaw Gamepad Failed!");
+        }
+    }
+};
+
+static Pulse2d_Gamepad gamepad_hal;
 
 #endif

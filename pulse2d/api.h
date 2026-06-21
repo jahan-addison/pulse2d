@@ -72,9 +72,9 @@ struct Runtime
     /**
      * @brief
      * Flush the renderer's sprite queue to the display.
-     * Must be the last call in PULSE2D_ON_GAMESCENE.
+     * Must be the last call in PULSE_ON_GAMESCENE.
      *
-     * @scope: PULSE2D_ON_GAMESCENE
+     * @scope: PULSE_ON_GAMESCENE
      * @return
      */
     PULSE2D_INLINE void render() { engine->tick(*world); }
@@ -83,7 +83,7 @@ struct Runtime
      * @brief
      * Step the physics simulation one frame
      *
-     * @scope: PULSE2D_ON_GAMESCENE
+     * @scope: PULSE_ON_GAMESCENE
      * @return
      */
     PULSE2D_INLINE void tick() { world->step(PULSE); }
@@ -93,7 +93,7 @@ struct Runtime
      * Advance each layer's scroll offset and blit all background layers to the
      * framebuffer. Call before drawing any sprites - backgrounds are FIFO.
      *
-     * @scope: PULSE2D_ON_GAMESCENE
+     * @scope: PULSE_ON_GAMESCENE
      * @return
      */
     PULSE2D_INLINE void render_backgrounds()
@@ -105,19 +105,24 @@ struct Runtime
         });
     }
 
-#if !defined(PULSE2D_DISABLE_GAMEPAD)
     /////////////
     // Gamepad //
     /////////////
 
-    ////////////////////////////////////////////////////////////////////////////////
-    // Profile A: The Arcade Controller (Pokemon, Zelda, Pac-Man)
-    // @scope: PULSE2D_ON_GAMESCENE
-    // Sets velocity directly from stick position for instant response and
-    // instant stops. Note: Enable "vertical only" or "horizontal only" movement
-    // by the third and
-    // forth boolean arguments
-    ////////////////////////////////////////////////////////////////////////////////
+    /**
+     * @brief
+     * Profile A: The Arcade Controller (Pokemon, Zelda, Pac-Man).
+     * Sets velocity directly from stick position for instant response and
+     * instant stops. Enable "vertical only" or "horizontal only" movement
+     * with the third and fourth boolean arguments.
+     *
+     * @scope: PULSE_ON_GAMESCENE
+     * @param body_name body identifier string
+     * @param max_speed maximum velocity in world units per second
+     * @param vertical_only restrict movement to the Y axis
+     * @param horizontal_only restrict movement to the X axis
+     * @return
+     */
     PULSE2D_INLINE void set_arcade_directional_control(const char* body_name,
         float max_speed,
         bool vertical_only = false,
@@ -126,13 +131,26 @@ struct Runtime
         execute_scene([&](auto& scene) {
             auto& _body = scene.get_body(body_name);
             pulse2d::gamepad::util::apply_arcade_movement(_body,
-                pad.get_state(),
+                gamepad_hal.pad->get_state(),
                 max_speed,
                 vertical_only,
                 horizontal_only);
         });
     }
 
+    /**
+     * @brief
+     * Profile A (inverted): Arcade controller with Y axis flipped.
+     * Identical to set_arcade_directional_control but applies
+     * apply_inverted_arcade_movement - stick up moves the body downward.
+     *
+     * @scope: PULSE_ON_GAMESCENE
+     * @param body_name body identifier string
+     * @param max_speed maximum velocity in world units per second
+     * @param vertical_only restrict movement to the Y axis
+     * @param horizontal_only restrict movement to the X axis
+     * @return
+     */
     PULSE2D_INLINE void set_arcade_directional_inverted_control(
         const char* body_name,
         float max_speed,
@@ -142,35 +160,46 @@ struct Runtime
         execute_scene([&](auto& scene) {
             auto& _body = scene.get_body(body_name);
             pulse2d::gamepad::util::apply_inverted_arcade_movement(_body,
-                pad.get_state(),
+                gamepad_hal.pad->get_state(),
                 max_speed,
                 vertical_only,
                 horizontal_only);
         });
     }
 
-    ////////////////////////////////////////////////////////////////////////////////
-    // Profile B: The Momentum Controller (Asteroids, Mario).
-    // @scope: PULSE2D_ON_GAMESCENE
-    // Applies a thrust force scaled by acceleration each frame - velocity
-    // builds up over time.
-    ////////////////////////////////////////////////////////////////////////////////
+    /**
+     * @brief
+     * Profile B: The Momentum Controller (Asteroids, Mario).
+     * Applies a thrust force scaled by acceleration each frame - velocity
+     * builds up over time. Pair with set_sliding_friction_directional_control
+     * to prevent indefinite sliding.
+     *
+     * @scope: PULSE_ON_GAMESCENE
+     * @param body_name body identifier string
+     * @param acceleration force magnitude applied per frame
+     * @return
+     */
     PULSE2D_INLINE void set_dynamic_directional_control(const char* body_name,
         float acceleration)
     {
         execute_scene([&](auto& scene) {
             auto& _body = scene.get_body(body_name);
             pulse2d::gamepad::util::apply_dynamic_thrust(
-                _body, pad.get_state(), acceleration);
+                _body, gamepad_hal.pad->get_state(), acceleration);
         });
     }
 
-    ////////////////////////////////////////////////////////////////////////////////
-    // Profile C: Top-Down Friction. Applies linear drag to the body each frame.
-    // @scope: PULSE2D_ON_GAMESCENE
-    // Pair with set_dynamic_directional_control so the body doesn't slide
-    // forever.
-    ////////////////////////////////////////////////////////////////////////////////
+    /**
+     * @brief
+     * Profile C: Top-Down Friction. Applies linear drag to the body each frame.
+     * Pair with set_dynamic_directional_control so the body doesn't slide
+     * forever.
+     *
+     * @scope: PULSE_ON_GAMESCENE
+     * @param body_name body identifier string
+     * @param drag_amount drag coefficient applied per frame (0.0 = no drag)
+     * @return
+     */
     PULSE2D_INLINE void set_sliding_friction_directional_control(
         const char* body_name,
         float drag_amount)
@@ -180,7 +209,6 @@ struct Runtime
             pulse2d::gamepad::util::apply_linear_drag(_body, drag_amount);
         });
     }
-#endif
 
     ///////////////
     // Animation //
@@ -191,7 +219,7 @@ struct Runtime
      * Advance the animator's frame accumulator and mutate the sprite's
      * flash_data pointer to the current frame.
      *
-     * @scope: PULSE2D_ON_GAMESCENE
+     * @scope: PULSE_ON_GAMESCENE
      * @param animator_inst Sprite_Animator instance
      * @param sprite_name named sprite to update
      * @return
@@ -210,7 +238,7 @@ struct Runtime
      * Register a VFX animation definition in the current scene's animation
      * manager.
      *
-     * @scope: PULSE2D_ON_GAMESCENE_START
+     * @scope: PULSE_ON_GAMESCENE_START
      * @param anim_name animation identifier
      * @param data_ptr pointer to the flash sprite sheet array
      * @param width frame width in pixels
@@ -239,7 +267,7 @@ struct Runtime
      * Plays once and is removed automatically. Silently dropped if the queue
      * is full.
      *
-     * @scope: PULSE2D_ON_GAMESCENE
+     * @scope: PULSE_ON_GAMESCENE
      * @param anim_name animation identifier registered with tick_animation
      * @param pos_x screen x position in pixels
      * @param pos_y screen y position in pixels
@@ -267,7 +295,7 @@ struct Runtime
      * Advance and draw all active VFX animations. Call after game objects
      * but before render().
      *
-     * @scope: PULSE2D_ON_GAMESCENE
+     * @scope: PULSE_ON_GAMESCENE
      * @return
      */
     PULSE2D_INLINE void tick_vfx()
@@ -287,7 +315,7 @@ struct Runtime
      * Conditional block that executes when at least one collision is active
      * in the physics world.
      *
-     * @scope: PULSE2D_ON_GAMESCENE
+     * @scope: PULSE_ON_GAMESCENE
      * @return
      */
     PULSE2D_INLINE bool objects_collided() { return !world->arbiters.empty(); }
@@ -297,7 +325,7 @@ struct Runtime
      * Iterate all active arbiters and call action when either body in a pair
      * matches the named body.
      *
-     * @scope: PULSE2D_ON_GAMESCENE
+     * @scope: PULSE_ON_GAMESCENE
      * @param body_name body identifier (looked up by name in current scene)
      * @param action callable invoked on match
      * @return
@@ -326,7 +354,7 @@ struct Runtime
      * Use inside render_pool lambdas where a pointer is already in scope.
      * Passes the other body pointer to action.
      *
-     * @scope: PULSE2D_ON_GAMESCENE
+     * @scope: PULSE_ON_GAMESCENE
      * @param target_body body pointer to match against each arbiter entry
      * @param action callable (lambda) invoked on match
      * @return
@@ -354,7 +382,7 @@ struct Runtime
      * Fire action when a single arbiter holds exactly the two given body
      * pointers (in either slot).
      *
-     * @scope: PULSE2D_ON_GAMESCENE
+     * @scope: PULSE_ON_GAMESCENE
      * @param target_a first body pointer
      * @param target_b second body pointer
      * @param action callable (lambda) invoked on match
@@ -389,7 +417,7 @@ struct Runtime
      * Add a parallax scrolling layer to the current scene. Layers are drawn
      * in the order they are added.
      *
-     * @scope: PULSE2D_ON_GAMESCENE_START
+     * @scope: PULSE_ON_GAMESCENE_START
      * @param sprite_name named sprite to use as the layer
      * @param width image width in pixels (used to wrap the scroll offset)
      * @param speed scroll speed in pixels per second
@@ -409,7 +437,7 @@ struct Runtime
      * @brief
      * Add a static (non-scrolling) background layer to the current scene.
      *
-     * @scope: PULSE2D_ON_GAMESCENE_START
+     * @scope: PULSE_ON_GAMESCENE_START
      * @param sprite_name named sprite to use as the layer
      * @param width image width in pixels
      * @return
@@ -431,7 +459,7 @@ struct Runtime
      * @brief
      * Initialize a named kinematic pool with a body descriptor template.
      *
-     * @scope: PULSE2D_ON_GAMESCENE_START
+     * @scope: PULSE_ON_GAMESCENE_START
      * @param pool_name pool identifier string
      * @param desc Body_Descriptor initializer
      * @return
@@ -450,7 +478,7 @@ struct Runtime
      * Spawn an object from the pool at the given position and velocity.
      * Rate-limited by delay - ignored if called before delay ms has elapsed.
      *
-     * @scope: PULSE2D_ON_GAMESCENE
+     * @scope: PULSE_ON_GAMESCENE
      * @param pool_name pool identifier string
      * @param delay minimum milliseconds between spawns
      * @param pos_x initial world x position
@@ -482,7 +510,7 @@ struct Runtime
      * Release a pooled body and return its memory to the pool.
      * Removes the body from the physics world.
      *
-     * @scope: PULSE2D_ON_GAMESCENE
+     * @scope: PULSE_ON_GAMESCENE
      * @param pool_name pool identifier string
      * @param body_ref pointer to the body to release
      * @return
@@ -501,7 +529,7 @@ struct Runtime
      * Iterate over all active objects in a pool and execute an action for each.
      * Iterates in reverse to allow safe despawning during iteration.
      *
-     * @scope: PULSE2D_ON_GAMESCENE
+     * @scope: PULSE_ON_GAMESCENE
      * @param pool_name pool identifier string
      * @param action lambda receiving a Body* for each active object
      * @return
@@ -527,7 +555,7 @@ struct Runtime
      * Register a flash-resident sprite array as a named sprite in the current
      * scene's pool.
      *
-     * @scope: PULSE2D_ON_GAMESCENE_START
+     * @scope: PULSE_ON_GAMESCENE_START
      * @param name sprite identifier string
      * @param data_ptr pointer to the flash RGB565 pixel array
      * @param w sprite width in pixels
@@ -548,7 +576,7 @@ struct Runtime
      * Project a named body to screen coordinates and queue its sprite for
      * rendering.
      *
-     * @scope: PULSE2D_ON_GAMESCENE
+     * @scope: PULSE_ON_GAMESCENE
      * @param body_name named body identifier string
      * @param sprite_name named sprite identifier string
      * @return
@@ -587,7 +615,7 @@ struct Runtime
      * Like draw, but takes a body pointer instead of a name.
      * Use inside render_pool lambdas.
      *
-     * @scope: PULSE2D_ON_GAMESCENE
+     * @scope: PULSE_ON_GAMESCENE
      * @param body_ptr pointer to the body
      * @param sprite_name named sprite identifier string
      * @return
@@ -625,7 +653,7 @@ struct Runtime
      * Allocate an immovable body in the current scene's pool and register it
      * with the physics world.
      *
-     * @scope: PULSE2D_ON_GAMESCENE_START
+     * @scope: PULSE_ON_GAMESCENE_START
      * @param name body identifier string
      * @param desc Body_Descriptor initializer
      * @return
@@ -643,7 +671,7 @@ struct Runtime
      * @brief
      * Allocate a body for player or externally driven objects.
      *
-     * @scope: PULSE2D_ON_GAMESCENE_START
+     * @scope: PULSE_ON_GAMESCENE_START
      * @param name body identifier string
      * @param desc Body_Descriptor initializer
      * @return
@@ -661,7 +689,7 @@ struct Runtime
      * @brief
      * Allocate a fully simulated dynamic body and register it with the world.
      *
-     * @scope: PULSE2D_ON_GAMESCENE_START
+     * @scope: PULSE_ON_GAMESCENE_START
      * @param name body identifier string
      * @param desc Body_Descriptor initializer
      * @return
@@ -680,7 +708,7 @@ struct Runtime
      * @brief
      * Return a reference to a named body from the current scene.
      *
-     * @scope: PULSE2D_ON_GAMESCENE
+     * @scope: PULSE_ON_GAMESCENE
      * @param name body identifier string
      * @return graphics::Body&
      */
@@ -695,7 +723,7 @@ struct Runtime
      * @brief
      * Load a sprite into the current scene's pool from the SD card.
      *
-     * @scope: PULSE2D_ON_GAMESCENE_START
+     * @scope: PULSE_ON_GAMESCENE_START
      * @param name sprite identifier string
      * @param path sprite absolute path on sd card
      * @param w sprite width

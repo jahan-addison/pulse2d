@@ -39,15 +39,13 @@ using pulse2d_arbiter = pulse2d::graphics::Arbiter;
 using pulse2d_joint = pulse2d::graphics::Joint;
 
 // Portable primitive aliases - useful for pool lambda parameters and state.
-using p_bool = bool;
-using p_float = float;
 
-using p_uint32 = uint32_t;
-using p_uint16 = uint16_t;
-using p_uint8 = uint8_t;
-using p_int32 = int32_t;
-using p_int16 = int16_t;
-using p_int8 = int8_t;
+using p_ui32 = uint32_t;
+using p_ui16 = uint16_t;
+using p_ui8 = uint8_t;
+using p_i32 = int32_t;
+using p_i16 = int16_t;
+using p_i8 = int8_t;
 
 //////////////////
 // Math helpers //
@@ -164,7 +162,7 @@ namespace pulse2d_math = pulse2d::graphics::math;
  * @brief
  * Clear the physics world and storage, then enter and register the given scene.
  *
- * @scope: PULSE2D_ON_GAMESTART, PULSE2D_ON_GAMESCENE
+ * @scope: PULSE_ON_GAMESCENE, PULSE_ON_GAMESCENE
  * @param scene scene type to transition into
  * @return
  */
@@ -181,7 +179,7 @@ namespace pulse2d_math = pulse2d::graphics::math;
  * @brief
  * Defer transition to another scene until the end of the current scene tick.
  *
- * @scope: PULSE2D_ON_GAMESCENE
+ * @scope: PULSE_ON_GAMESCENE
  * @param to scene type to transition into
  * @return
  */
@@ -211,9 +209,9 @@ namespace pulse2d_math = pulse2d::graphics::math;
 /**
  * @brief
  * Call the active scene's per-frame function, then resolve any pending
- * scene transition. The only call needed in PULSE2D_ON_GAMELOOP.
+ * scene transition. The only call needed in PULSE_ON_GAMELOOP.
  *
- * @scope: PULSE2D_ON_GAMELOOP
+ * @scope: PULSE_ON_GAMELOOP
  * @return
  */
 #define PULSE_TICK_GAMESCENE()               \
@@ -226,34 +224,26 @@ namespace pulse2d_math = pulse2d::graphics::math;
         }                                    \
     } while (0)
 
-/////////////
-// Gamepad //
-/////////////
-
 /**
- * @brief
- * Initialize the Seesaw gamepad hardware over I2C.
  *
- * @scope: PULSE2D_ON_GAMESTART
+ * @brief
+ * Enable and initialize the Seesaw gamepad hardware over I2C.
+ *
+ * @scope: PULSE_ON_GAMESTART
  * @return
  */
-PULSE2D_INLINE void start_seesaw_gamepad()
-{
-    if (!pad.init()) {
-        Serial.println("[ERROR]: Seesaw Gamepad Failed!");
-    }
-}
+#define PULSE_ENABLE_SEESAW_GAMEPAD() gamepad_hal.start()
 
 /**
  * @brief
  * Poll all inputs for the current frame, and brings gamepad_state into scope.
  *
- * @scope: PULSE2D_ON_GAMESCENE
+ * @scope: PULSE_ON_GAMESCENE
  * @return
  */
 #define PULSE_POLL_SEESAW_GAMEPAD() \
-    pad.poll();                     \
-    [[maybe_unused]] auto& gamepad_state = pad.get_state()
+    gamepad_hal.pad->poll();        \
+    [[maybe_unused]] auto& gamepad_state = gamepad_hal.pad->get_state();
 
 // Button bitmask constants mapped to the physical PCB layout
 #define SEESAW_A pulse2d::gamepad::Seesaw_Buttons::A
@@ -267,7 +257,7 @@ PULSE2D_INLINE void start_seesaw_gamepad()
  * @brief
  * Raw analog stick X axis, normalized -1.0f to +1.0f.
  *
- * @scope: PULSE2D_ON_GAMESCENE
+ * @scope: PULSE_ON_GAMESCENE
  * @return
  */
 #define SEESAW_DIRECTIONAL_X_INPUT() gamepad_state.stick_x
@@ -276,7 +266,7 @@ PULSE2D_INLINE void start_seesaw_gamepad()
  * @brief
  * Raw analog stick Y axis, normalized -1.0f to +1.0f.
  *
- * @scope: PULSE2D_ON_GAMESCENE
+ * @scope: PULSE_ON_GAMESCENE
  * @return
  */
 #define SEESAW_DIRECTIONAL_Y_INPUT() gamepad_state.stick_y
@@ -285,7 +275,7 @@ PULSE2D_INLINE void start_seesaw_gamepad()
  * @brief
  * True when the analog stick exceeds 0.5 magnitude leftward.
  *
- * @scope: PULSE2D_ON_GAMESCENE
+ * @scope: PULSE_ON_GAMESCENE
  * @return
  */
 #define SEESAW_DIRECTION_IS_LEFT() (gamepad_state.stick_x < -0.5f)
@@ -294,7 +284,7 @@ PULSE2D_INLINE void start_seesaw_gamepad()
  * @brief
  * True when the analog stick exceeds 0.5 magnitude rightward.
  *
- * @scope: PULSE2D_ON_GAMESCENE
+ * @scope: PULSE_ON_GAMESCENE
  * @return
  */
 #define SEESAW_DIRECTION_IS_RIGHT() (gamepad_state.stick_x > 0.5f)
@@ -303,7 +293,7 @@ PULSE2D_INLINE void start_seesaw_gamepad()
  * @brief
  * True when the analog stick exceeds 0.5 magnitude upward.
  *
- * @scope: PULSE2D_ON_GAMESCENE
+ * @scope: PULSE_ON_GAMESCENE
  * @return
  */
 #define SEESAW_DIRECTION_IS_UP() (gamepad_state.stick_y < -0.5f)
@@ -312,7 +302,7 @@ PULSE2D_INLINE void start_seesaw_gamepad()
  * @brief
  * True when the analog stick exceeds 0.5 magnitude downward.
  *
- * @scope: PULSE2D_ON_GAMESCENE
+ * @scope: PULSE_ON_GAMESCENE
  * @return
  */
 #define SEESAW_DIRECTION_IS_DOWN() (gamepad_state.stick_y > 0.5f)
@@ -321,7 +311,7 @@ PULSE2D_INLINE void start_seesaw_gamepad()
  * @brief
  * True while the named button is held.
  *
- * @scope: PULSE2D_ON_GAMESCENE
+ * @scope: PULSE_ON_GAMESCENE
  * @param NAME button constant (SEESAW_A, SEESAW_B, ...)
  * @return
  */
@@ -374,7 +364,7 @@ PULSE2D_INLINE void start_seesaw_gamepad()
  * Load an animation definition into a running animator.
  * Resets the accumulator and plays from frame 0.
  *
- * @scope: PULSE2D_ON_GAMESCENE
+ * @scope: PULSE_ON_GAMESCENE
  * @param animator_inst Sprite_Animator instance
  * @param anim_def Animation_Def to play
  * @return
@@ -393,7 +383,7 @@ PULSE2D_INLINE void register_animation(pulse2d::Sprite_Animator& animator_inst,
  * coords.x and coords.y. Apply to_int16() when doing arithmetic on the fields
  * before passing to PULSE2D_PLAY_VFX.
  *
- * @scope: PULSE2D_ON_GAMESCENE
+ * @scope: PULSE_ON_GAMESCENE
  * @param body_ptr pointer to the body
  * @return Renderer::Screen with int16_t x and y pixel coordinates
  */
@@ -434,7 +424,7 @@ inline void etl_serial_error_handler(etl::exception const& e)
  * Print stack usage to serial every 300 frames (~5 seconds at 60 fps).
  * Compiled away in non-debug builds.
  *
- * @scope: PULSE2D_ON_GAMESCENE
+ * @scope: PULSE_ON_GAMESCENE
  * @return
  */
 PULSE2D_INLINE void pulse_print_stacksize()
@@ -449,7 +439,7 @@ PULSE2D_INLINE void pulse_print_stacksize()
  * Register a Serial callback for ETL assertion failures.
  * Compiled away in non-debug builds.
  *
- * @scope: PULSE2D_ON_GAMESTART
+ * @scope: PULSE_ON_GAMESCENE
  * @return
  */
 PULSE2D_INLINE void pulse_register_etl_error_handler()

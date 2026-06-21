@@ -165,7 +165,7 @@ PULSE_ON_GAMESTART()
     Serial.begin(115200);
     pulse_register_etl_error_handler();
     my_game.init(0.0f, 0.0f, 10);
-    start_seesaw_gamepad();
+    PULSE_ENABLE_SEESAW_GAMEPAD();
     PULSE_SET_SCENE(my_game, Space_Shooter);
 }
 
