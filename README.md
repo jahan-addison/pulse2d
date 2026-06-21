@@ -13,19 +13,13 @@
 
 The Teensy 4.1 is a microcontroller development board based on the NXP i.MX RT1062, an ARM Cortex-M7 running at up to 600 MHz. `pulse2d` enables you to turn the microcontroller into a 2D game platform with a display and controller, as it has hardware floating-point, a dedicated SPI bus, and a built-in SDIO SD card slot. 🎮
 
-The project includes a small sample game for SDL and the teensy hardware.
-
 The pilot game, [asterisk](https://github.com/jahan-addison/asterisk), is a feature complete space-shooter using the pulse2d engine. It is **recommended as a starting point for development of new games**.
 
 Check out the [blog series](https://soliloq.uy/tag/pulse2d/)!
 
 ### Demo:
 
-
-
-https://github.com/user-attachments/assets/c7228398-1c1f-420d-8f21-ef61b2a3978b
-
-
+![gif](/docs/demo/Asterisk%20Game%20Demo%20V1-GIF.gif)
 
 ## Hardware
 
@@ -35,7 +29,7 @@ The recommended hardware for game development with **no soldering required**:
 - [Teensy 4.1](https://www.pjrc.com/store/teensy41.html): Primary microcontroller
 - [ILI9341 TFT Display](https://www.pjrc.com/store/display_ili9341_touch.html): 320x240 RGB565 display via SPI
 - [MicroSD card](https://www.amazon.com/dp/B0B7NV73PJ?ref_=ppx_hzsearch_conn_dt_b_fed_asin_title_4): Sprite and asset storage via the built-in SDIO slot
-- [Adafruit Seesaw Gamepad QT](https://www.adafruit.com/product/5743): I2C gamepad with analog thumbstick and 6 buttons
+- [Seesaw Gamepad QT](https://www.adafruit.com/product/5743): I2C gamepad with analog thumbstick and 6 buttons
 
 ---
 
@@ -73,8 +67,8 @@ PULSE_DEFINE_SCENE(Space_Shooter, 20, 6);
 PULSE_INIT_GAME(my_game, Space_Shooter);
 
 PULSE_DEFINE int score = 0;
+PULSE_DEFINE int cooldown = 0;
 PULSE_DEFINE bool enemy_hit = false;
-PULSE_DEFINE uint32_t cooldown = 0;
 
 PULSE_ON_GAMESCENE_START(Space_Shooter)
 {
@@ -108,6 +102,7 @@ PULSE_ON_GAMESCENE_START(Space_Shooter)
 PULSE_ON_GAMESCENE(Space_Shooter)
 {
     my_game.tick();
+
     PULSE_POLL_SEESAW_GAMEPAD();
 
     my_game.render_backgrounds();
@@ -117,6 +112,7 @@ PULSE_ON_GAMESCENE(Space_Shooter)
 
     if (cooldown > 0)
         cooldown--;
+
     if (SEESAW_BUTTON_INPUT(SEESAW_A) && cooldown == 0) {
         my_game.spawn("bullets",
             100,
@@ -152,6 +148,7 @@ PULSE_ON_GAMESCENE(Space_Shooter)
     }
 
     my_game.draw("ship_object", "ship_sprite");
+
     if (!enemy_hit) {
         my_game.draw("enemy_object", "enemy_sprite");
     }
@@ -164,8 +161,11 @@ PULSE_ON_GAMESTART()
 {
     Serial.begin(115200);
     pulse_register_etl_error_handler();
+
     my_game.init(0.0f, 0.0f, 10);
+
     PULSE_ENABLE_SEESAW_GAMEPAD();
+
     PULSE_SET_SCENE(my_game, Space_Shooter);
 }
 
