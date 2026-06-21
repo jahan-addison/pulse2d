@@ -23,7 +23,7 @@ Check out the [blog series](https://soliloq.uy/tag/pulse2d/)!
 
 
 
-https://github.com/user-attachments/assets/c17d19ef-d7f9-45c4-8563-98ffed3ee73e
+https://github.com/user-attachments/assets/c7228398-1c1f-420d-8f21-ef61b2a3978b
 
 
 
