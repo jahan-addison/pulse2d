@@ -145,7 +145,7 @@ Declares a hardware-deferred type for late initialization. Used internally. You 
 PULSE2D_START_PULSE();
 ```
 
-Declares the two function pointers that drive scene dispatch: `pending_transition` and `active_scene_fn`. Place this at file scope, once per game.
+Declares the two function pointers that drive scene dispatch: `pending_transition` and `active_scene_fn`. In addition, it also exposes the runtime namespace. Place this at file scope, once per game.
 
 **Scope:** `global`
 
@@ -459,6 +459,9 @@ if (SEESAW_DIRECTION_IS_LEFT() || SEESAW_DIRECTION_IS_RIGHT()) {
 
 The DSL provides compile-time animation blueprints and persistent animator instances. These are the _definition_ side; the _playback_ side is on the Runtime (see [Animations (Runtime)](#animations-runtime)).
 
+
+Note that you can use the [animation2header](/tools/animation2header) tool to build an animation sheet.
+
 ---
 
 #### PULSE_DEFINE_ANIMATOR
@@ -491,7 +494,8 @@ Defines an immutable animation blueprint as a `static constexpr Animation_Def`. 
 **Scope:** `global`
 
 ```cpp
-#include "../include/player-anim.h"  // idle_frames[], walk_frames[]
+#include "../include/player-idle-anim.h"  // idle_frames[],
+#include "../include/player-walk-anim.h"  // walk_frames[],
 
 PULSE_ANIMATION_DEFINITION(anim_idle, idle_frames, 32, 48, 4, 8);
 PULSE_ANIMATION_DEFINITION(anim_walk, walk_frames, 32, 48, 6, 12);

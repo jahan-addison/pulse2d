@@ -54,6 +54,7 @@
  *
  ****************************************************************************/
 
+#include <concepts>
 #include <etl/array.h>
 #include <etl/error_handler.h>
 #include <etl/map.h>
@@ -77,7 +78,10 @@
 
 static constexpr float PULSE = 1.0f / 60.0f;
 
+namespace pulse2d::runtime {
+
 template<typename... Scenes>
+requires std::derived_from<Scenes..., pulse2d::Pulse2d_Scene_Base>
 struct Runtime
 {
 
@@ -87,6 +91,7 @@ struct Runtime
     static inline std::variant<std::monostate, Scenes...> current_scene;
 
     template<typename Func>
+    requires std::invocable<Func>
     static PULSE2D_INLINE void execute_scene(Func&& func)
     {
         std::visit(
@@ -378,6 +383,7 @@ struct Runtime
      * @return
      */
     template<typename Func>
+    requires std::invocable<Func>
     PULSE2D_INLINE void on_collision_with(const char* body_name, Func&& action)
     {
         execute_scene([&](auto& scene) {
@@ -407,6 +413,7 @@ struct Runtime
      * @return
      */
     template<typename Func>
+    requires std::invocable<Func>
     PULSE2D_INLINE void on_collision_with_body(
         pulse2d::graphics::Body* target_body,
         Func&& action)
@@ -436,6 +443,7 @@ struct Runtime
      * @return
      */
     template<typename Func>
+    requires std::invocable<Func>
     PULSE2D_INLINE void on_collision(pulse2d::graphics::Body* target_a,
         pulse2d::graphics::Body* target_b,
         Func&& action)
@@ -582,6 +590,7 @@ struct Runtime
      * @return
      */
     template<typename Func>
+    requires std::invocable<Func>
     PULSE2D_INLINE void render_pool(const char* pool_name, Func&& action)
     {
         execute_scene([&](auto& scene) {
@@ -787,5 +796,7 @@ struct Runtime
         });
     }
 };
+
+} // namespace runtime
 
 #endif

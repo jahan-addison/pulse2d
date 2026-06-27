@@ -36,7 +36,7 @@
  *   Pulse2d_Scene_Animation      - VFX animation manager (one-shot instances)
  *   Pulse2d_Scene_Kinematic_Pool - named pre-allocated object pools
  *   Pulse2d_Scene_Background     - parallax layer manager
- *   Pulse2d_Scene_Base           - aggregate and body, sprite pools
+ *   Pulse2d_Scene_Base           - aggregate type and body, sprite pools
  *   Pulse2d_Scene                - Scene type with compile-time guards
  *
  * You do not use any of these types directly in game code.

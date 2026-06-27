@@ -12,13 +12,10 @@
  *
  * Macros and inline free functions that form the structural skeleton of a
  * pulse2d game. The DSL handles everything that belongs at file scope or
- * that does not require the engine or physics world at the call site:
- * type aliases, lifecycle hooks, scene declarations, animation blueprints,
- * gamepad input, coordinate helpers, and debug utilities.
+ * that does not require the engine or physics world:
  *
- * All content is gated behind #if defined(PULSE2D_TEENSY). On host
- * the same source compiles against the SDL2 backend via pulse2d.h, and
- * the DSL layer is not active.
+ * Type aliases, lifecycle hooks, scene declarations, animation blueprints,
+ * gamepad input, coordinate helpers, and debug utilities.
  *
  * A minimal game skeleton looks like this:
  *
@@ -52,7 +49,9 @@
  *       PULSE_SET_SCENE(my_game, Level_One);
  *   }
  *
- *   PULSE_ON_GAMELOOP() { PULSE_TICK_GAMESCENE(); }
+ *   PULSE_ON_GAMELOOP() {
+ *     PULSE_TICK_GAMESCENE();
+ *   }
  *
  ****************************************************************************/
 
@@ -184,7 +183,8 @@ namespace pulse2d_math = pulse2d::graphics::math;
  */
 #define PULSE2D_START_PULSE()               \
     void (*pending_transition)() = nullptr; \
-    void (*active_scene_fn)() = nullptr;
+    void (*active_scene_fn)() = nullptr;    \
+    using namespace pulse2d::runtime
 
 ////////////
 // Scenes //
@@ -427,10 +427,6 @@ PULSE2D_INLINE void register_animation(pulse2d::Sprite_Animator& animator_inst,
 /**
  * @brief
  * Project a physics body's world-space position to screen pixel coordinates.
- * Returns a Renderer::Screen {int16_t x, int16_t y} struct. Use as an
- * expression: auto coords = PULSE2D_BODY_COORDINATES(ptr); then access
- * coords.x and coords.y. Apply to_int16() when doing arithmetic on the fields
- * before passing to PULSE2D_PLAY_VFX.
  *
  * @scope: PULSE_ON_GAMESCENE
  * @param body_ptr pointer to the body
