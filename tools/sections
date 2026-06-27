@@ -25,11 +25,20 @@ from typing import Optional
 
 
 _REGIONS = [
-    (0x60000000, 0x60000000 + 8 * 1024 * 1024, "FLASH"),
-    (0x20000000, 0x20000000 + 512 * 1024,       "DTCM"),
-    (0x20200000, 0x20200000 + 512 * 1024,       "RAM"),
-    (0x70000000, 0x70000000 + 32 * 1024 * 1024, "ERAM"),
+    (0x60000000, 0x60000000 + 8 * 1024 * 1024,  "FLASH"),
+    (0x20000000, 0x20000000 + 512 * 1024,        "DTCM"),
+    (0x20200000, 0x20200000 + 512 * 1024,        "RAM"),
+    (0x70000000, 0x70000000 + 32 * 1024 * 1024,  "ERAM"),
+    (0x00000000, 0x00000000 + 512 * 1024,        "ITCM"),
 ]
+
+_REGION_CAPACITY = {
+    "FLASH": 8 * 1024 * 1024,
+    "DTCM":  512 * 1024,
+    "RAM":   512 * 1024,
+    "ERAM":  32 * 1024 * 1024,
+    "ITCM":  512 * 1024,
+}
 
 _ELF_MAGIC  = b"\x7fELF"
 _SHF_ALLOC  = 0x2
@@ -48,6 +57,7 @@ _REGION_COLOR = {
     "DTCM":  _YELLOW,
     "RAM":   _CYAN,
     "ERAM":  _DIM,
+    "ITCM":  _CYAN,
     "?":     _RED,
 }
 
@@ -248,22 +258,29 @@ class Section_Table:
             print("(no sections above threshold)")
             return
 
+        all_by_region: dict[str, list[Section]] = defaultdict(list)
+        for s in self.sections:
+            all_by_region[self._region(s.vma)].append(s)
+
         by_region: dict[str, list[Section]] = defaultdict(list)
         for s in visible:
             by_region[self._region(s.vma)].append(s)
 
-        order    = ["FLASH", "DTCM", "RAM", "ERAM", "?"]
+        order    = ["FLASH", "DTCM", "RAM", "ERAM", "ITCM", "?"]
         col_name = max(max(len(s.name) for s in visible), 7)
 
         for region in order:
             if region not in by_region:
                 continue
             group = sorted(by_region[region], key=lambda s: s.vma)
-            total = sum(s.size for s in group)
+            total = sum(s.size for s in all_by_region[region])
             color = _REGION_COLOR.get(region, "")
 
+            cap     = _REGION_CAPACITY.get(region)
+            cap_str = (f"{cap // (1024 * 1024)} MB" if cap and cap >= 1024 * 1024
+                       else f"{cap // 1024} KB" if cap else "?")
             print(f"\n{_BOLD}{color}── {region}{_RESET}  "
-                  f"{_DIM}(total: {total:,} bytes  /  {total / 1024:.1f} KB){_RESET}")
+                  f"{_DIM}(total: {cap_str}, {total:,} bytes in use){_RESET}")
             print(f"  {_DIM}{'SECTION':<{col_name}}  {'VMA':>10}  {'LMA':>10}  "
                   f"{'SIZE':>22}  TYPE{_RESET}")
             print(f"  {_DIM}{'-' * col_name}  {'----------':>10}  {'----------':>10}  "

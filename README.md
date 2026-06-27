@@ -335,15 +335,15 @@ The gamepad driver targets the [Adafruit Seesaw Gamepad QT](https://www.adafruit
 
 ## Assets
 
-Python tools for converting PNG assets are in `tools/` - both require [Pillow](https://pillow.readthedocs.io/).
+Python tools for converting PNG assets are in `tools/`. All three require [Pillow](https://pillow.readthedocs.io/).
 
-- `png2bin` - converts a PNG to the raw RGB565 binary format read by `Storage::load_sprite` on Teensy. Use this for game-object sprites (ships, enemies, projectiles) that are loaded from the SD card at runtime. Transparent pixels become `0xF81F` (magenta chroma-key).
+- `png2bin` - converts a PNG to the raw RGB565 binary format read by `Storage::load_sprite` on Teensy. Use this for sprites (ships, enemies, projectiles) loaded from the SD card at runtime. Transparent pixels become `0xF81F` (magenta chroma-key).
 
   ```bash
   tools/png2bin sprite.png sprite.bin 64 64
   ```
 
-- `png2header` - converts a PNG to a C header containing an RGB565 pixel array for use as a full-screen background. Use `PULSE2D_SPRITE_FLASH` and `PULSE2D_ADD_PARALLAX_LAYER` to register the header as a parallax layer. The output file is generated - do not edit it by hand.
+- `png2header` - converts a PNG to a C header containing a flat RGB565 pixel array for use as a parallax background layer. Register the output with `set_sprite_flash` and `add_parallax_layer`. Do not edit the generated file by hand.
 
   ```bash
   tools/png2header background.png include/nebula-bg.h bg_1 320 240
@@ -351,7 +351,7 @@ Python tools for converting PNG assets are in `tools/` - both require [Pillow](h
 
   Generates `bg_1_width`, `bg_1_height`, and `bg_1[320 * 240]`.
 
-- `animation2header` - convert multiple PNGs to a C header containing a contiguous RGB565 pixel array for use as spritesheets.
+- `animation2header` - converts multiple PNGs to a C header containing a contiguous RGB565 pixel array for use as a spritesheet. Pass frames in order; the array is laid out sequentially.
 
   ```bash
   tools/animation2header include/laser-anim.h laser_anim 54 32 laser-sprite1.png laser-sprite2.png laser-sprite3.png
@@ -363,22 +363,23 @@ Python tools for converting PNG assets are in `tools/` - both require [Pillow](h
 
 Debugging tools (no dependencies):
 
-- `sections` - reads a compiled ELF and prints a sorted table of every output section grouped by memory region (FLASH / DTCM / RAM / ERAM), with VMA, LMA, size, and whether the section is copied to RAM at boot or flash-only. Useful for catching oversized `.data` or `.bss` before the linker rejects the binary.
+- `sections` - parses a compiled ELF and prints every allocatable section grouped by memory region (FLASH, DTCM, RAM, ERAM, ITCM), with VMA, LMA, size in bytes, and load type (FLASH-ONLY, LOAD, or NOLOAD). Each region header shows total capacity and bytes in use. Useful for catching oversized `.data` or `.bss` before the linker rejects the binary.
 
   ```bash
   tools/sections build-teensy/asterisk.elf
-  tools/sections build-teensy/asterisk.elf --all
+  tools/sections build-teensy/asterisk.elf --all        # include sections < 64 bytes
   tools/sections build-teensy/asterisk.elf --min-bytes 1024
   # or via make:
   make sections
   make sections SECTIONS_ALL=1
   ```
 
-![img](/docs/tool-sections.png)
+<img width="1266" height="854" alt="image" src="https://github.com/user-attachments/assets/458971e1-0fbf-47d1-9afe-db388e86afc5" />
+
 
 ---
 
-- `ldscript` - parses `imxrt1062_t41.ld` from the active Teensyduino install and prints the MEMORY region table and the output section → region map. The quickest way to answer "which section attribute keeps this array in flash?" without reading the raw linker script.
+- `ldscript` - parses `imxrt1062_t41.ld` from the active Teensyduino install and prints the MEMORY region table and the output section → region map. The fastest way to answer "which section attribute keeps this array in flash?" without reading the raw linker script.
 
   ```bash
   tools/ldscript
