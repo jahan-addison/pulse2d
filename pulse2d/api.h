@@ -52,6 +52,15 @@
  *       my_game.render();
  *   }
  *
+ * Call show_debug_rect() once after init() to enable axis-aligned bounding
+ * box outlines for every body - useful when tuning collision shapes. Turn off
+ * render_backgrounds() in the scene function so the rects are visible:
+ *
+ *   PULSE_ON_GAMESTART() {
+ *       my_game.init(0.0f, 0.0f, 10);
+ *       my_game.show_debug_rect();
+ *   }
+ *
  ****************************************************************************/
 
 #include <concepts>
@@ -81,7 +90,7 @@ static constexpr float PULSE = 1.0f / 60.0f;
 namespace pulse2d::runtime {
 
 template<typename... Scenes>
-requires std::derived_from<Scenes..., pulse2d::Pulse2d_Scene_Base>
+requires(std::derived_from<Scenes, detail::scene_base> && ...)
 struct Runtime
 {
 
@@ -91,7 +100,7 @@ struct Runtime
     static inline std::variant<std::monostate, Scenes...> current_scene;
 
     template<typename Func>
-    requires std::invocable<Func>
+    requires(std::invocable<Func, Scenes&> && ...)
     static PULSE2D_INLINE void execute_scene(Func&& func)
     {
         std::visit(
@@ -119,6 +128,18 @@ struct Runtime
         world.emplace(
             pulse2d::graphics::math::Vec2{ gravity_1, gravity_2 }, solver);
         engine->init();
+    }
+
+    /**
+     * @brief
+     * Rasterize renderer bodies with an axis-aligned bounding box.
+     * Note: Background rendering must be turned off for visibility.
+     * @scope: PULSE_ON_GAMESCENE
+     * @return
+     */
+    PULSE2D_INLINE void show_debug_rect()
+    {
+        engine->renderer().show_debug_rects = true;
     }
 
     /**
@@ -413,7 +434,7 @@ struct Runtime
      * @return
      */
     template<typename Func>
-    requires std::invocable<Func>
+    requires(std::invocable<Func, graphics::Body*>)
     PULSE2D_INLINE void on_collision_with_body(
         pulse2d::graphics::Body* target_body,
         Func&& action)
@@ -443,7 +464,7 @@ struct Runtime
      * @return
      */
     template<typename Func>
-    requires std::invocable<Func>
+    requires(std::invocable<Func>)
     PULSE2D_INLINE void on_collision(pulse2d::graphics::Body* target_a,
         pulse2d::graphics::Body* target_b,
         Func&& action)
@@ -590,7 +611,7 @@ struct Runtime
      * @return
      */
     template<typename Func>
-    requires std::invocable<Func>
+    requires(std::invocable<Func, graphics::Body*>)
     PULSE2D_INLINE void render_pool(const char* pool_name, Func&& action)
     {
         execute_scene([&](auto& scene) {
@@ -736,7 +757,10 @@ struct Runtime
         pulse2d::graphics::detail::Body_Descriptor desc)
     {
         execute_scene([&](auto& scene) {
+            if (desc.mass == 0.0f)
+                desc.mass = 1.0f;
             scene.set(name, desc);
+            scene.get_body(name).set_motion();
             world->add(&scene.get_body(name));
         });
     }

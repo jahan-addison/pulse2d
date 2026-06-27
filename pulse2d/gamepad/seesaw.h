@@ -203,7 +203,9 @@ struct Normalized_Input
 }
 
 // Profile A: The Arcade Controller (Pokémon, Zelda, Pac-Man)
-// Uses Kinematic direct-velocity for instant response and instant stops.
+// Uses a Velocity-Matching Motor (PD Controller) to provide instant
+// response and instant stops, while legally flowing through the Box2D
+// solver so the body does not ghost through static walls.
 template<Physics_Body T>
 inline void apply_arcade_movement(T& body,
     Seesaw_State const& input,
@@ -212,10 +214,21 @@ inline void apply_arcade_movement(T& body,
     bool horizontal_only = false)
 {
     auto stick = get_clamped_stick(input);
-    if (!vertical_only)
-        body.velocity.x = stick.x * max_speed;
-    if (!horizontal_only)
-        body.velocity.y = stick.y * max_speed;
+
+    // Responsiveness multiplier.
+    // At ~60.0f, the force gets the body to max_speed in exactly 1 frame.
+    constexpr float responsiveness = 60.0f;
+
+    if (!vertical_only) {
+        float target_vx = stick.x * max_speed;
+        body.force.x +=
+            (target_vx - body.velocity.x) * responsiveness * body.mass;
+    }
+    if (!horizontal_only) {
+        float target_vy = stick.y * max_speed;
+        body.force.y +=
+            (target_vy - body.velocity.y) * responsiveness * body.mass;
+    }
 }
 
 // Profile A-Inverse: The Inverted Arcade Controller
@@ -227,10 +240,18 @@ inline void apply_inverted_arcade_movement(T& body,
     bool horizontal_only = false)
 {
     auto stick = get_clamped_stick(input);
-    if (!vertical_only)
-        body.velocity.x = stick.x * -max_speed;
-    if (!horizontal_only)
-        body.velocity.y = stick.y * -max_speed;
+    constexpr float responsiveness = 60.0f;
+
+    if (!vertical_only) {
+        float target_vx = stick.x * -max_speed;
+        body.force.x +=
+            (target_vx - body.velocity.x) * responsiveness * body.mass;
+    }
+    if (!horizontal_only) {
+        float target_vy = stick.y * -max_speed;
+        body.force.y +=
+            (target_vy - body.velocity.y) * responsiveness * body.mass;
+    }
 }
 
 // Profile B: The Momentum Controller (Asteroids, Mario)
@@ -253,7 +274,6 @@ inline void apply_linear_drag(T& body, float drag_coefficient)
     body.force.x -= body.velocity.x * drag_coefficient;
     body.force.y -= body.velocity.y * drag_coefficient;
 }
-
 } // namespace util
 
 } // namespace gamepad

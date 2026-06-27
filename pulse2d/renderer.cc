@@ -104,7 +104,7 @@ void Renderer::draw_body(graphics::Body const* body)
     const int hw = static_cast<int>(body->width.x * k_pixels_per_unit * 0.5f);
     const int hh = static_cast<int>(body->width.y * k_pixels_per_unit * 0.5f);
 
-    fill_rect(cx - hw, cy - hh, 2 * hw, 2 * hh, 0xFFFF);
+    fill_rect(cx - hw, cy - hh, 2 * hw, 2 * hh, 0xF800);
 }
 
 /**
@@ -148,16 +148,15 @@ void Renderer::draw_sprite(Sprite const* sprite,
     const float cx = sx + half_w;
     const float cy = sy + half_h;
     // scan radius: half the diagonal so all rotated corners are covered
-    const int radius =
-        static_cast<int>(sqrtf(half_w * half_w + half_h * half_h)) + 1;
+    const float radius = sqrtf(half_w * half_w + half_h * half_h) + 1.0f;
 
-    for (int oy = -radius; oy <= radius; ++oy) {
-        const int screen_y = static_cast<int>(cy) + oy;
+    for (float oy = -radius; oy <= radius; ++oy) {
+        const int screen_y = static_cast<int>(cy + oy);
         if (screen_y < 0 or screen_y >= k_height)
             continue;
 
-        for (int ox = -radius; ox <= radius; ++ox) {
-            const int screen_x = static_cast<int>(cx) + ox;
+        for (float ox = -radius; ox <= radius; ++ox) {
+            const int screen_x = static_cast<int>(cx + ox);
             if (screen_x < 0 or screen_x >= k_width)
                 continue;
 

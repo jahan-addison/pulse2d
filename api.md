@@ -703,6 +703,39 @@ PULSE_ON_GAMESCENE(Space_Level) {
 
 ---
 
+#### show_debug_rect
+
+```cpp
+my_game.show_debug_rect();
+```
+
+Enables axis-aligned bounding box outlines for every body in the scene. Background rendering must be turned off to see them - with backgrounds active the rects are drawn underneath and invisible.
+
+Call once in `PULSE_ON_GAMESTART` after `init()`. The flag persists for the lifetime of the session.
+
+**Scope:** `PULSE_ON_GAMESTART`
+
+```cpp
+PULSE_ON_GAMESTART() {
+    Serial.begin(115200);
+    my_game.init(0.0f, 0.0f, 10);
+    my_game.show_debug_rect();       // enable body outlines
+    PULSE_ENABLE_SEESAW_GAMEPAD();
+    PULSE_SET_SCENE(my_game, Level_One);
+}
+
+// In the scene, comment out render_backgrounds so the rects are visible:
+PULSE_ON_GAMESCENE(Level_One) {
+    my_game.tick();
+    PULSE_POLL_SEESAW_GAMEPAD();
+    // my_game.render_backgrounds();
+    my_game.draw("ship", "ship_sprite");
+    my_game.render();
+}
+```
+
+---
+
 ### Bodies
 
 Bodies are the physical objects in your game. There are three types:
@@ -718,12 +751,14 @@ All three take a `Body_Descriptor`:
     .position = { x, y },      // Vec2: initial position
     .velocity = { vx, vy },    // Vec2: initial velocity
     .force    = { fx, fy },    // Vec2: accumulated force
-    .width    = { w, h },      // Vec2: half-extents
-    .mass     = 1.0f,          // float: 0.0f = infinite mass (static/controlled)
+    .width    = { w, h },      // Vec2: full width and height
+    .mass     = 1.0f,          // float: omit or 0.0f on controlled bodies defaults to 1.0f
     .friction = 0.2f,          // float: coefficient of friction
     .rotation = 0.0f           // float: rotation in radians
 }
 ```
+
+Static bodies are infinite mass by design (no `set_motion` applied). Controlled bodies call `set_motion()` automatically and default `mass` to `1.0f` if unspecified or zero - this allows them to collide correctly against static walls.
 
 ---
 
@@ -756,14 +791,22 @@ my_game.set_static_body("left_wall", {
 my_game.set_controlled_body("name", Body_Descriptor{});
 ```
 
-Allocates a body for player or externally driven objects. `mass = 0` (infinite) so it ignores forces - move it by setting velocity directly.
+Allocates a body for player or externally driven objects. `set_motion()` is called automatically so the body has a finite mass and responds correctly to static wall collisions. If `mass` is unspecified or zero it defaults to `1.0f`. Move it by setting velocity directly via the gamepad control profiles.
 
 **Scope:** `PULSE_ON_GAMESCENE_START`
 
 ```cpp
-my_game.set_controlled_body("player", {
-    .position = { 0.0f, 0.0f },
-    .width    = { 0.5f, 0.75f }
+my_game.set_controlled_body("ship", {
+    .position = { -4.0f, 0.0f },
+    .width    = { 1.0f, 1.0f }
+    // mass defaults to 1.0f
+});
+
+// explicit mass:
+my_game.set_controlled_body("ship", {
+    .position = { -4.0f, 0.0f },
+    .width    = { 1.0f, 1.0f },
+    .mass     = 2.0f
 });
 ```
 
@@ -1234,6 +1277,34 @@ my_game.render_pool("lasers", [&](pulse2d_body* laser) {
 ### Gamepad Controls (Runtime)
 
 Runtime gamepad methods apply movement profiles to a named body using the current gamepad state. Three profiles cover most 2D game genres.
+
+Static bodies (walls, floors, platforms) registered with `set_static_body` interact correctly with all three profiles - the controlled or dynamic body will collide and stop against them without tunnelling or passing through:
+
+```cpp
+PULSE_ON_GAMESCENE_START(Level_One) {
+    my_game.set_controlled_body("ship", {
+        .position = { -4.0f, 0.0f },
+        .width    = { 1.0f, 1.0f },
+        .mass     = 1.0f
+    });
+    my_game.set_static_body("top_wall", {
+        .position = { 0.0f, 4.5f },
+        .width    = { 20.0f, 0.5f }
+    });
+    my_game.set_static_body("bottom_wall", {
+        .position = { 0.0f, -4.5f },
+        .width    = { 20.0f, 0.5f }
+    });
+}
+
+PULSE_ON_GAMESCENE(Level_One) {
+    my_game.tick();
+    PULSE_POLL_SEESAW_GAMEPAD();
+    my_game.set_arcade_directional_control("ship", 5.0f);
+    my_game.draw("ship", "ship_sprite");
+    my_game.render();
+}
+```
 
 ---
 

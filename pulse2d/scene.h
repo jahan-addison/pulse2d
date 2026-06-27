@@ -60,6 +60,11 @@
 
 namespace pulse2d {
 
+namespace detail {
+struct scene_base
+{};
+} // namespace detail
+
 namespace assets {
 
 struct Background_Layer
@@ -353,7 +358,7 @@ struct Pulse2d_Scene_Background
 };
 
 template<std::size_t T_Body, std::size_t T_Sprite, std::size_t T_Joint = 0>
-struct Pulse2d_Scene_Base
+struct Pulse2d_Scene_Base : detail::scene_base
 {
     Pulse2d_Scene_Base() = default;
 
