@@ -51,7 +51,7 @@ Game development in pulse2d is organized into two layers:
 
 * **Core API** - the `Runtime<Scenes...>` struct, which owns the engine, physics world, and active scene. All game actions (draw, spawn, collide, animate, etc.) are methods on this struct.
 
-📖 [See the full API reference here](api.md)
+📖 [See the full API reference here](API.md)
 
 A game that demonstrates most features:
 
@@ -185,7 +185,7 @@ PULSE_ON_GAMELOOP()
 - Gamepad profiles - arcade (instant), momentum (acceleration), and friction movement
 - Debug tools - stack usage tracking and ETL error reporting
 
-See [api.md](api.md) for the complete reference with detailed examples.
+See [API.md](API.md) for the complete reference with detailed examples.
 
 ---
 
