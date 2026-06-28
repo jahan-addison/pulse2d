@@ -23,7 +23,8 @@
 #pragma once
 
 #include "math.h"
-#include <etl/array.h> // for array
+#include <etl/array.h>      // for array
+#include <pulse2d/config.h> // for MAX_PHYSICS_BODIES, ...
 
 /****************************************************************************
  * Arbiter
@@ -172,9 +173,7 @@ struct Arbiter_Key
  */
 struct Arbiter
 {
-    constexpr static std::size_t MAX_POINTS = 2;
-
-    using Contacts = etl::array<Contact, MAX_POINTS>;
+    using Contacts = etl::array<Contact, MAX_CONTACT_POINTS>;
 
     Arbiter(Body* b1, Body* b2);
 

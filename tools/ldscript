@@ -54,7 +54,7 @@ class Linker_Script:
     """Teensy 4.x linker script parser and formatter.
 
     Reads imxrt1062_t41.ld and extracts MEMORY region declarations and
-    output section → region mappings, then renders them as ANSI-coloured
+    output section -> region mappings, then renders them as ANSI-coloured
     tables to stdout.
 
     Args:
@@ -175,7 +175,7 @@ class Linker_Script:
             None
 
         """
-        print(f"\n{_BOLD}── OUTPUT SECTIONS → REGIONS{_RESET}")
+        print(f"\n{_BOLD}── OUTPUT SECTIONS -> REGIONS{_RESET}")
         print(f"  {_DIM}{'SECTION':<24}  {'REGION':<8}  INPUT PATTERNS{_RESET}")
         print(f"  {_DIM}{'-'*24}  {'-'*8}  {'-'*40}{_RESET}")
         for s in self.output_sections():

@@ -449,7 +449,7 @@ sections: $(OUT)/$(GAME_NAME).elf
 	@python3 $(PULSE2D_ROOT)/tools/sections $(OUT)/$(GAME_NAME).elf \
 	  $(if $(SECTIONS_ALL),--all,)
 
-# Print the Teensy linker script memory regions and output section → region map.
+# Print the Teensy linker script memory regions and output section -> region map.
 # Usage:  make ldscript
 .PHONY: ldscript
 ldscript:

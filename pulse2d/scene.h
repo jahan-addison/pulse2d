@@ -91,6 +91,7 @@ struct Animation_Instance
     int16_t y;
     float accumulator = 0.0f;
     uint16_t current_frame = 0;
+    pulse2d::Sprite spr{};
 };
 
 } // namespace assets
@@ -162,16 +163,12 @@ struct Pulse2d_Scene_Animation
                 it = active_animations.erase(it);
             } else {
                 uint32_t pixels_per_frame = it->def->frame_w * it->def->frame_h;
-                const uint16_t* frame_ptr =
-                    it->def->flash_data +
-                    (it->current_frame * pixels_per_frame);
+                it->spr.data = it->def->flash_data +
+                               (it->current_frame * pixels_per_frame);
+                it->spr.width = it->def->frame_w;
+                it->spr.height = it->def->frame_h;
 
-                // create a temporary Sprite to pass to renderer
-                pulse2d::Sprite temp_spr{
-                    frame_ptr, it->def->frame_w, it->def->frame_h
-                };
-
-                renderer.add_sprite(&temp_spr, it->x, it->y);
+                renderer.add_sprite(&it->spr, it->x, it->y);
 
                 ++it;
             }
@@ -232,6 +229,7 @@ class Pulse2d_Scene_Kinematic_Object
         auto* obj = memory_.allocate();
         if (obj != nullptr) {
             obj->set(descriptor_);
+            obj->is_kinematic = true;
             obj->position = { x, y };
             obj->velocity = { vx, vy };
 
@@ -264,6 +262,7 @@ class Pulse2d_Scene_Kinematic_Object
             std::iter_swap(it, active_list_.end() - 1);
             active_list_.pop_back();
 
+            obj->is_kinematic = false;
             memory_.release(obj);
         }
     }
@@ -392,7 +391,7 @@ class Pulse2d_Scene : public Pulse2d_Scene_Base<T_Body, T_Sprite, T_Joint>
   public:
     static_assert(T_Body <= MAX_PHYSICS_BODIES,
         "T_Body exceeds MAX_PHYSICS_BODIES");
-    static_assert(T_Body <= MAX_LOADED_SPRITES,
+    static_assert(T_Sprite <= MAX_LOADED_SPRITES,
         "T_Sprite exceeds MAX_LOADED_SPRITES");
     static_assert(T_Joint <= MAX_PHYSICS_JOINTS,
         "T_Joint exceeds MAX_PHYSICS_JOINTS");
@@ -411,7 +410,7 @@ class Pulse2d_Scene : public Pulse2d_Scene_Base<T_Body, T_Sprite, T_Joint>
   public:
     void set(const char* name, pulse2d::graphics::detail::Body_Descriptor& body)
     {
-        if (this->active_bodies >= MAX_PHYSICS_BODIES) {
+        if (this->active_bodies >= T_Body) {
             PULSE2D_DEBUG_SERIAL(
                 "[WARN] body pool full, cannot spawn '%s'\n", name);
             return;
@@ -426,7 +425,7 @@ class Pulse2d_Scene : public Pulse2d_Scene_Base<T_Body, T_Sprite, T_Joint>
         uint16_t x,
         uint16_t y)
     {
-        if (this->active_sprites >= config::max_loaded_sprites) {
+        if (this->active_sprites >= T_Sprite) {
             PULSE2D_DEBUG_SERIAL(
                 "[WARN] sprite pool full, cannot load '%s'\n", path);
             return;
@@ -450,7 +449,7 @@ class Pulse2d_Scene : public Pulse2d_Scene_Base<T_Body, T_Sprite, T_Joint>
         uint16_t w,
         uint16_t h)
     {
-        if (this->active_sprites >= config::max_loaded_sprites) {
+        if (this->active_sprites >= T_Sprite) {
             PULSE2D_DEBUG_SERIAL(
                 "[WARN] sprite pool full, cannot load flash sprite '%s'\n",
                 name);

@@ -225,6 +225,7 @@ class Body
     BODY_FIELD_BUILDER(I, float)
     BODY_FIELD_BUILDER(inv_i, float)
     BODY_FIELD_BUILDER(is_sensor, bool)
+    BODY_FIELD_BUILDER(is_kinematic, bool)
 
     inline void add_force(math::Vec2 const& f) { force += f; }
 
@@ -418,6 +419,16 @@ class Body
      * knows exactly where and when they intersected.
      */
     bool is_sensor = false;
+
+    /**
+     * @brief
+     * Marks a body as kinematic - it is not force-driven (inv_mass == 0)
+     * but its velocity is still integrated into position each step.
+     *
+     * Set automatically by kinematic pools (deploy/retract). Do not set
+     * this manually on bodies managed outside a pool.
+     */
+    bool is_kinematic = false;
 };
 
 } // namespace pulse2d

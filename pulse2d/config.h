@@ -19,7 +19,7 @@
  *
  * The defaults are tuned for the Teensy 4.1 (512 KB OCRAM, 8 MB flash):
  *
- *   MAX_PHYSICS_BODIES            256   bodies per world
+ *   MAX_PHYSICS_BODIES             64   bodies per world
  *   MAX_PHYSICS_JOINTS             32   joints per world
  *   MAX_LOADED_SPRITES             12   sprites per scene
  *   MAX_BACKGROUND_LAYERS           8   parallax layers per scene
@@ -40,7 +40,7 @@
  ****************************************************************************/
 
 #ifndef MAX_PHYSICS_BODIES
-#define MAX_PHYSICS_BODIES 256
+#define MAX_PHYSICS_BODIES 64
 #endif
 
 #ifndef MAX_PHYSICS_JOINTS
@@ -65,6 +65,20 @@
 
 #ifndef MAX_ANIMATION_DEFINITION
 #define MAX_ANIMATION_DEFINITION 16
+#endif
+
+#ifndef MAX_CONTACT_POINTS
+#define MAX_CONTACT_POINTS 2
+#endif
+
+// Maximum simultaneous contact pairs in the arbiter map.
+// For n active bodies the theoretical worst case is n*(n-1)/2 pairs; in
+// practice most pairs are not in contact at the same time. 64 handles the
+// default MAX_PHYSICS_BODIES=64 comfortably for typical sparse contact patterns
+// (space shooters, platformers). Raise it if your scene has many bodies in
+// dense simultaneous contact.
+#ifndef MAX_ARBITER_PAIRS
+#define MAX_ARBITER_PAIRS 64
 #endif
 
 #ifndef MAX_ACTIVE_ANIMATION

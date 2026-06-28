@@ -64,6 +64,27 @@
 #define PULSE2D_DEBUG_SERIAL(...)
 #endif
 
+// Always-on error print - active in all builds, not gated on DEBUG.
+// Use for conditions that are always bugs (null sprites, dimension mismatches).
+#if defined(PULSE2D_TEENSY)
+#define PULSE2D_ERROR_SERIAL(...)       \
+    do {                                \
+        if (Serial) {                   \
+            Serial.print("[ERROR] ");   \
+            Serial.printf(__VA_ARGS__); \
+            Serial.println();           \
+            Serial.flush();             \
+        }                               \
+    } while (0)
+#else
+#include <cstdio>
+#define PULSE2D_ERROR_SERIAL(...)                     \
+    do {                                              \
+        std::fprintf(stderr, "[ERROR] " __VA_ARGS__); \
+        std::fprintf(stderr, "\n");                   \
+    } while (0)
+#endif
+
 namespace pulse2d {
 
 /**

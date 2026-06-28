@@ -28,6 +28,7 @@
 #include "math.h"        // for Vec2, operator*, operator+
 #include <algorithm>     // for range::contains
 #include <cstddef>       // for size_t
+#include <etl/array.h>   // for array
 #include <etl/map.h>     // for map, operator!=, operator==
 #include <etl/utility.h> // for pair
 #include <etl/vector.h>  // for vector
@@ -69,7 +70,7 @@
 
 namespace pulse2d::graphics {
 
-typedef etl::map<Arbiter_Key, Arbiter, MAX_PHYSICS_BODIES>::iterator ArbIter;
+typedef etl::map<Arbiter_Key, Arbiter, MAX_ARBITER_PAIRS>::iterator ArbIter;
 typedef etl::pair<Arbiter_Key, Arbiter> ArbPair;
 
 bool World::accumulate_impulses = true;
@@ -147,37 +148,45 @@ void World::remove(Body* body)
         std::iter_swap(it, bodies.end() - 1);
         bodies.pop_back();
     }
+
+    for (auto arb = arbiters.begin(); arb != arbiters.end();) {
+        if (arb->first.body1 == body or arb->first.body2 == body)
+            arb = arbiters.erase(arb);
+        else
+            ++arb;
+    }
 }
 
 /**
  * @brief
- * Check every pair of bodies for overlap and rebuild the contact list.
+ * Two-stage collision detection: AABB prefilter then narrow-phase SAT.
  * Called automatically at the start of step() - you should not call this
  * manually.
  *
- * This is an O(n^2) broad-phase: every body is tested against every other
- * body. For small body counts (roughly < 50) this is fast enough on both
- * the Teensy and the host. The algorithm for each pair (bi, bj):
+ * Stage 1 - static skip + AABB prefilter (cheap):
  *
- *   1. Skip the pair if both bodies are static (inv_mass == 0 for both).
- *      Two immovable objects can never usefully collide.
+ *   Pure-static pairs (inv_mass == 0, not a sensor, on both bodies) are
+ *   skipped at the top of the inner loop - walls never usefully collide with
+ *   other walls. Per-body AABB half-extents are pre-computed once for all N
+ *   bodies (N scalar ops; trig only for rotating bodies, static walls hit the
+ *   rotation==0 fast path). Pairs that fail the AABB overlap test are
+ *   rejected before reaching the SAT, but their arbiter is still erased so
+ *   separated bodies stop receiving impulses from the previous contact.
  *
- *   2. Run collide() to find contact points between the two boxes.
+ * Stage 2 - narrow phase (only for AABB-passing pairs):
  *
- *   3. If contacts were found, either insert a new Arbiter into
- *      world.arbiters, or call update() on the existing one to carry over
- *      accumulated impulses from the previous frame (warm-starting).
- *
- *   4. If no contacts were found this frame but an Arbiter existed from
- *      the previous frame, erase it - the bodies have separated.
+ *   collide() runs the full SAT and writes up to two Contact points. If
+ *   contacts are found, the pair's Arbiter is inserted or updated with
+ *   warm-start data from the previous frame. If no contacts are found and
+ *   an Arbiter existed, it is erased.
  *
  * clang-format off
  *
- *   bodies: [ A ][ B ][ C ][ D ]
+ *   bodies: [ S1(static) ][ S2(static) ][ D1(dynamic) ][ D2(dynamic) ]
  *
- *   pairs:  (A,B) (A,C) (A,D)
- *                 (B,C) (B,D)
- *                       (C,D)
+ *   active×active:  (D1,D2)
+ *   active×static:  (D1,S1) (D1,S2) (D2,S1) (D2,S2)
+ *   skipped:        (S1,S2)  ← pure-static × pure-static never tested
  *
  * clang-format on
  *
@@ -187,19 +196,52 @@ void World::remove(Body* body)
  */
 void World::broad_phase()
 {
+    using namespace math;
+
+    // Pre-compute AABB half-extents for every body.
+    // rotation == 0 (all static bodies, most dynamic ones) uses the fast
+    // path - no trig. Rotated bodies expand their OBB into a conservative
+    // AABB: half_x = hx|cosθ| + hy|sinθ|, half_y = hx|sinθ| + hy|cosθ|.
+    // This is never a false negative; false positives fall through to SAT.
+    etl::array<Vec2, MAX_PHYSICS_BODIES> extents;
+    for (std::size_t k = 0; k < bodies.size(); ++k) {
+        Body const* b = bodies[k];
+        Vec2 h = 0.5f * b->width;
+        if (b->rotation == 0.0f) {
+            extents[k] = h;
+        } else {
+            float c = fabsf(cosf(b->rotation));
+            float s = fabsf(sinf(b->rotation));
+            extents[k] = { h.x * c + h.y * s, h.x * s + h.y * c };
+        }
+    }
+
     for (std::size_t i = 0; i < bodies.size(); ++i) {
         Body* bi = bodies[i];
+        bool i_pure_static =
+            bi->inv_mass == 0.0f and not bi->is_sensor and not bi->is_kinematic;
 
         for (std::size_t j = i + 1; j < bodies.size(); ++j) {
             Body* bj = bodies[j];
 
-            if (!bi->is_sensor and not bj->is_sensor) {
-                if (bi->inv_mass == 0.0f and bj->inv_mass == 0.0f)
-                    continue;
+            // Skip pure-static × pure-static pairs entirely.
+            if (i_pure_static and bj->inv_mass == 0.0f and not bj->is_sensor)
+                continue;
+
+            Arbiter_Key key(bi, bj);
+
+            // AABB prefilter: reject non-adjacent pairs before the SAT.
+            // Must still erase any stale arbiter so separated bodies stop
+            // receiving phantom impulses from the solver.
+            float dx = fabsf(bj->position.x - bi->position.x);
+            float dy = fabsf(bj->position.y - bi->position.y);
+            if (dx > extents[i].x + extents[j].x or
+                dy > extents[i].y + extents[j].y) {
+                arbiters.erase(key);
+                continue;
             }
 
             Arbiter new_arb(bi, bj);
-            Arbiter_Key key(bi, bj);
 
             if (new_arb.num_contacts > 0) {
                 ArbIter iter = arbiters.find(key);
@@ -277,8 +319,11 @@ void World::step(float dt)
         b->angular_velocity += dt * b->inv_i * b->torque;
     }
 
-    // Perform pre-steps.
+    // Perform pre-steps (skip sensor pairs - apply_impulse skips them too,
+    // and static+static sensor contacts would divide by zero in mass_normal).
     for (ArbIter arb = arbiters.begin(); arb != arbiters.end(); ++arb) {
+        if (arb->first.body1->is_sensor or arb->first.body2->is_sensor)
+            continue;
         arb->second.pre_step(inv_dt);
     }
 
@@ -303,6 +348,13 @@ void World::step(float dt)
     // Integrate Velocities
     for (int i = 0; i < (int)bodies.size(); ++i) {
         Body* b = bodies[i];
+
+        // Skip truly static bodies - their velocity is always zero so
+        // integration would be a no-op, and skipping avoids touching their
+        // position unnecessarily. Kinematic bodies (inv_mass==0 but with an
+        // externally set velocity) must still integrate.
+        if (b->inv_mass == 0.0f and not b->is_kinematic)
+            continue;
 
         b->position += dt * b->velocity;
         b->rotation += dt * b->angular_velocity;

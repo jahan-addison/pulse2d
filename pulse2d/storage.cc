@@ -64,39 +64,46 @@ Sprite Storage::load_sprite(const char* path,
     }
     if (file.read(&w, sizeof(w)) != sizeof(w) or
         file.read(&h, sizeof(h)) != sizeof(h)) {
-        PULSE2D_DEBUG_SERIAL(
-            "[WARN] storage: sprite '%s' target size of %ux%u is too large",
-            path,
-            w,
-            h);
-
+        PULSE2D_ERROR_SERIAL("storage: '%s' header read failed", path);
         file.close();
         return { nullptr, 0, 0 };
     }
+    if (target_w != 0 && target_h != 0 && (w != target_w || h != target_h)) {
+        PULSE2D_ERROR_SERIAL(
+            "storage: '%s' expected %ux%u but binary has %ux%u - "
+            "loading at actual size; run imghelper to audit",
+            path,
+            target_w,
+            target_h,
+            w,
+            h);
+    }
     const size_t pixel_count = static_cast<size_t>(w) * h;
     if (pixel_count == 0 or pixel_count > config::max_sprite_pixels) {
-        PULSE2D_DEBUG_SERIAL(
-            "[WARN] storage: sprite '%s' pixel size is zero or too large",
-            path);
+        PULSE2D_ERROR_SERIAL(
+            "storage: '%s' is %ux%u (%zu px), limit is %zu px - "
+            "regenerate with imghelper",
+            path,
+            w,
+            h,
+            pixel_count,
+            config::max_sprite_pixels);
         file.close();
         return { nullptr, 0, 0 };
     }
     auto& buf = pool_[next_slot_];
     if (file.read(buf.data(), pixel_count * sizeof(uint16_t)) !=
         static_cast<int>(pixel_count * sizeof(uint16_t))) {
-        PULSE2D_DEBUG_SERIAL(
-            "[WARN] storage: sprite '%s' pixel count exceeds limit", path);
+        PULSE2D_ERROR_SERIAL("storage: '%s' pixel data read failed", path);
         file.close();
         return { nullptr, 0, 0 };
     }
     file.close();
-    PULSE2D_DEBUG_SERIAL("storage: loaded '%s' %ux%u at slot %u\n",
+    PULSE2D_DEBUG_SERIAL("storage: loaded '%s' %ux%u at slot %u",
         path,
         w,
         h,
         (unsigned)next_slot_);
-    (void)target_w;
-    (void)target_h;
 #else
     int src_w = 0, src_h = 0, channels = 0;
     uint8_t* img = stbi_load(path, &src_w, &src_h, &channels, 4);
@@ -116,7 +123,7 @@ Sprite Storage::load_sprite(const char* path,
 
     auto& buf = pool_[next_slot_];
 
-    // nearest-neighbour scale + RGBA8 → RGB565 conversion
+    // nearest-neighbour scale + RGBA8 -> RGB565 conversion
     // pixels with alpha < 128 are written as 0xF81F (magenta chroma-key)
     for (uint16_t row = 0; row < h; ++row) {
         int const sy = row * src_h / h;

@@ -98,7 +98,8 @@ struct World_Descriptor
  *
  * clang-format off
  *
- *   1. broad_phase()       O(n^2) overlap test; builds the arbiter map
+ *   1. broad_phase()       AABB prefilter + SAT narrow phase; builds the
+ * arbiter map
  *   2. integrate forces    gravity + user forces applied to each velocity
  *   3. pre_step()          effective masses and biases computed; warm-start
  *   4. apply_impulse()     sequential impulse solve, repeated `iterations`
@@ -116,6 +117,12 @@ struct World_Descriptor
  * touching body pair. Checking arbiters.empty() is the correct way to
  * detect whether any collision is active this frame. The three static flags
  * control solver optimizations - disable them individually to isolate bugs.
+ *
+ * broad_phase() partitions bodies into pure-static and active sets so that
+ * static walls are never tested against each other. An AABB prefilter then
+ * rejects non-adjacent active pairs before the full SAT runs. For a typical
+ * scene (4 walls, ~5 dynamic bodies, ~8 projectiles) this reduces SAT calls
+ * from O(n²) pairs per frame down to the handful that are actually adjacent.
  */
 class World
 {
@@ -157,7 +164,7 @@ class World
     }
 
   public:
-    etl::map<Arbiter_Key, Arbiter, MAX_PHYSICS_BODIES> arbiters;
+    etl::map<Arbiter_Key, Arbiter, MAX_ARBITER_PAIRS> arbiters;
     etl::vector<Body*, MAX_PHYSICS_BODIES> bodies;
     etl::vector<Joint*, MAX_PHYSICS_JOINTS> joints;
 

@@ -106,7 +106,7 @@ class Header_Writer:
             f.write("};\n")
 
         print(
-            f"{self.src} → {self.dst}  ({self.width}×{self.height}, "
+            f"{self.src} -> {self.dst}  ({self.width}×{self.height}, "
             f"{self.width * self.height * 2} bytes)"
         )
 

@@ -45,7 +45,8 @@ TEST_CASE("collide.cc: collide returns contacts for overlapping boxes")
     a.set_motion({ 0.5f, 0.5f }, 1.0f);
     b.set_motion({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
-    b.position = { 0.3f, 0.0f }; // centers 0.3 apart; h=0.25 each → 0.2 overlap
+    b.position = { 0.3f,
+        0.0f }; // centers 0.3 apart; h=0.25 each -> 0.2 overlap
 
     pulse2d::graphics::Arbiter::Contacts contacts;
     int n = collide(contacts, &a, &b);
@@ -59,7 +60,8 @@ TEST_CASE("collide.cc: collide returns contacts for vertically "
     a.set_motion({ 0.5f, 0.5f }, 1.0f);
     b.set_motion({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
-    b.position = { 0.0f, 0.3f }; // centers 0.3 apart; h=0.25 each → 0.2 overlap
+    b.position = { 0.0f,
+        0.3f }; // centers 0.3 apart; h=0.25 each -> 0.2 overlap
 
     pulse2d::graphics::Arbiter::Contacts contacts;
     int n = collide(contacts, &a, &b);
@@ -86,7 +88,7 @@ TEST_CASE("collide.cc: collide separation is negative when boxes overlap")
     a.set_motion({ 0.5f, 0.5f }, 1.0f);
     b.set_motion({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
-    b.position = { 0.3f, 0.0f }; // h=0.25 each → 0.2 overlap
+    b.position = { 0.3f, 0.0f }; // h=0.25 each -> 0.2 overlap
 
     pulse2d::graphics::Arbiter::Contacts contacts;
     int n = collide(contacts, &a, &b);
@@ -105,8 +107,8 @@ TEST_CASE("collide.cc: collide separation is proportional to overlap depth")
     b2.set_motion({ 0.5f, 0.5f }, 1.0f);
 
     a.position = { 0.0f, 0.0f };
-    b1.position = { 0.4f, 0.0f }; // h=0.25 each → 0.1 overlap
-    b2.position = { 0.1f, 0.0f }; // h=0.25 each → 0.4 overlap (deeper)
+    b1.position = { 0.4f, 0.0f }; // h=0.25 each -> 0.1 overlap
+    b2.position = { 0.1f, 0.0f }; // h=0.25 each -> 0.4 overlap (deeper)
 
     pulse2d::graphics::Arbiter::Contacts c1, c2;
     int n1 = collide(c1, &a, &b1);
@@ -126,7 +128,8 @@ TEST_CASE("collide.cc: collide normal points from A toward B (x axis)")
     a.set_motion({ 0.5f, 0.5f }, 1.0f);
     b.set_motion({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
-    b.position = { 0.4f, 0.0f }; // h=0.25 each → 0.1 overlap; B is to the right
+    b.position = { 0.4f,
+        0.0f }; // h=0.25 each -> 0.1 overlap; B is to the right
 
     pulse2d::graphics::Arbiter::Contacts contacts;
     int n = collide(contacts, &a, &b);
@@ -143,7 +146,7 @@ TEST_CASE("collide.cc: collide normal points from A toward B (y axis)")
     a.set_motion({ 0.5f, 0.5f }, 1.0f);
     b.set_motion({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
-    b.position = { 0.0f, 0.4f }; // h=0.25 each → 0.1 overlap; B is above
+    b.position = { 0.0f, 0.4f }; // h=0.25 each -> 0.1 overlap; B is above
 
     pulse2d::graphics::Arbiter::Contacts contacts;
     int n = collide(contacts, &a, &b);
@@ -159,7 +162,7 @@ TEST_CASE("collide.cc: collide contact normal is a unit vector")
     a.set_motion({ 0.5f, 0.5f }, 1.0f);
     b.set_motion({ 0.5f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
-    b.position = { 0.3f, 0.0f }; // h=0.25 each → 0.2 overlap
+    b.position = { 0.3f, 0.0f }; // h=0.25 each -> 0.2 overlap
 
     pulse2d::graphics::Arbiter::Contacts contacts;
     int n = collide(contacts, &a, &b);
@@ -181,7 +184,7 @@ TEST_CASE("collide.cc: collide produces two contacts for wide "
     b.set_motion({ 2.0f, 0.5f }, 1.0f);
     a.position = { 0.0f, 0.0f };
     b.position = { 0.0f,
-        0.4f }; // h_y=0.25 each → 0.1 overlap; wide face → 2 contacts
+        0.4f }; // h_y=0.25 each -> 0.1 overlap; wide face -> 2 contacts
 
     pulse2d::graphics::Arbiter::Contacts contacts;
     int n = collide(contacts, &a, &b);

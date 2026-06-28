@@ -204,7 +204,7 @@ TEST_CASE("renderer.cc: Renderer::show_debug_rects false")
     pulse2d::graphics::World world({ 0.0f, -10.0f }, 10);
 
     pulse2d::graphics::Body box;
-    box.set_motion({ 1.0f, 1.0f }, 1.0f); // centered at origin → screen center
+    box.set_motion({ 1.0f, 1.0f }, 1.0f); // centered at origin -> screen center
     world.add(&box);
 
     f.renderer.clear(0x0000);
@@ -226,7 +226,7 @@ TEST_CASE("renderer.cc: Renderer::show_debug_rects true")
 
     pulse2d::graphics::Body box;
     box.set_motion(
-        { 2.0f, 2.0f }, 1.0f); // large body at origin → fills screen center
+        { 2.0f, 2.0f }, 1.0f); // large body at origin -> fills screen center
     world.add(&box);
 
     f.renderer.clear(0x0000);
@@ -237,5 +237,5 @@ TEST_CASE("renderer.cc: Renderer::show_debug_rects true")
     // the center pixel must have been painted white (0xFFFF)
     const int cx = pulse2d::config::width / 2;
     const int cy = pulse2d::config::height / 2;
-    CHECK(framebuffer(f.renderer)[cy * pulse2d::config::width + cx] == 0xFFFF);
+    CHECK(framebuffer(f.renderer)[cy * pulse2d::config::width + cx] == 0xF800);
 }

@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/logo/pulse2d-sleek-final-final-final.png" width="800" alt="pulse2d"> </img>
+  <img src="images/logo/pulse2d-sleek-final-final-final.png" width="800" alt="pulse2d"> </img>
 </div>
 
 
@@ -19,7 +19,7 @@ Check out the [blog series](https://soliloq.uy/tag/pulse2d/)!
 
 ### Demo:
 
-![gif](/docs/demo/Asterisk%20Game%20Demo%20V1-GIF.gif)
+![gif](/images/demo/Asterisk%20Game%20Demo%20V1-GIF.gif)
 
 ## Hardware
 
@@ -317,7 +317,7 @@ On Teensy, `load_sprite` reads the raw binary format (`uint16_t` width, `uint16_
 
 ## Physics
 
-The physics component is a port of [box2d-lite](https://github.com/erincatto/box2d-lite) modified for embedded use: dynamic allocation replaced with fixed-size containers, all math in single-precision float, and the solver tuned for the Teensy 4.1's Cortex-M7.
+The physics component is a port of [box2d-lite](https://github.com/erincatto/box2d-lite) modified for embedded use: dynamic allocation replaced with fixed-size containers, all math in single-precision float, the solver tuned for the Teensy 4.1's Cortex-M7, and the broad phase replaced with a two-stage AABB prefilter and static/active partition.
 
 For more details, see the [physics readme](pulse2d/graphics/readme.md).
 
@@ -335,7 +335,7 @@ The gamepad driver targets the [Adafruit Seesaw Gamepad QT](https://www.adafruit
 
 ## Assets
 
-Python tools for converting PNG assets are in `tools/`. All three require [Pillow](https://pillow.readthedocs.io/).
+Python tools for converting PNG assets are in `tools/`. The first three require [Pillow](https://pillow.readthedocs.io/).
 
 - `png2bin` - converts a PNG to the raw RGB565 binary format read by `Storage::load_sprite` on Teensy. Use this for sprites (ships, enemies, projectiles) loaded from the SD card at runtime. Transparent pixels become `0xF81F` (magenta chroma-key).
 
@@ -359,11 +359,18 @@ Python tools for converting PNG assets are in `tools/`. All three require [Pillo
 
   Generates `laser_anim_width`, `laser_anim_height`, and `laser_anim[54 * 32 * 3]`.
 
+- `imghelper` - validates `.bin` sprite files produced by `png2bin`. Checks declared dimensions, pixel count against `MAX_SPRITE_PIXELS` (96×96 = 9,216 pixels), and whether the file size matches the header. Accepts one or more files or a directory; exits 1 on failure.
+
+  ```bash
+  tools/imghelper sprite.bin
+  tools/imghelper assets/
+  ```
+
 ## Debug
 
 Debugging tools (no dependencies):
 
-- `sections` - parses a compiled ELF and prints every allocatable section grouped by memory region (FLASH, DTCM, RAM, ERAM, ITCM), with VMA, LMA, size in bytes, and load type (FLASH-ONLY, LOAD, or NOLOAD). Each region header shows total capacity and bytes in use. Useful for catching oversized `.data` or `.bss` before the linker rejects the binary.
+- `sections` - parses a compiled ELF and prints every allocatable section grouped by memory region (FLASH, DTCM, RAM, ERAM, ITCM), with VMA, LMA, size in bytes, and load type (FLASH-ONLY, LOAD, or NOLOAD). Each region header shows total capacity and bytes in use.
 
   ```bash
   tools/sections build-teensy/asterisk.elf
@@ -374,12 +381,21 @@ Debugging tools (no dependencies):
   make sections SECTIONS_ALL=1
   ```
 
+  #### Run this after any build that changes pool sizes or static data. The linker only rejects when a region is fully exhausted - it won't warn when you are close. Short-of-overflow pressure still corrupts the stack at runtime.
+
+  On the Teensy 4.1 the practical DTCM limit (`.data` + `.bss`) is ~380 KB - below that you have at least 128 KB for SdFat's FIFO_SDIO DMA call stack. Two things to watch:
+
+  - ETL fixed-capacity containers pre-allocate their full capacity in `.bss`. Their `N` template parameter directly controls static size - oversized constants silently inflate `.bss`.
+  - `HARDWARE_Deferred_Init<T>` lands in `.bss` at `sizeof(T)` bytes, even before `emplace()` is called.
+
+  Call `stack_used()` from `scene.h` over serial after `setup()` for a runtime byte count.
+
 <img width="1266" height="854" alt="image" src="https://github.com/user-attachments/assets/458971e1-0fbf-47d1-9afe-db388e86afc5" />
 
 
 ---
 
-- `ldscript` - parses `imxrt1062_t41.ld` from the active Teensyduino install and prints the MEMORY region table and the output section → region map. The fastest way to answer "which section attribute keeps this array in flash?" without reading the raw linker script.
+- `ldscript` - parses `imxrt1062_t41.ld` from the active Teensyduino install and prints the MEMORY region table and the output section -> region map. The fastest way to answer "which section attribute keeps this array in flash?" without reading the raw linker script.
 
   ```bash
   tools/ldscript
@@ -388,7 +404,7 @@ Debugging tools (no dependencies):
   make ldscript
   ```
 
-![img](/docs/tool-ldscript.png)
+![img](/images/tool-ldscript.png)
 
 ## Dependencies
 

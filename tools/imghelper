@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+##############################################################################
+# Copyright (c) 2026 Jahan Addison
+# Licensed under the MIT License (https://opensource.org/license/mit)
+##############################################################################
+
+##############################################################################
+# imghelper - inspect and validate pulse2d sprite .bin files
+# Usage:
+#    python imghelper.py <file.bin> [file.bin ...]
+#    python imghelper.py <directory>          # recurse for all .bin files
+#
+# Each .bin file has the format:
+#    uint16_t  width
+#    uint16_t  height
+#    uint16_t  pixels[width * height]
+#
+# Exit status is non-zero if any file fails validation.
+##############################################################################
+
+
+import struct
+import sys
+from pathlib import Path
+
+# Must match config::max_sprite_pixels on Teensy (96 * 96 in config.h)
+MAX_SPRITE_PIXELS = 96 * 96
+
+
+def check(path: Path) -> dict:
+    try:
+        data = path.read_bytes()
+    except OSError as e:
+        return {"path": path, "error": str(e)}
+
+    if len(data) < 4:
+        return {"path": path, "error": f"too small ({len(data)} bytes, need at least 4)"}
+
+    w, h = struct.unpack_from("<HH", data, 0)
+    pixels = w * h
+    expected = 4 + pixels * 2
+
+    return {
+        "path": path,
+        "w": w,
+        "h": h,
+        "pixels": pixels,
+        "expected_bytes": expected,
+        "actual_bytes": len(data),
+        "over_limit": pixels > MAX_SPRITE_PIXELS,
+        "truncated": len(data) < expected,
+        "padded": len(data) > expected,
+    }
+
+
+def report(r: dict) -> tuple[str, bool]:
+    if "error" in r:
+        return f"  ERROR  {r['path']}  ({r['error']})", True
+
+    issues = []
+    if r["over_limit"]:
+        issues.append(f"exceeds Teensy limit ({r['pixels']} > {MAX_SPRITE_PIXELS} px)")
+    if r["truncated"]:
+        issues.append(f"truncated: got {r['actual_bytes']} bytes, expected {r['expected_bytes']}")
+    if r["padded"]:
+        issues.append(f"padded: got {r['actual_bytes']} bytes, expected {r['expected_bytes']}")
+
+    tag = " FAIL " if issues else "  ok  "
+    dims = f"{r['w']}x{r['h']} = {r['pixels']} px"
+    note = "  [" + ", ".join(issues) + "]" if issues else ""
+    return f"[{tag}] {r['path'].name}  {dims}{note}", bool(issues)
+
+
+def collect(args: list[str]) -> list[Path]:
+    paths = []
+    for arg in args:
+        p = Path(arg)
+        if p.is_dir():
+            found = sorted(p.rglob("*.bin"))
+            if not found:
+                print(f"no .bin files found in {p}", file=sys.stderr)
+            paths.extend(found)
+        elif p.is_file():
+            paths.append(p)
+        else:
+            print(f"not found: {p}", file=sys.stderr)
+            sys.exit(1)
+    return paths
+
+
+def main() -> None:
+    if len(sys.argv) < 2:
+        print(__doc__)
+        sys.exit(0)
+
+    paths = collect(sys.argv[1:])
+    if not paths:
+        sys.exit(0)
+
+    any_fail = False
+    for path in paths:
+        line, failed = report(check(path))
+        print(line)
+        if failed:
+            any_fail = True
+
+    sys.exit(1 if any_fail else 0)
+
+
+if __name__ == "__main__":
+    main()

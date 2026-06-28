@@ -60,7 +60,7 @@ void Renderer::add_sprite(Sprite const* sprite,
     int16_t y,
     float angle_rad)
 {
-    if (sprite and not sprite_queue_.full()) {
+    if (sprite and sprite->data and not sprite_queue_.full()) {
         sprite_queue_.emplace_back(Entry{ sprite, x, y, angle_rad });
     }
 }

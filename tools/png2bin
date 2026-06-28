@@ -85,7 +85,7 @@ class Converter:
                     f.write(struct.pack("<H", pixel))
 
         print(
-            f"{self.src} → {self.dst}  ({self.width}×{self.height}, "
+            f"{self.src} -> {self.dst}  ({self.width}×{self.height}, "
             f"{4 + self.width * self.height * 2} bytes)"
         )
 

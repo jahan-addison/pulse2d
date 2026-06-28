@@ -216,7 +216,7 @@ TEST_CASE("world.cc: World::step produces arbiters when bodies collide")
     pulse2d::graphics::Body floor;
     floor.width = { 10.0f, 0.5f };
     floor.position = { 0.0f,
-        -0.4f }; // h_y=0.25 → top at -0.15; box bottom at -0.25 → 0.1 overlap
+        -0.4f }; // h_y=0.25 -> top at -0.15; box bottom at -0.25 -> 0.1 overlap
 
     pulse2d::graphics::Body box;
     box.set_motion({ 0.5f, 0.5f }, 1.0f);
