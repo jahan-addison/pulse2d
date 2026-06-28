@@ -27,9 +27,9 @@ PULSE_DEFINE bool fired = false;
 
 PULSE_ON_GAMESCENE_START(Sample_Level)
 {
-    sample_game.set_sprite("planet_sprite", "planet.bin", 96, 96);
-    sample_game.set_sprite("spell_sprite", "spell.bin", 64, 36);
-    sample_game.set_sprite("explode_sprite", "explosion.bin", 96, 96);
+    sample_game.set_sprite("planet_sprite", "planet.bin");
+    sample_game.set_sprite("spell_sprite", "spell.bin");
+    sample_game.set_sprite("explode_sprite", "explosion.bin");
 
     sample_game.set_static_body("planet_object",
         {

@@ -288,7 +288,7 @@ Defines the entry function for a scene. Called once automatically by `PULSE_SET_
 
 ```cpp
 PULSE_ON_GAMESCENE_START(Game_Level) {
-    my_game.set_sprite("player_sprite", "player.bin", 32, 32);
+    my_game.set_sprite("player_sprite", "player.bin");
     my_game.set_controlled_body("player", {
         .position = { 0.0f, 0.0f },
         .width    = { 0.5f, 0.5f }
@@ -861,16 +861,17 @@ if (player.position.y < -10.0f) {
 #### set_sprite
 
 ```cpp
+my_game.set_sprite("name", "path/to/file.bin");
 my_game.set_sprite("name", "path/to/file.bin", width, height);
 ```
 
-Loads a raw RGB565 sprite from the SD card into the current scene's sprite pool.
+Loads a raw RGB565 sprite from the SD card into the current scene's sprite pool. The `.bin` format encodes dimensions in the first four bytes, so the no-dimension form is the default. Pass explicit dimensions to validate that the file header matches — on host, they scale the image instead.
 
 **Scope:** `PULSE_ON_GAMESCENE_START`
 
 ```cpp
-my_game.set_sprite("ship_sprite", "ship.bin", 48, 48);
-my_game.set_sprite("enemy_sprite", "sprites/enemy.bin", 48, 48);
+my_game.set_sprite("ship_sprite", "ship.bin");
+my_game.set_sprite("enemy_sprite", "sprites/enemy.bin");
 ```
 
 ---
@@ -1404,9 +1405,9 @@ PULSE_ON_GAMESCENE_START(Space_Shooter) {
     my_game.set_sprite_flash("bg_stars", stars_bg, 320, 240);
 
     // SD card sprites
-    my_game.set_sprite("ship_sprite",   "ship.bin",   48, 48);
-    my_game.set_sprite("enemy_sprite",  "enemy.bin",  48, 48);
-    my_game.set_sprite("bullet_sprite", "bullet.bin", 12,  8);
+    my_game.set_sprite("ship_sprite",   "ship.bin");
+    my_game.set_sprite("enemy_sprite",  "enemy.bin");
+    my_game.set_sprite("bullet_sprite", "bullet.bin");
 
     // Scrolling background
     my_game.add_parallax_layer("bg_stars", 320.0f, 15.0f);

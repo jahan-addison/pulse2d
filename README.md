@@ -73,9 +73,9 @@ PULSE_DEFINE bool enemy_hit = false;
 PULSE_ON_GAMESCENE_START(Space_Shooter)
 {
     my_game.set_sprite_flash("bg_stars", stars_bg, 320, 240);
-    my_game.set_sprite("ship_sprite", "ship.bin", 48, 48);
-    my_game.set_sprite("enemy_sprite", "enemy.bin", 48, 48);
-    my_game.set_sprite("bullet_sprite", "bullet.bin", 12, 8);
+    my_game.set_sprite("ship_sprite", "ship.bin");
+    my_game.set_sprite("enemy_sprite", "enemy.bin");
+    my_game.set_sprite("bullet_sprite", "bullet.bin");
 
     my_game.add_parallax_layer("bg_stars", 320.0f, 15.0f);
 
@@ -307,9 +307,9 @@ On Teensy, the display driver targets the [PJRC ILI9341 TFT](https://www.pjrc.co
 
 ## Storage
 
-Load sprites via `Storage::load_sprite()`. On the host any image format supported by stb_image works. The image is nearest-neighbour scaled to the requested dimensions and converted to RGB565:
+Load sprites via `Storage::load_sprite()`. On the host any image format supported by stb_image works. The image is nearest-neighbour scaled to the requested dimensions and converted to RGB565.
 
-On Teensy, `load_sprite` reads the raw binary format (`uint16_t` width, `uint16_t` height, then `width x height` RGB565 pixels) from the SD card.
+On Teensy, `load_sprite` reads the raw binary format (`uint16_t` width, `uint16_t` height, then `width x height` RGB565 pixels) from the SD card. Width and height come from the file header — `set_sprite` omits them by default and only validates against the header when explicit dimensions are passed.
 
 ## Audio
 

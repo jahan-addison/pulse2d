@@ -801,13 +801,32 @@ struct Runtime
 
     /**
      * @brief
-     * Load a sprite into the current scene's pool from the SD card.
+     * Load a `.bin` sprite from the SD card. Width and height are read
+     * from the file header.
      *
      * @scope: PULSE_ON_GAMESCENE_START
      * @param name sprite identifier string
      * @param path sprite absolute path on sd card
-     * @param w sprite width
-     * @param h sprite height
+     * @return
+     */
+    PULSE2D_INLINE void set_sprite(const char* name, const char* path)
+    {
+        execute_scene([&](auto& scene) {
+            scene.set(name, engine->storage(), path, 0, 0);
+        });
+    }
+
+    /**
+     * @brief
+     * Load a sprite from the SD card with explicit dimensions. On Teensy,
+     * validates that the `.bin` header matches; on host, scales the image
+     * to the given dimensions via nearest-neighbour.
+     *
+     * @scope: PULSE_ON_GAMESCENE_START
+     * @param name sprite identifier string
+     * @param path sprite absolute path on sd card
+     * @param w expected width
+     * @param h expected height
      * @return
      */
     PULSE2D_INLINE void set_sprite(const char* name,

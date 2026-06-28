@@ -63,10 +63,10 @@ namespace pulse2d {
 namespace detail {
 struct scene_base
 {};
+
 } // namespace detail
 
 namespace assets {
-
 struct Background_Layer
 {
     char const* sprite_name;
@@ -323,11 +323,7 @@ struct Pulse2d_Scene_Background
     void update_and_draw_layers(pulse2d::Renderer& renderer, float delta_time)
     {
         for (auto& layer : background_layers) {
-            // Skip any layer whose sprite was not registered (e.g. because
-            // T_Sprite in PULSE2D_DEFINE_SCENE is fewer than the number of
-            // PULSE2D_ADD_PARALLAX_LAYER calls, or set_from_flash was never
-            // called for it). Without this guard, sprite_pool.at() would hit
-            // an ETL assertion and hard-fault the board on the first loop tick.
+            // Skip any layer whose sprite was not registered
             auto it = sprite_pool_.find(layer.sprite_name);
             if (it == sprite_pool_.end()) {
                 PULSE2D_DEBUG_SERIAL(
