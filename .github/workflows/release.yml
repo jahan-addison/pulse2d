@@ -41,6 +41,7 @@ jobs:
       - name: Create Pull Request with updated CHANGELOG.md
         uses: peter-evans/create-pull-request@v8
         with:
+          add-paths: CHANGELOG.md
           commit-message: "chore: update CHANGELOG.md for ${{ github.ref_name }}"
           title: "Update changelog for ${{ github.ref_name }}"
           body: "Automated PR to update `CHANGELOG.md` following the release of `${{ github.ref_name }}`."
