@@ -60,6 +60,7 @@
 #include <etl/map.h>
 #include <etl/vector.h>
 #include <pulse2d/api.h>
+#include <pulse2d/config.h>
 #include <pulse2d/gamepad/seesaw.h>
 #include <pulse2d/graphics/body.h>
 #include <pulse2d/graphics/world.h>
@@ -108,8 +109,9 @@ using p_i8 = int8_t;
 #define to_int16(x) static_cast<int16_t>(x)
 #define to_int8(x) static_cast<int8_t>(x)
 
-// Alias for the physics math namespace (Vec2, Mat22, etc.).
+// Other Aliases
 namespace pulse2d_math = pulse2d::graphics::math;
+namespace pulse2d_util = pulse2d::util;
 
 ////////////////
 // Game State //
@@ -436,6 +438,17 @@ pulse2d::Renderer::Screen get_body_coordinates(pulse2d_body const* body_ptr)
 {
     return pulse2d::Renderer::project_coordinates(
         body_ptr->position.x, body_ptr->position.y);
+}
+
+//////////////
+// Renderer //
+//////////////
+
+constexpr pulse2d::graphics::math::Vec2 px_to_units(float px_w,
+    float px_h,
+    float px_per_unit = pulse2d::config::pixels_per_unit)
+{
+    return { px_w / px_per_unit, px_h / px_per_unit };
 }
 
 ///////////

@@ -413,6 +413,14 @@ class Pulse2d_Scene : public Pulse2d_Scene_Base<T_Body, T_Sprite, T_Joint>
         }
         this->body_pool[name] = this->active_bodies;
         this->bodies.at(this->active_bodies++).set(body);
+        PULSE2D_DEBUG_SERIAL(
+            "body '%s' ready: pos(%.2f, %.2f) width(%.2f, %.2f) at slot %u\n",
+            name,
+            (double)body.position.x,
+            (double)body.position.y,
+            (double)body.width.x,
+            (double)body.width.y,
+            (unsigned)(this->active_bodies - 1));
     }
 
     void set(const char* name,

@@ -7,11 +7,12 @@
 
 #pragma once
 
-#include <cstddef>           // for size_t
-#include <cstdint>           // for int16_t, uint16_t
-#include <etl/vector.h>      // for vector
-#include <pulse2d/display.h> // for frame_buffer_t, Display, height, width
-#include <pulse2d/util.h>    // for PULSE2D_EXTMEM, PULSE2D_PRIVATE
+#include <cstddef>                 // for size_t
+#include <cstdint>                 // for int16_t, uint16_t
+#include <etl/vector.h>            // for vector
+#include <pulse2d/display.h>       // for frame_buffer_t, Display, height, width
+#include <pulse2d/graphics/math.h> // for Vec2
+#include <pulse2d/util.h>          // for PULSE2D_EXTMEM, PULSE2D_PRIVATE
 
 namespace pulse2d {
 struct Sprite;
@@ -119,7 +120,9 @@ class Renderer
   private:
     static constexpr int k_width = config::width;
     static constexpr int k_height = config::height;
-    static constexpr float k_pixels_per_unit = 30.0f;
+
+    static constexpr float k_pixels_per_unit = config::pixels_per_unit;
+
     static constexpr int k_center_x = k_width / 2;
     static constexpr int k_center_y = k_height / 2;
 

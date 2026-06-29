@@ -370,7 +370,7 @@ Python tools for converting PNG assets are in `tools/`. The first three require 
 
 Debugging tools (no dependencies):
 
-- `sections` - parses a compiled ELF and prints every allocatable section grouped by memory region (FLASH, DTCM, RAM, ERAM, ITCM), with VMA, LMA, size in bytes, and load type (FLASH-ONLY, LOAD, or NOLOAD). Each region header shows total capacity and bytes in use.
+- `sections` - parses a compiled ELF and prints every allocatable section grouped by memory region (FLASH, DTCM, RAM, ERAM, ITCM), with VMA, LMA, size in bytes, and load type (FLASH-ONLY, LOAD, or NOLOAD). Each region header shows total capacity and bytes / KiB in use. Regions that exceed their recommended static limit are printed in red with a warning line at the top.
 
   ```bash
   tools/sections build-teensy/asterisk.elf
@@ -389,6 +389,8 @@ Debugging tools (no dependencies):
   - `HARDWARE_Deferred_Init<T>` lands in `.bss` at `sizeof(T)` bytes, even before `emplace()` is called.
 
   Call `stack_used()` from `scene.h` over serial after `setup()` for a runtime byte count.
+
+  If serial output stops or never appears during boot, the most likely cause is a DTCM overflow — the stack has collided with `.bss` before `Serial.begin()` returns. Run `sections` first.
 
 <img width="1266" height="854" alt="image" src="https://github.com/user-attachments/assets/458971e1-0fbf-47d1-9afe-db388e86afc5" />
 

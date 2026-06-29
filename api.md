@@ -105,6 +105,17 @@ auto coords = get_body_coordinates(laser_object);
 my_game.play_vfx("explosion", to_int16(coords.x + 8), to_int16(coords.y - 8));
 ```
 
+`pulse2d_util` is an alias for `pulse2d::util`. It exposes the `overload` pattern for `std::visit`-style variant dispatch:
+
+```cpp
+std::visit(pulse2d_util::overload{
+    [](asteriods::L_State& s)  { /* handle large */  },
+    [](asteriods::XL_State& s) { /* handle extra large */ },
+}, obj.state);
+```
+
+`overload` is a variadic struct that inherits `operator()` from each lambda. The deduction guide is included — pass a brace-initializer list of lambdas.
+
 ---
 
 ### Game State, Setup
@@ -545,6 +556,32 @@ my_game.play_vfx("explosion", coords.x, coords.y);
 auto coords = get_body_coordinates(laser_ptr);
 my_game.play_vfx("laser_hit", to_int16(coords.x + 12), to_int16(coords.y - 8));
 ```
+
+---
+
+#### px_to_units
+
+```cpp
+auto size = px_to_units(px_w, px_h);
+auto size = px_to_units(px_w, px_h, px_per_unit);
+```
+
+Converts pixel dimensions to physics world units. Returns a `pulse2d::graphics::math::Vec2`. The third argument defaults to `pulse2d::config::pixels_per_unit` (30.0).
+
+Use it when setting body dimensions from pixel-measured sprite sizes:
+
+```cpp
+asterisk.set_dynamic_body("meteor",
+    {
+        .position = { 6.0f, 1.5f },
+        .velocity = { -7.5f, 0.0f },
+        .width    = px_to_units(65.0f, 65.0f),
+        .mass     = 1.0f,
+        .is_sensor = true
+    });
+```
+
+**Scope:** `PULSE_ON_GAMESCENE_START`, `PULSE_ON_GAMESCENE`
 
 ---
 

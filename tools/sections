@@ -40,6 +40,27 @@ _REGION_CAPACITY = {
     "ITCM":  512 * 1024,
 }
 
+# Static allocation thresholds above which the board may crash at runtime.
+# Exceeding these does not immediately fail the build, so this tool is the
+# only early warning.
+#
+#   DTCM  >312,000 bytes — less than 200 KB remains for the SdFat FIFO_SDIO
+#                          DMA call stack (~128 KB) and the game's own frame stack
+#   FLASH >6,000,000 bytes — leaves ~2 MB headroom in the 8 MB chip
+#   ITCM  >450,000 bytes  — leaves ~60 KB for ISR code that must stay tightly coupled
+#   RAM   >400,000 bytes  — leaves headroom for library DMA buffers and Teensy core
+#   ERAM  >28,000,000 bytes — 87% of the optional 32 MB PSRAM; leave room for audio
+#
+# Thresholds use SI bytes (powers of 10) so that a raw byte count in the output
+# can be compared directly: 316,288 bytes > 312,000 → red.
+_REGION_LIMIT = {
+    "DTCM":  312_000,
+    "FLASH": 6_000_000,
+    "ITCM":  450_000,
+    "RAM":   400_000,
+    "ERAM":  28_000_000,
+}
+
 _ELF_MAGIC  = b"\x7fELF"
 _SHF_ALLOC  = 0x2
 _SHT_NOBITS = 8
@@ -266,6 +287,18 @@ class Section_Table:
         for s in visible:
             by_region[self._region(s.vma)].append(s)
 
+        region_totals = {
+            region: sum(s.size for s in secs)
+            for region, secs in all_by_region.items()
+        }
+        over_limit = {
+            region: region_totals.get(region, 0) > limit
+            for region, limit in _REGION_LIMIT.items()
+        }
+
+        if any(over_limit.values()):
+            print(f"{_RED}{_BOLD}Lines in red exceed the recommended limits and may crash the Teensy{_RESET}")
+
         order    = ["FLASH", "DTCM", "RAM", "ERAM", "ITCM", "?"]
         col_name = max(max(len(s.name) for s in visible), 7)
 
@@ -273,14 +306,15 @@ class Section_Table:
             if region not in by_region:
                 continue
             group = sorted(by_region[region], key=lambda s: s.vma)
-            total = sum(s.size for s in all_by_region[region])
-            color = _REGION_COLOR.get(region, "")
+            total = region_totals.get(region, 0)
+            color = _RED if over_limit.get(region, False) else _REGION_COLOR.get(region, "")
 
             cap     = _REGION_CAPACITY.get(region)
             cap_str = (f"{cap // (1024 * 1024)} MB" if cap and cap >= 1024 * 1024
                        else f"{cap // 1024} KB" if cap else "?")
+            kib_str = f"{total / 1024:.1f} KiB" if total < 1024 * 1024 else f"{total / (1024 * 1024):.1f} MiB"
             print(f"\n{_BOLD}{color}── {region}{_RESET}  "
-                  f"{_DIM}(total: {cap_str}, {total:,} bytes in use){_RESET}")
+                  f"{_DIM}(total: {cap_str}, {total:,} bytes / {kib_str} in use){_RESET}")
             print(f"  {_DIM}{'SECTION':<{col_name}}  {'VMA':>10}  {'LMA':>10}  "
                   f"{'SIZE':>22}  TYPE{_RESET}")
             print(f"  {_DIM}{'-' * col_name}  {'----------':>10}  {'----------':>10}  "

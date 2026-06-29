@@ -36,6 +36,7 @@
  *
  * config::width / config::height are the ILI9341 native resolution (320x240).
  * config::scale is the SDL2 window multiplier for host development (960x720).
+ * config::pixels_per_unit is the physics-to-screen conversion factor (30.0).
  *
  ****************************************************************************/
 
@@ -96,6 +97,8 @@ inline constexpr int scale = 3; // SDL2 window scale (960x720)
 inline constexpr size_t max_loaded_sprites = MAX_LOADED_SPRITES;
 
 inline constexpr std::size_t max_pooled_objects = MAX_ACTIVE_KINEMATIC_POOL;
+
+inline constexpr float pixels_per_unit = 30.0f;
 
 #if defined(PULSE2D_TEENSY)
 inline constexpr size_t max_sprite_pixels = 96 * 96;

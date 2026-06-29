@@ -87,6 +87,19 @@
 
 namespace pulse2d {
 
+namespace util {
+
+// The overload pattern
+template<class... Ts>
+struct overload : Ts...
+{
+    using Ts::operator()...;
+};
+template<class... Ts>
+overload(Ts...) -> overload<Ts...>;
+
+} // namespace util
+
 /**
  * @brief
  * Deferred in-place construction for objects that require the Arduino
