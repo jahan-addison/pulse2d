@@ -63,11 +63,13 @@ ETL_INCLUDE ?= $(firstword $(shell find $(HOME)/.cache/CPM/etl -maxdepth 4 -name
 #           External games: set to the cloned pulse2d root.
 #       GAME_SRCS: space-separated list of .cc game files.
 #       GAME_NAME: output binary name (no extension).
+#       GAME_INC: additional include directories.
 #####################################################
 
 PULSE2D_ROOT ?= $(CURDIR)
 GAME_SRCS    ?= $(PULSE2D_ROOT)/sample/sample-teensy.cc
 GAME_NAME    ?= game-teensy
+GAME_INC     ?= -Iinclude
 
 #####################################################
 #  @brief Toolchain
@@ -112,13 +114,14 @@ SYS_INC :=                    \
   -isystem$(LIBS)/ILI9341_t3   \
   -isystem$(LIBS)/SdFat/src    \
   -isystem$(LIBS)/Audio        \
+	-isystem$(LIBS)/Entropy      \
   -isystem$(LIBS)/SPI          \
   -isystem$(LIBS)/SD/src       \
   -isystem$(LIBS)/SerialFlash  \
   -isystem$(LIBS)/Wire
 
 PROJ_INC := -I$(PULSE2D_ROOT) -I$(ETL_INCLUDE)
-INC      := $(SYS_INC) $(PROJ_INC)
+INC      := $(SYS_INC) $(PROJ_INC) $(GAME_INC)
 
 CXXFLAGS     := $(MCU) -O2 -Wall -Wextra -Wshadow -Wdouble-promotion -Wconversion \
                 -std=gnu++23 \
@@ -183,6 +186,8 @@ WIRE_OBJ := $(OUT)/wire/Wire.o $(OUT)/wire/WireIMXRT_patched.o
 
 SERIALFLASH_OBJ := \
   $(patsubst $(LIBS)/SerialFlash/%.cpp,$(OUT)/serialflash/%.o,$(wildcard $(LIBS)/SerialFlash/*.cpp))
+
+ENTROPY_OBJ := $(OUT)/entropy/Entropy.o
 
 PULSE2D_OBJ := \
   $(patsubst $(PULSE2D_ROOT)/pulse2d/%.cc,$(OUT)/pulse2d/%.o,$(shell find $(PULSE2D_ROOT)/pulse2d -name "*.cc" | sort))
@@ -360,6 +365,19 @@ $(OUT)/libteensy_serialflash.a: $(SERIALFLASH_OBJ)
 	@$(AR) rcs $@ $^
 
 #####################################################
+#  @step Entropy
+#####################################################
+
+$(OUT)/entropy/Entropy.o: $(LIBS)/Entropy/Entropy.cpp
+	@mkdir -p $(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "CXX" "$(notdir $<)"
+	@$(CXX) $(LIB_CXXFLAGS) -c $< -o $@
+
+$(OUT)/libteensy_entropy.a: $(ENTROPY_OBJ)
+	$(call _step,Entropy)
+	@$(AR) rcs $@ $^
+
+#####################################################
 #  @step pulse2d engine
 #####################################################
 
@@ -404,7 +422,8 @@ $(OUT)/$(GAME_NAME).elf: \
     $(OUT)/libteensy_spi.a    \
     $(OUT)/libteensy_wire.a   \
     $(OUT)/libteensy_sd.a     \
-    $(OUT)/libteensy_serialflash.a
+    $(OUT)/libteensy_serialflash.a \
+    $(OUT)/libteensy_entropy.a
 	$(call _step,Linking $(GAME_NAME))
 	@$(CXX) $(LDFLAGS)                                                       \
 	  $(GAME_OBJ)                                                           \
@@ -418,6 +437,7 @@ $(OUT)/$(GAME_NAME).elf: \
 	    $(OUT)/libteensy_wire.a                                             \
 	    $(OUT)/libteensy_sd.a                                               \
 	    $(OUT)/libteensy_serialflash.a                                      \
+	    $(OUT)/libteensy_entropy.a                                          \
 	  -Wl,--end-group                                                       \
 	  -o $@
 

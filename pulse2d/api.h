@@ -404,7 +404,7 @@ struct Runtime
      * @return
      */
     template<typename Func>
-    requires std::invocable<Func>
+    requires(std::invocable<Func, graphics::Body*>)
     PULSE2D_INLINE void on_collision_with(const char* body_name, Func&& action)
     {
         execute_scene([&](auto& scene) {
@@ -413,7 +413,10 @@ struct Runtime
             for (auto it = world->arbiters.begin();
                 it != world->arbiters.end();) {
                 if (it->first.body1 == target or it->first.body2 == target) {
-                    action();
+                    if (it->first.body1 == target)
+                        action(it->first.body2);
+                    else
+                        action(it->first.body1);
                     it = world->arbiters.erase(it);
                 } else {
                     ++it;

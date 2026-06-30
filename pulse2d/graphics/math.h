@@ -22,10 +22,17 @@
 
 #pragma once
 
+#if defined(__IMXRT1062__)
+#include <Entropy.h>
+#endif
+
 #include <assert.h>
+#include <cstdint>
 #include <float.h>
 #include <math.h>
 #include <stdlib.h>
+
+#include <pulse2d/util.h>
 
 /****************************************************************************
  * Math
@@ -276,5 +283,84 @@ inline float random(float lo, float hi)
 #endif
     return (hi - lo) * r + lo;
 }
+/*
+ * PCG Random Number Generation for C++
+ *
+ * This code is derived from the PCG family of random number generators
+ * developed by Melissa E. O'Neill (Harvey Mudd College).
+ *
+ * Algorithm: pcg32
+ * Academic Paper: "PCG: A Family of Simple Fast Space-Efficient Statistically
+ *                  Good Algorithms for Random Number Generation" (2014)
+ * Official Website: https://www.pcg-random.org
+ */
+#if defined(__IMXRT1062__)
+struct FastPRNG
+{
+    // 8 bytes of state. Seed this with whatever you want.
+    uint64_t state = 0x853c49e6748fea9bULL;
+    uint64_t inc = 0xda3e39cb94b95bdbULL;
 
+    // Advances the state and returns a uniform 32-bit integer
+    uint32_t next_u32()
+    {
+        uint64_t old_state = state;
+
+        // LCG step
+        state = old_state * 6364136223846793005ULL + (inc | 1ull);
+
+        // Xorshift and rotate for statistically perfect output
+        uint32_t xorshifted = ((old_state >> 18ull) ^ old_state) >> 27ul;
+        uint32_t rot = old_state >> 59ul;
+        return (xorshifted >> rot) | (xorshifted << ((-rot) & 31ul));
+    }
+
+    PULSE2D_INLINE float random_float(float lo, float hi)
+    {
+        // Divide by 2^32 to get a float strictly in [0.0, 1.0)
+        float r = (float)next_u32() / 4294967296.0f;
+        return (hi - lo) * r + lo;
+    }
+};
+
+static FastPRNG pcg_engine_rng;
+
+PULSE2D_INLINE float pcg_random(float lo, float hi)
+{
+    return pcg_engine_rng.random_float(lo, hi);
+}
+
+/*
+ * Hardware True Random Number Generator (TRNG) Integration
+ *
+ * This code utilizes the TRNG silicon peripheral embedded within the
+ * NXP i.MX RT1062 ARM Cortex-M7 processor. The hardware polling and
+ * clock initialization are handled via the Teensyduino Entropy library.
+ *
+ * Library: Entropy
+ * Authors: Walter Anderson, Paul Stoffregen (PJRC)
+ * Hardware Reference: NXP i.MX RT1060 Processor Reference Manual (Chapter 34:
+ * TRNG) Repository: https://github.com/PaulStoffregen/Entropy
+ */
+PULSE2D_INLINE void init_trng_engine_random()
+{
+    Entropy.Initialize();
+    uint64_t seed_high = (uint64_t)Entropy.random();
+    uint64_t seed_low = (uint64_t)Entropy.random();
+
+    pcg_engine_rng.state = (seed_high << 32) | seed_low;
+
+    pcg_engine_rng.next_u32();
+}
+
+inline constexpr float U32_TO_FLOAT = 1.0f / 4294967296.0f;
+
+PULSE2D_INLINE float trng_random(float lo, float hi)
+{
+    float r = (float)pcg_engine_rng.next_u32() * U32_TO_FLOAT;
+
+    return (hi - lo) * r + lo;
+}
+
+#endif
 } // namespace pulse2d

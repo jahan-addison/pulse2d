@@ -98,7 +98,7 @@ PULSE_ON_GAMESTART()
     Serial.begin(115200);
 
     sample_game.init(0.0f, 0.0f, 10);
-    start_seesaw_gamepad();
+    PULSE_ENABLE_SEESAW_GAMEPAD();
     PULSE_SET_SCENE(sample_game, Sample_Level);
 }
 

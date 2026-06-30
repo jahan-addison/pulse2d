@@ -262,9 +262,12 @@ Set three variables and include `Makefile.teensy` from your own Makefile:
 PULSE2D_ROOT = /path/to/pulse2d
 GAME_SRCS    = src/mygame.cc src/level.cc
 GAME_NAME    = mygame
+GAME_INC     = -Iinclude -Isrc/shared   # optional: extra include paths for game headers
 
 include $(PULSE2D_ROOT)/Makefile.teensy
 ```
+
+`GAME_INC` appends to the compiler include path. Use it for any project-local headers (asset headers, shared types, generated animation files) that sit outside the pulse2d tree.
 
 Then from your game directory:
 
