@@ -107,7 +107,7 @@ struct Runtime
             [&](auto& scene) {
                 using T = std::decay_t<decltype(scene)>;
                 if constexpr (!std::is_same_v<T, std::monostate>) {
-                    func(scene);
+                    std::forward<Func>(func)(scene);
                 }
             },
             current_scene);
@@ -414,9 +414,9 @@ struct Runtime
                 it != world->arbiters.end();) {
                 if (it->first.body1 == target or it->first.body2 == target) {
                     if (it->first.body1 == target)
-                        action(it->first.body2);
+                        std::forward<Func>(action)(it->first.body2);
                     else
-                        action(it->first.body1);
+                        std::forward<Func>(action)(it->first.body1);
                     it = world->arbiters.erase(it);
                 } else {
                     ++it;
@@ -620,9 +620,8 @@ struct Runtime
         execute_scene([&](auto& scene) {
             auto& _pool = scene.pool_manager.instances.at(pool_name);
             auto& _objs = _pool.active_objects();
-            for (int _i = static_cast<int>(_objs.size()) - 1; _i >= 0; --_i) {
-                action(_objs[_i]);
-            }
+            for (int _i = static_cast<int>(_objs.size()) - 1; _i >= 0; --_i)
+                std::forward<Func>(action)(_objs[_i]);
         });
     }
 

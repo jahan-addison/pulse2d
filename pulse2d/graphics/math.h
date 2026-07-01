@@ -310,8 +310,9 @@ struct FastPRNG
         state = old_state * 6364136223846793005ULL + (inc | 1ull);
 
         // Xorshift and rotate for statistically perfect output
-        uint32_t xorshifted = ((old_state >> 18ull) ^ old_state) >> 27ul;
-        uint32_t rot = old_state >> 59ul;
+        uint32_t xorshifted =
+            static_cast<uint32_t>(((old_state >> 18ull) ^ old_state) >> 27ul);
+        uint32_t rot = static_cast<uint32_t>(old_state >> 59ul);
         return (xorshifted >> rot) | (xorshifted << ((-rot) & 31ul));
     }
 
