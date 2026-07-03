@@ -35,7 +35,7 @@
 
 #include <Wire.h>         // for Wire
 #include <cstdint>        // for uint8_t
-#include <pulse2d/util.h> // for HARDWARE_Deferred_Init
+#include <pulse2d/util.h> // for Static_Inplace_T
 
 namespace pulse2d::gamepad {
 
@@ -280,8 +280,8 @@ inline void apply_linear_drag(T& body, float drag_coefficient)
 
 struct Pulse2d_Gamepad
 {
-    pulse2d::HARDWARE_Deferred_Init<pulse2d::gamepad::Teensy_I2CDriver> driver;
-    pulse2d::HARDWARE_Deferred_Init<pulse2d::gamepad::Seesaw_Gamepad> pad;
+    pulse2d::Static_Inplace_T<pulse2d::gamepad::Teensy_I2CDriver> driver;
+    pulse2d::Static_Inplace_T<pulse2d::gamepad::Seesaw_Gamepad> pad;
 
     PULSE2D_INLINE void start()
     {

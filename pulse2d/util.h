@@ -102,16 +102,16 @@ overload(Ts...) -> overload<Ts...>;
 
 /**
  * @brief
- * Deferred in-place construction for objects that require the Arduino
- * runtime. I.e. access to various hardware states, Such as the TFT display
- * or sd storage.
+ * Static placement-new in-place construction for objects that require the
+ * Arduino runtime. Such as access to various hardware states, Such as the TFT
+ * display or sd storage.
  *
  * Declare as a static global, then call emplace() once the runtime is ready
  * to construct T in-place inside the internal aligned storage.
  *
  *   Example:
  *
- *     static pulse2d::HARDWARE_Deferred_Init<Pulse2d> engine;
+ *     static pulse2d::Static_Inplace_T<Pulse2d> engine;
  *
  *     void setup() {
  *         engine.emplace();          // default-construct
@@ -123,14 +123,14 @@ overload(Ts...) -> overload<Ts...>;
  *     }
  */
 template<typename T>
-class HARDWARE_Deferred_Init
+class Static_Inplace_T
 {
   public:
-    constexpr HARDWARE_Deferred_Init() = default;
-    HARDWARE_Deferred_Init(HARDWARE_Deferred_Init const&) = delete;
-    HARDWARE_Deferred_Init& operator=(HARDWARE_Deferred_Init const&) = delete;
+    constexpr Static_Inplace_T() = default;
+    Static_Inplace_T(Static_Inplace_T const&) = delete;
+    Static_Inplace_T& operator=(Static_Inplace_T const&) = delete;
 
-    ~HARDWARE_Deferred_Init()
+    ~Static_Inplace_T()
     {
         if (ptr_)
             ptr_->~T();

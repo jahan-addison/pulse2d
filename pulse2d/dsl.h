@@ -136,7 +136,7 @@ namespace sml = boost::sml;
 
 /**
  * @brief
- * Define a type in HARDWARE_Deferred_Init for deferred construction,
+ * Define a type in Static_Inplace_T for deferred construction,
  * Types constructed in this way should require the arduino runtime.
  *
  * @scope: global
@@ -144,8 +144,7 @@ namespace sml = boost::sml;
  * @return
  *
  */
-#define PULSE_HARDWARE_DEFINE(type) \
-    PULSE_DEFINE pulse2d::HARDWARE_Deferred_Init<type>
+#define PULSE_HARDWARE_DEFINE(type) PULSE_DEFINE pulse2d::Static_Inplace_T<type>
 
 /**
  * @brief

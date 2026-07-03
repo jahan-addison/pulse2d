@@ -94,8 +94,8 @@ requires(std::derived_from<Scenes, detail::scene_base> && ...)
 struct Runtime
 {
 
-    pulse2d::HARDWARE_Deferred_Init<pulse2d::Pulse2d> engine;
-    pulse2d::HARDWARE_Deferred_Init<pulse2d::graphics::World> world;
+    pulse2d::Static_Inplace_T<pulse2d::Pulse2d> engine;
+    pulse2d::Static_Inplace_T<pulse2d::graphics::World> world;
 
     static inline std::variant<std::monostate, Scenes...> current_scene;
 

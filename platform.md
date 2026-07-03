@@ -28,12 +28,12 @@ Pulse2D uses fixed-size containers with `etlcpp`. Every sizing decision is a com
 etl::array<Enemy, 64> enemies{};
 ```
 
-### `HARDWARE_Deferred_Init<T>`
+### `Static_Inplace_T<T>`
 
 Occupies `sizeof(T)` bytes in `.bss` even before `emplace()` is called. The storage is a raw `alignas(T) std::byte[sizeof(T)]` buffer inside the wrapper.
 
 ```cpp
-static pulse2d::HARDWARE_Deferred_Init<Pulse2d> engine;
+static pulse2d::Static_Inplace_T<Pulse2d> engine;
 ```
 
 ### Scene pools

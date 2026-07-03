@@ -19,7 +19,7 @@
  *   #include PULSE2D_GRAPHICS  // expands to "pulse2d/graphics/all.h"
  *
  * Header inclusion order matters here: pulse2d.h defines the engine
- * types and HARDWARE_Deferred_Init, dsl.h includes api.h directly and
+ * types and Static_Inplace_T, dsl.h includes api.h directly and
  * adds DSL macros on top.
  *
  ****************************************************************************/

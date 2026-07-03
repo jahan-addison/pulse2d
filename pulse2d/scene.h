@@ -227,7 +227,7 @@ class Pulse2d_Scene_Kinematic_Object
 
     void deploy(
 #if defined(PULSE2D_TEENSY)
-        HARDWARE_Deferred_Init<pulse2d::graphics::World>* world,
+        Static_Inplace_T<pulse2d::graphics::World>* world,
 #else
         pulse2d::graphics::World* world,
 #endif
@@ -254,7 +254,7 @@ class Pulse2d_Scene_Kinematic_Object
 
     void retract(
 #if defined(PULSE2D_TEENSY)
-        HARDWARE_Deferred_Init<pulse2d::graphics::World>* world,
+        Static_Inplace_T<pulse2d::graphics::World>* world,
 #else
         pulse2d::graphics::World* world,
 #endif
