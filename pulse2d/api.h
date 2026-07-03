@@ -320,7 +320,7 @@ struct Runtime
      * @param fps playback rate in frames per second
      * @return
      */
-    PULSE2D_INLINE void register_vfx(const char* anim_name,
+    PULSE2D_INLINE Runtime& register_vfx(const char* anim_name,
         uint16_t const* data_ptr,
         uint16_t width,
         uint16_t height,
@@ -332,6 +332,7 @@ struct Runtime
                 data_ptr, width, height, frames, (1.0f / fps)
             };
         });
+        return *this;
     }
 
     /**
@@ -502,7 +503,7 @@ struct Runtime
      * @param speed scroll speed in pixels per second
      * @return
      */
-    PULSE2D_INLINE void add_parallax_layer(const char* sprite_name,
+    PULSE2D_INLINE Runtime& add_parallax_layer(const char* sprite_name,
         float width,
         float speed)
     {
@@ -510,6 +511,7 @@ struct Runtime
             scene.background_manager.background_layers.push_back(
                 { sprite_name, width, speed, 0.0f });
         });
+        return *this;
     }
 
     /**
@@ -521,13 +523,14 @@ struct Runtime
      * @param width image width in pixels
      * @return
      */
-    PULSE2D_INLINE void add_background_layer(const char* sprite_name,
+    PULSE2D_INLINE Runtime& add_background_layer(const char* sprite_name,
         float width)
     {
         execute_scene([&](auto& scene) {
             scene.background_manager.background_layers.push_back(
                 { sprite_name, width, 0.0f, 0.0f });
         });
+        return *this;
     }
 
     //////////////////
@@ -543,13 +546,14 @@ struct Runtime
      * @param desc Body_Descriptor initializer
      * @return
      */
-    PULSE2D_INLINE void init_pool(const char* pool_name,
+    PULSE2D_INLINE Runtime& init_pool(const char* pool_name,
         pulse2d::graphics::detail::Body_Descriptor desc)
     {
         execute_scene([&](auto& scene) {
             scene.pool_manager.instances[pool_name].set_descriptor(desc);
             scene.pool_manager.instance_timer[pool_name] = 0;
         });
+        return *this;
     }
 
     /**
@@ -631,8 +635,8 @@ struct Runtime
 
     /**
      * @brief
-     * Register a flash-resident sprite array as a named sprite in the current
-     * scene's pool.
+     * Register a compiled sprite array as a named sprite in the embedded pool.
+     * Use for assets compiled into the binary.
      *
      * @scope: PULSE_ON_GAMESCENE_START
      * @param name sprite identifier string
@@ -641,13 +645,34 @@ struct Runtime
      * @param h sprite height in pixels
      * @return
      */
-    PULSE2D_INLINE void set_sprite_flash(const char* name,
+    PULSE2D_INLINE Runtime& set_sprite_embedded(const char* name,
         uint16_t const* data_ptr,
         uint16_t w,
         uint16_t h)
     {
         execute_scene(
-            [&](auto& scene) { scene.set_from_flash(name, data_ptr, w, h); });
+            [&](auto& scene) { scene.set_embedded(name, data_ptr, w, h); });
+        return *this;
+    }
+
+    /**
+     * @brief
+     * Alias for set_sprite_embedded, conventional for parallax background
+     * layers.
+     *
+     * @scope: PULSE_ON_GAMESCENE_START
+     * @param name sprite identifier string
+     * @param data_ptr pointer to the flash RGB565 pixel array
+     * @param w sprite width in pixels
+     * @param h sprite height in pixels
+     * @return
+     */
+    PULSE2D_INLINE Runtime& set_background_sprite(const char* name,
+        uint16_t const* data_ptr,
+        uint16_t w,
+        uint16_t h)
+    {
+        return set_sprite_embedded(name, data_ptr, w, h);
     }
 
     /**
@@ -737,13 +762,14 @@ struct Runtime
      * @param desc Body_Descriptor initializer
      * @return
      */
-    PULSE2D_INLINE void set_static_body(const char* name,
+    PULSE2D_INLINE Runtime& set_static_body(const char* name,
         pulse2d::graphics::detail::Body_Descriptor desc)
     {
         execute_scene([&](auto& scene) {
             scene.set(name, desc);
             world->add(&scene.get_body(name));
         });
+        return *this;
     }
 
     /**
@@ -755,7 +781,7 @@ struct Runtime
      * @param desc Body_Descriptor initializer
      * @return
      */
-    PULSE2D_INLINE void set_controlled_body(const char* name,
+    PULSE2D_INLINE Runtime& set_controlled_body(const char* name,
         pulse2d::graphics::detail::Body_Descriptor desc)
     {
         execute_scene([&](auto& scene) {
@@ -765,6 +791,7 @@ struct Runtime
             scene.get_body(name).set_motion();
             world->add(&scene.get_body(name));
         });
+        return *this;
     }
 
     /**
@@ -776,7 +803,7 @@ struct Runtime
      * @param desc Body_Descriptor initializer
      * @return
      */
-    PULSE2D_INLINE void set_dynamic_body(const char* name,
+    PULSE2D_INLINE Runtime& set_dynamic_body(const char* name,
         pulse2d::graphics::detail::Body_Descriptor desc)
     {
         execute_scene([&](auto& scene) {
@@ -784,6 +811,7 @@ struct Runtime
             scene.get_body(name).set_motion();
             world->add(&scene.get_body(name));
         });
+        return *this;
     }
 
     /**
@@ -811,11 +839,12 @@ struct Runtime
      * @param path sprite absolute path on sd card
      * @return
      */
-    PULSE2D_INLINE void set_sprite(const char* name, const char* path)
+    PULSE2D_INLINE Runtime& set_sprite(const char* name, const char* path)
     {
         execute_scene([&](auto& scene) {
             scene.set(name, engine->storage(), path, 0, 0);
         });
+        return *this;
     }
 
     /**
@@ -831,7 +860,7 @@ struct Runtime
      * @param h expected height
      * @return
      */
-    PULSE2D_INLINE void set_sprite(const char* name,
+    PULSE2D_INLINE Runtime& set_sprite(const char* name,
         const char* path,
         uint16_t w,
         uint16_t h)
@@ -839,6 +868,7 @@ struct Runtime
         execute_scene([&](auto& scene) {
             scene.set(name, engine->storage(), path, w, h);
         });
+        return *this;
     }
 };
 

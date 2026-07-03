@@ -44,15 +44,15 @@ _REGION_CAPACITY = {
 # Exceeding these does not immediately fail the build, so this tool is the
 # only early warning.
 #
-#   DTCM  >312,000 bytes — less than 200 KB remains for the SdFat FIFO_SDIO
+#   DTCM  >312,000 bytes - less than 200 KB remains for the SdFat FIFO_SDIO
 #                          DMA call stack (~128 KB) and the game's own frame stack
-#   FLASH >6,000,000 bytes — leaves ~2 MB headroom in the 8 MB chip
-#   ITCM  >450,000 bytes  — leaves ~60 KB for ISR code that must stay tightly coupled
-#   RAM   >400,000 bytes  — leaves headroom for library DMA buffers and Teensy core
-#   ERAM  >28,000,000 bytes — 87% of the optional 32 MB PSRAM; leave room for audio
+#   FLASH >6,000,000 bytes - leaves ~2 MB headroom in the 8 MB chip
+#   ITCM  >450,000 bytes  - leaves ~60 KB for ISR code that must stay tightly coupled
+#   RAM   >400,000 bytes  - leaves headroom for library DMA buffers and Teensy core
+#   ERAM  >28,000,000 bytes - 87% of the optional 32 MB PSRAM; leave room for audio
 #
 # Thresholds use SI bytes (powers of 10) so that a raw byte count in the output
-# can be compared directly: 316,288 bytes > 312,000 → red.
+# can be compared directly: 316,288 bytes > 312,000 -> red.
 _REGION_LIMIT = {
     "DTCM":  312_000,
     "FLASH": 6_000_000,

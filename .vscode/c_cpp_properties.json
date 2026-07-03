@@ -3,7 +3,8 @@
         {
             "name": "Host",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/external"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/c++",
@@ -18,6 +19,7 @@
             "name": "Teensy 4.1",
             "includePath": [
                 "${workspaceFolder}/**",
+                "${workspaceFolder}/external",
                 "${env:TEENSY_HW}/cores/teensy4",
                 "${env:TEENSY_HW}/libraries/**",
                 "${env:ETL_INCLUDE}/**"

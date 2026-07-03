@@ -67,6 +67,7 @@
 #include <pulse2d/renderer.h>
 #include <pulse2d/scene.h>
 #include <pulse2d/sprite.h>
+#include <pulse2d/state.h>
 #include <pulse2d/storage.h>
 #include <pulse2d/util.h>
 #include <variant>
@@ -86,6 +87,10 @@ using pulse2d_body = pulse2d::graphics::Body;
 using pulse2d_world = pulse2d::graphics::World;
 using pulse2d_arbiter = pulse2d::graphics::Arbiter;
 using pulse2d_joint = pulse2d::graphics::Joint;
+
+// Alias for the Runtime template - used in PULSE_SCENE_FN function signatures.
+template<pulse2d::Scene Scene>
+using pulse2d_scene_runtime = pulse2d::runtime::Runtime<Scene>;
 
 // Portable primitive aliases - useful for pool lambda parameters and state.
 
@@ -112,6 +117,8 @@ using p_i8 = int8_t;
 // Other Aliases
 namespace pulse2d_math = pulse2d::graphics::math;
 namespace pulse2d_util = pulse2d::util;
+namespace pulse2d_state = pulse2d::state;
+namespace sml = boost::sml;
 
 ////////////////
 // Game State //
@@ -139,6 +146,33 @@ namespace pulse2d_util = pulse2d::util;
  */
 #define PULSE_HARDWARE_DEFINE(type) \
     PULSE_DEFINE pulse2d::HARDWARE_Deferred_Init<type>
+
+/**
+ * @brief
+ * Declare the canonical static state instance for a level namespace.
+ * Always named `state`; access it as `level_name::state` from the game
+ * translation unit.
+ *
+ * Define a State struct in the level namespace first, then call this macro
+ * immediately after to give it static storage duration and zero-initialize it.
+ *
+ *   namespace level_one {
+ *       struct State {
+ *           int   score    = 0;
+ *           float speed    = 1.0f;
+ *           bool  complete = false;
+ *       };
+ *       PULSE_DEFINE_SCENE_STATE(State);
+ *   }
+ *
+ *   // from game translation unit:
+ *   level_one::state.score += 10;
+ *
+ * @scope: namespace (level header)
+ * @param Type the State struct type
+ */
+#define PULSE_DEFINE_SCENE_STATE(Type) \
+    PULSE_DEFINE Type state {}
 
 /**
  * @brief
@@ -208,6 +242,33 @@ namespace pulse2d_util = pulse2d::util;
     struct name                                                              \
         : pulse2d::Pulse2d_Scene<bodies, sprites __VA_OPT__(, ) __VA_ARGS__> \
     {}
+
+/**
+ * @brief
+ * Declare a template function constrained to valid scene types
+ * (pulse2d::Scene). The type parameter is always named Scene and is available
+ * in the function signature and body. Use for level or scene utility functions
+ * that take a Runtime<Scene>& without being tied to a concrete scene.
+ *
+ * @note Functions must spell the type parameter as Scene - the macro fixes
+ *       the name so call sites can deduce Scene from the Runtime<Scene>&
+ *       argument without an explicit template argument.
+ *
+ *   PULSE_SCENE_FN void setup_walls(pulse2d_scene_runtime<Scene>& game)
+ *   {
+ *       game.set_static_body("floor", { .position = { 0.0f, -5.0f },
+ *                                       .width    = { 10.0f, 0.5f } });
+ *   }
+ *
+ *   // called from PULSE_ON_GAMESCENE_START(Level_One) - Scene deduced as
+ * Level_One setup_walls(my_game);
+ *
+ * @scope: global
+ * @return
+ */
+#define PULSE_SCENE_FN             \
+    template<pulse2d::Scene Scene> \
+    PULSE2D_INLINE
 
 /**
  * @brief

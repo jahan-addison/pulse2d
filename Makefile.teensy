@@ -120,7 +120,7 @@ SYS_INC :=                    \
   -isystem$(LIBS)/SerialFlash  \
   -isystem$(LIBS)/Wire
 
-PROJ_INC := -I$(PULSE2D_ROOT) -I$(ETL_INCLUDE)
+PROJ_INC := -I$(PULSE2D_ROOT) -I$(PULSE2D_ROOT)/external -I$(ETL_INCLUDE)
 INC      := $(SYS_INC) $(PROJ_INC) $(GAME_INC)
 
 CXXFLAGS     := $(MCU) -O2 -Wall -Wextra -Wshadow -Wdouble-promotion -Wconversion \

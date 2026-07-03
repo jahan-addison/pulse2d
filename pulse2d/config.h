@@ -21,7 +21,8 @@
  *
  *   MAX_PHYSICS_BODIES             64   bodies per world
  *   MAX_PHYSICS_JOINTS             32   joints per world
- *   MAX_LOADED_SPRITES             12   sprites per scene
+ *   MAX_LOADED_SPRITES             12   loaded sprites per scene
+ *   MAX_EMBEDDED_SPRITES           64   embedded sprites per scene
  *   MAX_BACKGROUND_LAYERS           8   parallax layers per scene
  *   MAX_ACTIVE_KINEMATIC_POOL      32   live pool slots across all pools
  *   MAX_ACTIVE_KINEMATIC_INSTANCE   8   named pools per scene
@@ -35,7 +36,7 @@
  *   -DMAX_ACTIVE_KINEMATIC_POOL=64
  *
  * config::width / config::height are the ILI9341 native resolution (320x240).
- * config::scale is the SDL2 window multiplier for host development (960x720).
+ * config::scale is the host display scale factor (960x720).
  * config::pixels_per_unit is the physics-to-screen conversion factor (30.0).
  *
  ****************************************************************************/
@@ -50,6 +51,10 @@
 
 #ifndef MAX_LOADED_SPRITES
 #define MAX_LOADED_SPRITES 12
+#endif
+
+#ifndef MAX_EMBEDDED_SPRITES
+#define MAX_EMBEDDED_SPRITES 64
 #endif
 
 #ifndef MAX_BACKGROUND_LAYERS
@@ -88,13 +93,14 @@
 
 namespace pulse2d::config {
 /**
- * @brief ILI9341 native display resolution and SDL2 desktop scale factor
+ * @brief ILI9341 native display resolution and host scale factor
  */
 inline constexpr int width = 320;
 inline constexpr int height = 240;
-inline constexpr int scale = 3; // SDL2 window scale (960x720)
+inline constexpr int scale = 3;
 
 inline constexpr size_t max_loaded_sprites = MAX_LOADED_SPRITES;
+inline constexpr size_t max_embedded_sprites = MAX_EMBEDDED_SPRITES;
 
 inline constexpr std::size_t max_pooled_objects = MAX_ACTIVE_KINEMATIC_POOL;
 

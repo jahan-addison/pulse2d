@@ -36,15 +36,14 @@ include(GNUInstallDirs)
 # DEPENDENCIES
 # ##############################################################################
 
-# PULSE2D_USE_SDL2 defaults ON for host builds; pass -DPULSE2D_USE_SDL2=OFF to
-# disable (e.g. when targeting Teensy via a host compiler for unit tests).
 if(NOT CMAKE_CROSSCOMPILING)
-  option(PULSE2D_USE_SDL2 "Use SDL2 display (default for host builds)" ON)
+  option(PULSE2D_USE_SDL2 "" ON)
 else()
-  option(PULSE2D_USE_SDL2 "Use SDL2 display (default for host builds)" OFF)
+  option(PULSE2D_USE_SDL2 "" OFF)
 endif()
 
 cpmaddpackage("gh:ETLCPP/etl#20.47.1")
+cpmaddpackage("gh:boost-ext/sml#v1.2.0")
 
 if(NOT CMAKE_CROSSCOMPILING)
   cpmaddpackage("gh:StableCoder/cmake-scripts#24.04")
@@ -57,12 +56,10 @@ if(NOT CMAKE_CROSSCOMPILING)
     find_package(SDL2 CONFIG QUIET)
     if(SDL2_FOUND)
       set(PULSE2D_SDL2_TARGET SDL2::SDL2)
-      message(STATUS "SDL2 found via CMake config: ${SDL2_VERSION}")
     else()
       find_package(PkgConfig REQUIRED)
       pkg_check_modules(SDL2 REQUIRED IMPORTED_TARGET sdl2)
       set(PULSE2D_SDL2_TARGET PkgConfig::SDL2)
-      message(STATUS "SDL2 found via pkg-config: ${SDL2_VERSION}")
     endif()
     get_target_property(_sdl2_incs ${PULSE2D_SDL2_TARGET}
                         INTERFACE_INCLUDE_DIRECTORIES)
@@ -165,33 +162,14 @@ if(stb_ADDED)
   target_include_directories(libpulse2d PRIVATE "${stb_SOURCE_DIR}")
 endif()
 
+if(sml_ADDED)
+  target_include_directories(libpulse2d SYSTEM
+                             PUBLIC "${sml_SOURCE_DIR}/include")
+endif()
+
 if(PULSE2D_USE_SDL2)
   target_compile_definitions(libpulse2d PUBLIC PULSE2D_USE_SDL2)
   target_link_libraries(libpulse2d PUBLIC ${PULSE2D_SDL2_TARGET})
-  message(STATUS "pulse2d: SDL2 display backend enabled")
 endif()
-
-# Sample game
-add_executable(sample "${CMAKE_CURRENT_SOURCE_DIR}/sample/sample-host.cc")
-target_link_libraries(sample PRIVATE libpulse2d)
-set_target_properties(sample PROPERTIES OUTPUT_NAME "sample_game")
-# Enforce Teensy-like constraints on the host build
-if(PULSE2D_TEENSY_CONSTRAINTS)
-  message(STATUS "Enabling Teensy-like constraints on host build")
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_compile_options(sample PRIVATE -Wstack-usage=256 -fstack-usage)
-  elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    target_compile_options(sample PRIVATE -Wframe-larger-than=256
-                                          -Wno-error=frame-larger-than)
-  endif()
-endif()
-add_custom_command(
-  TARGET sample
-  POST_BUILD
-  COMMAND
-    ${CMAKE_COMMAND} -E copy_directory
-    "${CMAKE_CURRENT_SOURCE_DIR}/sample/images"
-    "${CMAKE_BINARY_DIR}/sample/images"
-  COMMENT "Syncing sample/images to build directory")
 
 include(cmake/doctest.cmake)

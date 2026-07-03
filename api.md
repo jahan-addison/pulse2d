@@ -18,6 +18,7 @@ Include both headers:
   - [Math](#math)
   - [Game State, Setup](#game-state-setup)
   - [Scenes](#scenes)
+    - [PULSE_SCENE_FN](#pulse_scene_fn)
   - [Gamepad Input (DSL)](#gamepad-input-dsl)
   - [Animation (DSL)](#animation-dsl)
   - [Coordinates](#coordinates)
@@ -32,6 +33,12 @@ Include both headers:
   - [Kinematic Pools](#kinematic-pools)
   - [Collision](#collision)
   - [Gamepad Controls (Runtime)](#gamepad-controls-runtime)
+- [Levels](#levels)
+  - [State](#state-1)
+  - [Functions](#functions)
+  - [draw\_fn pass-through](#draw_fn-pass-through)
+  - [on\_reset callback](#on_reset-callback)
+  - [Wiring it up](#wiring-it-up)
 - [Complete Example](#complete-example)
 - [See Also](#see-also)
 
@@ -87,7 +94,7 @@ float angle = pulse2d_math::random(-0.5f, 0.5f);
 pulse2d_math::Vec2 dir = { 1.0f, angle };
 ```
 
-For gameplay randomness on Teensy, prefer `trng_random` — it seeds a PCG32 engine from the i.MX RT1062 hardware TRNG via the Entropy library, which produces better statistical quality than `rand()`. Call `init_trng_engine_random()` once in `PULSE_ON_GAMESTART`, then use `trng_random(lo, hi)` anywhere in the game loop:
+For gameplay randomness on Teensy, prefer `trng_random` - it seeds a PCG32 engine from the i.MX RT1062 hardware TRNG via the Entropy library, which produces better statistical quality than `rand()`. Call `init_trng_engine_random()` once in `PULSE_ON_GAMESTART`, then use `trng_random(lo, hi)` anywhere in the game loop:
 
 ```cpp
 PULSE_ON_GAMESTART()
@@ -133,7 +140,88 @@ std::visit(pulse2d_util::overload{
 }, obj.state);
 ```
 
-`overload` is a variadic struct that inherits `operator()` from each lambda. The deduction guide is included — pass a brace-initializer list of lambdas.
+`overload` is a variadic struct that inherits `operator()` from each lambda. The deduction guide is included - pass a brace-initializer list of lambdas.
+
+---
+
+### State Machines
+
+`sml` is an alias for `boost::sml`, available in all game code via `#include PULSE2D_HEADER`. On Teensy it resolves from `external/boost/sml.hpp`; on host it is fetched via CPM.
+
+[boost/sml](https://github.com/boost-ext/sml) is a header-only, zero-allocation state machine library. It compiles the transition table into a jump table at compile time - no heap, no virtual dispatch, no RTTI. Those properties make it a natural fit for the Teensy 4.1.
+
+Define events, states, and a transition table in a plain struct, then wrap it in `sml::sm<>`:
+
+```cpp
+// Events
+struct Spawn  {};
+struct Impact {};
+struct Crash  {};
+
+// States (tag types)
+struct Spawned {};
+struct Live    {};
+struct Erased  {};
+struct Crashed {};
+
+// Transition table
+struct asteroid_sm
+{
+    auto operator()() const
+    {
+        using namespace sml;
+        return make_transition_table(
+            *state<Spawned> + event<Spawn>  = state<Live>,
+             state<Live>    + event<Impact> = state<Erased>,
+             state<Live>    + event<Crash>  = state<Crashed>,
+             state<Spawned> + event<Crash>  = state<Crashed>
+        );
+    }
+};
+```
+
+Instantiate with `sml::sm<asteroid_sm>` and dispatch events via `process_event`. Query state with `is`:
+
+```cpp
+PULSE_DEFINE sml::sm<asteroid_sm> asteroid_state{};
+
+// in PULSE_ON_GAMESCENE_START
+asteroid_state.process_event(Spawn{});
+
+// in PULSE_ON_GAMESCENE
+if (asteroid_state.is(sml::state<Live>)) {
+    asterisk.draw("meteor_object_1", "meteor_1m_sprite");
+}
+
+// on laser collision
+asteroid_state.process_event(Impact{});
+```
+
+`sml::sm<>` holds only the current state index - no dynamic allocation. For multiple independent objects use an array of machines:
+
+```cpp
+PULSE_DEFINE etl::array<sml::sm<asteroid_sm>, 4> asteroids{};
+```
+
+Guards and actions can be lambdas captured by value - keep them stateless or capture a pointer to external state:
+
+```cpp
+struct asteroid_sm
+{
+    bool& player_hit;
+
+    auto operator()() const
+    {
+        using namespace sml;
+        auto on_crash = [this] { player_hit = true; };
+
+        return make_transition_table(
+            *state<Spawned> + event<Spawn>  = state<Live>,
+             state<Live>    + event<Crash>  / on_crash = state<Crashed>
+        );
+    }
+};
+```
 
 ---
 
@@ -262,6 +350,51 @@ PULSE_DEFINE_SCENE(Boss_Fight, 15, 12, 4);  // 4 joints
 
 ---
 
+#### PULSE_SCENE_FN
+
+```cpp
+PULSE_SCENE_FN void function_name(pulse2d_scene_runtime<Scene>& game, ...);
+```
+
+Declares a template function constrained to valid scene types (`pulse2d::Scene`). The type parameter is always named `Scene` and is deduced from the `Runtime<Scene>&` argument at the call site - no explicit template argument needed.
+
+Use this for level or scene utility functions that should work with any scene without being hardcoded to a specific one. The constraint catches misuse at the call site if a non-scene type is passed.
+
+**Scope:** `global`
+
+```cpp
+// scenes/levels/level_one.h
+namespace scenes::levels::level_one {
+
+PULSE_SCENE_FN void setup_walls(pulse2d_scene_runtime<Scene>& game)
+{
+    game.set_static_body("top_wall",    { .position = { 0.0f,  4.5f }, .width = { 20.0f, 0.5f } })
+        .set_static_body("bottom_wall", { .position = { 0.0f, -4.5f }, .width = { 20.0f, 0.5f } });
+}
+
+PULSE_SCENE_FN void setup_background(pulse2d_scene_runtime<Scene>& game)
+{
+    game.set_background_sprite("bg_stars", stars_data, 320, 240)
+        .add_parallax_layer("bg_stars", 320.0f, 20.0f);
+}
+
+} // namespace scenes::levels::level_one
+```
+
+```cpp
+// src/game.cc
+namespace level_one = scenes::levels::level_one;
+
+PULSE_ON_GAMESCENE_START(Level_One) {
+    level_one::setup_walls(my_game);
+    level_one::setup_background(my_game);
+}
+```
+
+`PULSE_SCENE_FN` fixes the template parameter name as `Scene`. Functions that reference it in their signature or body must use that exact name.
+
+---
+
 #### PULSE_SET_SCENE
 
 ```cpp
@@ -317,16 +450,32 @@ Defines the entry function for a scene. Called once automatically by `PULSE_SET_
 **Scope:** `global`
 
 ```cpp
+// scenes/levels/game_level.h
+namespace scenes::levels::game_level {
+
+PULSE_SCENE_FN void on_start(pulse2d_scene_runtime<Scene>& game)
+{
+    game
+        .set_sprite("player_sprite", "player.bin")
+        .set_controlled_body("player", {
+            .position = { 0.0f, 0.0f },
+            .width    = { 0.5f, 0.5f }
+        })
+        .set_static_body("floor", {
+            .position = { 0.0f, -5.0f },
+            .width    = { 10.0f, 0.5f }
+        });
+}
+
+} // namespace scenes::levels::game_level
+```
+
+```cpp
+// src/game.cc
+namespace game_level = scenes::levels::game_level;
+
 PULSE_ON_GAMESCENE_START(Game_Level) {
-    my_game.set_sprite("player_sprite", "player.bin");
-    my_game.set_controlled_body("player", {
-        .position = { 0.0f, 0.0f },
-        .width    = { 0.5f, 0.5f }
-    });
-    my_game.set_static_body("floor", {
-        .position = { 0.0f, -5.0f },
-        .width    = { 10.0f, 0.5f }
-    });
+    game_level::on_start(my_game);
 }
 ```
 
@@ -345,12 +494,27 @@ Defines the per-frame function for a scene. Registered as the active tick functi
 **Scope:** `global`
 
 ```cpp
-PULSE_ON_GAMESCENE(Game_Level) {
-    my_game.tick();
+// scenes/levels/game_level.h
+namespace scenes::levels::game_level {
+
+PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scene>& game)
+{
     PULSE_POLL_SEESAW_GAMEPAD();
 
-    my_game.set_arcade_directional_control("player", 3.0f);
-    my_game.draw("player", "player_sprite");
+    game.set_arcade_directional_control("player", 3.0f);
+    game.draw("player", "player_sprite");
+}
+
+} // namespace scenes::levels::game_level
+```
+
+```cpp
+// src/game.cc
+namespace game_level = scenes::levels::game_level;
+
+PULSE_ON_GAMESCENE(Game_Level) {
+    my_game.tick();
+    game_level::on_tick(my_game);
     my_game.render();
 }
 ```
@@ -829,14 +993,15 @@ Allocates an immovable body and registers it with the physics world.
 **Scope:** `PULSE_ON_GAMESCENE_START`
 
 ```cpp
-my_game.set_static_body("floor", {
-    .position = { 0.0f, -5.0f },
-    .width    = { 10.0f, 0.5f }
-});
-my_game.set_static_body("left_wall", {
-    .position = { -6.0f, 0.0f },
-    .width    = { 0.5f, 8.0f }
-});
+my_game
+    .set_static_body("floor", {
+        .position = { 0.0f, -5.0f },
+        .width    = { 10.0f, 0.5f }
+    })
+    .set_static_body("left_wall", {
+        .position = { -6.0f, 0.0f },
+        .width    = { 0.5f, 8.0f }
+    });
 ```
 
 ---
@@ -925,7 +1090,7 @@ body.set_friction(float)
 body.set_is_sensor(bool)
 ```
 
-Typical use — teleport a body into position before it becomes the active target, or shrink its collision box on hit:
+Typical use - teleport a body into position before it becomes the active target, or shrink its collision box on hit:
 
 ```cpp
 auto& as = asterisk.get_body("meteor_object_2");
@@ -946,6 +1111,13 @@ as.set_position({ 6.0f, 0.0f }).set_width({ 0.0f, 0.0f });
 
 ### Sprites, Rendering
 
+There are two sprite types:
+
+- `set_sprite` - loaded from the SD card at scene start. Limited by `MAX_LOADED_SPRITES` (default 12).
+- `set_sprite_embedded` / `set_background_sprite` - compiled into the binary. Limited by `MAX_EMBEDDED_SPRITES` (default 64).
+
+Both types share the same name lookup - `draw`, `draw_body`, `tick_animation`, and background layers all work the same regardless of source.
+
 ---
 
 #### set_sprite
@@ -955,24 +1127,45 @@ my_game.set_sprite("name", "path/to/file.bin");
 my_game.set_sprite("name", "path/to/file.bin", width, height);
 ```
 
-Loads a raw RGB565 sprite from the SD card into the current scene's sprite pool. The `.bin` format encodes dimensions in the first four bytes, so the no-dimension form is the default. Pass explicit dimensions to validate that the file header matches — on host, they scale the image instead.
+Loads a raw RGB565 sprite from the SD card into the current scene's sprite pool. The `.bin` format encodes dimensions in the first four bytes, so the no-dimension form is the default. Pass explicit dimensions to validate that the file header matches - on host, they scale the image instead.
 
 **Scope:** `PULSE_ON_GAMESCENE_START`
 
 ```cpp
-my_game.set_sprite("ship_sprite", "ship.bin");
-my_game.set_sprite("enemy_sprite", "sprites/enemy.bin");
+my_game
+    .set_sprite("ship_sprite",  "ship.bin")
+    .set_sprite("enemy_sprite", "sprites/enemy.bin");
 ```
 
 ---
 
-#### set_sprite_flash
+#### set_sprite_embedded
 
 ```cpp
-my_game.set_sprite_flash("name", data_array, width, height);
+my_game.set_sprite_embedded("name", data_array, width, height);
 ```
 
-Registers a flash-resident sprite array as a named sprite. Use this for backgrounds and large assets stored in QSPI flash (generated by `png2header`).
+Registers a compiled sprite array as a named sprite in the embedded pool. Use for any asset compiled into the binary - animation sheets, large art, `png2header` output.
+
+**Scope:** `PULSE_ON_GAMESCENE_START`
+
+```cpp
+#include "../include/asteroid-sheet.h"
+
+PULSE_ON_GAMESCENE_START(Level_One) {
+    my_game.set_sprite_embedded("asteroid_large", asteroid_l, 65, 58);
+}
+```
+
+---
+
+#### set_background_sprite
+
+```cpp
+my_game.set_background_sprite("name", data_array, width, height);
+```
+
+Alias for `set_sprite_embedded`, conventional for parallax and static background layers.
 
 **Scope:** `PULSE_ON_GAMESCENE_START`
 
@@ -980,7 +1173,7 @@ Registers a flash-resident sprite array as a named sprite. Use this for backgrou
 #include "../include/nebula-bg.h"
 
 PULSE_ON_GAMESCENE_START(Level_One) {
-    my_game.set_sprite_flash("bg_nebula", bg_1, 320, 240);
+    my_game.set_background_sprite("bg_nebula", bg_1, 320, 240);
 }
 ```
 
@@ -1041,13 +1234,13 @@ Adds a parallax scrolling layer. `width` is the image width in pixels used to wr
 
 ```cpp
 PULSE_ON_GAMESCENE_START(Space_Level) {
-    my_game.set_sprite_flash("bg_nebula", nebula_data, 320, 240);
-    my_game.set_sprite_flash("bg_stars",  stars_data,  320, 240);
-    my_game.set_sprite_flash("bg_dust",   dust_data,   320, 240);
-
-    my_game.add_parallax_layer("bg_nebula", 320.0f, 10.0f);   // slow
-    my_game.add_parallax_layer("bg_stars",  320.0f, 3.0f);    // very slow
-    my_game.add_parallax_layer("bg_dust",   320.0f, 65.0f);   // fast
+    my_game
+        .set_background_sprite("bg_nebula", nebula_data, 320, 240)
+        .set_background_sprite("bg_stars",  stars_data,  320, 240)
+        .set_background_sprite("bg_dust",   dust_data,   320, 240)
+        .add_parallax_layer("bg_nebula", 320.0f, 10.0f)   // slow
+        .add_parallax_layer("bg_stars",  320.0f,  3.0f)   // very slow
+        .add_parallax_layer("bg_dust",   320.0f, 65.0f);  // fast
 }
 ```
 
@@ -1373,19 +1566,20 @@ Static bodies (walls, floors, platforms) registered with `set_static_body` inter
 
 ```cpp
 PULSE_ON_GAMESCENE_START(Level_One) {
-    my_game.set_controlled_body("ship", {
-        .position = { -4.0f, 0.0f },
-        .width    = { 1.0f, 1.0f },
-        .mass     = 1.0f
-    });
-    my_game.set_static_body("top_wall", {
-        .position = { 0.0f, 4.5f },
-        .width    = { 20.0f, 0.5f }
-    });
-    my_game.set_static_body("bottom_wall", {
-        .position = { 0.0f, -4.5f },
-        .width    = { 20.0f, 0.5f }
-    });
+    my_game
+        .set_controlled_body("ship", {
+            .position = { -4.0f, 0.0f },
+            .width    = { 1.0f,  1.0f },
+            .mass     = 1.0f
+        })
+        .set_static_body("top_wall", {
+            .position = { 0.0f,  4.5f },
+            .width    = { 20.0f, 0.5f }
+        })
+        .set_static_body("bottom_wall", {
+            .position = { 0.0f, -4.5f },
+            .width    = { 20.0f, 0.5f }
+        });
 }
 
 PULSE_ON_GAMESCENE(Level_One) {
@@ -1468,120 +1662,386 @@ Applies linear drag to the body each frame. `drag_amount` is a multiplier (< 1.0
 
 ---
 
+## Levels
+
+Level-specific code lives in a dedicated namespace in its own header. The namespace owns a `State` struct, all mutable level variables, and `PULSE_SCENE_FN` functions for startup and the per-frame tick. The main game translation unit includes the header and wires the functions into `PULSE_ON_GAMESCENE_START` / `PULSE_ON_GAMESCENE`.
+
+This pattern keeps level code self-contained, avoids translation unit-global sprawl, and lets the compiler enforce that level functions are only called with a valid scene type.
+
+---
+
+### State
+
+All mutable level variables go in a `State` struct. Declare it in the level namespace, then use `PULSE_DEFINE_SCENE_STATE` to create a single static instance named `state`. Access it from the game translation unit as `level_one::state`.
+
+```cpp
+// scenes/levels/level_one.h
+namespace scenes::levels::level_one {
+
+struct State {
+    int   current_enemy  = 0;
+    float speed_ratio    = 1.0f;
+    bool  level_complete = false;
+};
+
+PULSE_DEFINE_SCENE_STATE(State);
+```
+
+`PULSE_DEFINE_SCENE_STATE(State)` expands to `static State state{}`, zero-initializing every member with static storage duration - the same guarantees as any other `PULSE_DEFINE` variable.
+
+---
+
+### Functions
+
+Level functions use `PULSE_SCENE_FN` and accept a `pulse2d_scene_runtime<Scene>&` as their first parameter. They live in the same namespace as the state and call it directly (no parameter needed - `state` is namespace-scoped static storage):
+
+```cpp
+// Startup: called once from PULSE_ON_GAMESCENE_START
+PULSE_SCENE_FN void on_level_start(pulse2d_scene_runtime<Scene>& game)
+{
+    // set up backgrounds, walls, sprites, bodies...
+    game.set_sprite("enemy_sprite", "enemy.bin")
+        .set_dynamic_body("enemy_1",
+            { .position = { 20.0f, 0.0f }, .velocity = { 0.0f, 0.0f },
+              .width    = px_to_units(32.0f, 32.0f), .mass = 1.0f });
+
+    state.speed_ratio    = 1.0f;
+    state.current_enemy  = 0;
+    state.level_complete = false;
+}
+
+// Tick: called every frame from PULSE_ON_GAMESCENE
+PULSE_SCENE_FN void on_level_tick(pulse2d_scene_runtime<Scene>& game,
+    pulse2d_body& player,
+    void (*on_reset)())
+{
+    PULSE_POLL_SEESAW_GAMEPAD();
+
+    if (SEESAW_BUTTON_INPUT(SEESAW_START)) {
+        on_reset();
+    }
+    // per-frame logic using state.current_enemy, state.speed_ratio, etc.
+}
+```
+
+`PULSE_SCENE_FN` fixes the template parameter as `Scene`, so the `pulse2d_scene_runtime<Scene>&` in the signature refers to the same deduced type - no explicit template argument needed at the call site.
+
+---
+
+### draw\_fn pass-through
+
+`pulse2d::state::Draw_Fn` is a non-capturing function pointer (`void (*)(pulse2d_body*, const char*)`). Lambdas stored in this type cannot close over local variables, including the `Runtime<Scene>&` parameter.
+
+The solution: accept the draw function as a parameter to `on_level_start`, store it in `state.draw` (which has static storage duration), then copy `state.draw` directly into any config struct that needs it. Lambdas that later *read* from `state.draw` (or from `state` in general) remain non-capturing because they reference namespace-scoped static storage - not the parameter:
+
+```cpp
+struct State {
+    // ...
+    pulse2d::state::Draw_Fn draw = nullptr;
+};
+PULSE_DEFINE_SCENE_STATE(State);
+
+PULSE_SCENE_FN void on_level_start(pulse2d_scene_runtime<Scene>& game,
+    pulse2d::state::Draw_Fn draw_fn)
+{
+    state.draw = draw_fn;   // store in static; lambdas below stay non-capturing
+
+    my_manager.add({
+        .draw = state.draw, // copied from static - not capturing game or draw_fn
+    });
+}
+```
+
+In the main translation unit, the draw lambda references the concrete global runtime - it is non-capturing there:
+
+```cpp
+PULSE_ON_GAMESCENE_START(Level_One) {
+    level_one::on_level_start(my_game,
+        [](pulse2d_body* b, const char* s) { my_game.draw_body(b, s); });
+}
+```
+
+---
+
+### on\_reset callback
+
+`PULSE_SET_SCENE` uses token-pasting to construct function names (`pulse2d_scene_enter_Level_One`). Inside a template function the second argument must be a literal token, not a template parameter - `PULSE_SET_SCENE(game, Scene)` would paste `Scene` literally, not the actual scene name, and fail to resolve.
+
+Pass an `on_reset` callback instead. The caller in the concrete scene function provides the lambda, where `PULSE_SET_SCENE` has the concrete name:
+
+```cpp
+// level header - on_reset abstracts the scene transition
+PULSE_SCENE_FN void on_level_tick(pulse2d_scene_runtime<Scene>& game,
+    pulse2d_body& player,
+    void (*on_reset)())
+{
+    PULSE_POLL_SEESAW_GAMEPAD();
+    if (SEESAW_BUTTON_INPUT(SEESAW_START)) {
+        state.current_enemy  = 0;
+        state.level_complete = false;
+        on_reset();
+    }
+}
+```
+
+```cpp
+// game translation unit - PULSE_SET_SCENE used with the concrete name
+PULSE_ON_GAMESCENE(Level_One) {
+    level_one::on_level_tick(my_game, ship, [] {
+        PULSE_SET_SCENE(my_game, Level_One);
+    });
+}
+```
+
+Similarly, `PULSE_POLL_SEESAW_GAMEPAD()` declares a local `gamepad_state` variable - `SEESAW_BUTTON_INPUT` expands to `gamepad_state.buttons & NAME`. Place the poll at the top of `on_level_tick`, not in the caller, so the variable is in scope when the button macros expand.
+
+---
+
+### Wiring it up
+
+A complete level header and its connection to the game translation unit:
+
+```cpp
+// scenes/levels/level_one.h
+#pragma once
+
+#include PULSE2D_HEADER
+#include PULSE2D_GRAPHICS
+
+void set_player_ship(); // forward decl for functions defined in game translation unit
+
+namespace scenes::levels::level_one {
+
+struct State {
+    int   current_enemy = 0;
+    float speed_ratio   = 1.0f;
+    pulse2d::state::Draw_Fn draw = nullptr;
+};
+
+PULSE_DEFINE_SCENE_STATE(State);
+
+PULSE_SCENE_FN void on_level_start(pulse2d_scene_runtime<Scene>& game,
+    pulse2d::state::Draw_Fn draw_fn)
+{
+    state.draw = draw_fn;
+    state.current_enemy = 0;
+    state.speed_ratio   = 1.0f;
+
+    set_player_ship();
+
+    game.set_sprite("enemy_sprite", "enemy.bin")
+        .set_dynamic_body("enemy_1",
+            { .position = { 20.0f, 0.0f }, .velocity = { -8.0f * state.speed_ratio, 0.0f },
+              .width    = px_to_units(32.0f, 32.0f), .mass = 1.0f, .is_sensor = true });
+}
+
+PULSE_SCENE_FN void on_level_tick(pulse2d_scene_runtime<Scene>& game,
+    pulse2d_body& player,
+    void (*on_reset)())
+{
+    PULSE_POLL_SEESAW_GAMEPAD();
+
+    game.set_arcade_directional_inverted_control("player", 12.0f, true);
+
+    if (SEESAW_BUTTON_INPUT(SEESAW_START)) {
+        on_reset();
+    }
+
+    game.draw("player", "player_sprite");
+    game.draw("enemy_1", "enemy_sprite");
+}
+
+} // namespace scenes::levels::level_one
+```
+
+```cpp
+// src/game.cc
+#include PULSE2D_HEADER
+#include PULSE2D_GRAPHICS
+#include <scenes/levels/level_one.h>
+
+namespace level_one = scenes::levels::level_one;
+
+PULSE2D_START_PULSE();
+PULSE_DEFINE_SCENE(Level_One, 4, 6);
+PULSE_INIT_GAME(my_game, Level_One);
+
+void set_player_ship()
+{
+    my_game
+        .set_sprite("player_sprite", "ship.bin")
+        .set_controlled_body("player",
+            { .position = { -4.0f, 0.0f }, .velocity = { 0.0f, 0.0f },
+              .width    = { 1.0f, 1.0f }, .mass = 1.0f });
+}
+
+PULSE_ON_GAMESCENE_START(Level_One)
+{
+    level_one::on_level_start(my_game,
+        [](pulse2d_body* b, const char* s) { my_game.draw_body(b, s); });
+}
+
+PULSE_ON_GAMESCENE(Level_One)
+{
+    my_game.tick();
+    my_game.render_backgrounds();
+
+    pulse2d_body& player = my_game.get_body("player");
+
+    level_one::on_level_tick(my_game, player, [] {
+        PULSE_SET_SCENE(my_game, Level_One);
+    });
+
+    my_game.tick_vfx();
+    my_game.render();
+}
+
+PULSE_ON_GAMESTART()
+{
+    my_game.init(0.0f, -10.0f, 10);
+    PULSE_ENABLE_SEESAW_GAMEPAD();
+    PULSE_SET_SCENE(my_game, Level_One);
+}
+
+PULSE_ON_GAMELOOP()
+{
+    PULSE_TICK_GAMESCENE();
+}
+```
+
+---
+
 ## Complete Example
 
 A complete Space Shooter demonstrating most features:
 
 ```cpp
+// scenes/levels/space_shooter.h
+#pragma once
+
 #include PULSE2D_HEADER
 #include PULSE2D_GRAPHICS
 #include "../include/explosion-anim.h"
 #include "../include/stars-bg.h"
 
-// Scene declaration
-PULSE_DEFINE_SCENE(Space_Shooter, 20, 6);
+namespace scenes::levels::space_shooter {
 
-// Runtime instance - owns engine, world, and current_scene
-PULSE2D_START_PULSE();
-PULSE_INIT_GAME(my_game, Space_Shooter);
+struct State {
+    int      score     = 0;
+    bool     enemy_hit = false;
+    uint32_t cooldown  = 0;
+};
 
-// Persistent state
-PULSE_DEFINE int score = 0;
-PULSE_DEFINE bool enemy_hit = false;
-PULSE_DEFINE uint32_t cooldown = 0;
+PULSE_DEFINE_SCENE_STATE(State);
 
-PULSE_ON_GAMESCENE_START(Space_Shooter) {
-    // Flash sprites
-    my_game.set_sprite_flash("bg_stars", stars_bg, 320, 240);
+PULSE_SCENE_FN void on_start(pulse2d_scene_runtime<Scene>& game)
+{
+    state = {};
 
-    // SD card sprites
-    my_game.set_sprite("ship_sprite",   "ship.bin");
-    my_game.set_sprite("enemy_sprite",  "enemy.bin");
-    my_game.set_sprite("bullet_sprite", "bullet.bin");
-
-    // Scrolling background
-    my_game.add_parallax_layer("bg_stars", 320.0f, 15.0f);
-
-    // VFX animation definition
-    my_game.register_vfx("explosion", explosion_frames, 64, 64, 8, 12.0f);
-
-    // Bullet pool
-    my_game.init_pool("bullets", {
-        .width    = { 0.15f, 0.08f },
-        .friction = 0.0f
-    });
-
-    // Player ship (controlled)
-    my_game.set_controlled_body("ship_object", {
-        .position = { -4.0f, 0.0f },
-        .width    = { 0.5f, 0.5f }
-    });
-
-    // Enemy (dynamic)
-    my_game.set_dynamic_body("enemy_object", {
-        .position = { 3.0f, 0.0f },
-        .mass     = 1.0f,
-        .width    = { 0.6f, 0.6f }
-    });
+    game
+        .set_background_sprite("bg_stars",   stars_bg, 320, 240)
+        .set_sprite("ship_sprite",       "ship.bin")
+        .set_sprite("enemy_sprite",      "enemy.bin")
+        .set_sprite("bullet_sprite",     "bullet.bin")
+        .add_parallax_layer("bg_stars",  320.0f, 15.0f)
+        .register_vfx("explosion", explosion_frames, 64, 64, 8, 12.0f)
+        .init_pool("bullets", {
+            .width    = { 0.15f, 0.08f },
+            .friction = 0.0f
+        })
+        .set_controlled_body("ship_object", {
+            .position = { -4.0f, 0.0f },
+            .width    = { 0.5f,  0.5f }
+        })
+        .set_dynamic_body("enemy_object", {
+            .position = { 3.0f, 0.0f },
+            .mass     = 1.0f,
+            .width    = { 0.6f, 0.6f }
+        });
 }
 
-PULSE_ON_GAMESCENE(Space_Shooter) {
-    my_game.tick();
+PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scene>& game,
+    pulse2d_body& ship,
+    void (*on_reset)())
+{
     PULSE_POLL_SEESAW_GAMEPAD();
 
-    my_game.render_backgrounds();
+    game.set_arcade_directional_control("ship_object", 3.5f);
 
-    my_game.set_arcade_directional_control("ship_object", 3.5f);
-
-    pulse2d_body& ship = my_game.get_body("ship_object");
-
-    // Fire bullets
-    if (cooldown > 0) cooldown--;
-    if (SEESAW_BUTTON_INPUT(SEESAW_A) && cooldown == 0) {
-        my_game.spawn("bullets",
-            100,
+    if (state.cooldown > 0) state.cooldown--;
+    if (SEESAW_BUTTON_INPUT(SEESAW_A) && state.cooldown == 0) {
+        game.spawn("bullets", 100,
             ship.position.x + 0.6f, ship.position.y,
             8.0f, 0.0f);
-        cooldown = 10;
+        state.cooldown = 10;
     }
 
-    // Update live bullets
-    my_game.render_pool("bullets", [&](pulse2d_body* bullet) {
-        pulse2d_body& enemy = my_game.get_body("enemy_object");
+    game.render_pool("bullets", [&](pulse2d_body* bullet) {
+        pulse2d_body& enemy = game.get_body("enemy_object");
 
         if (bullet->position.x > 6.0f) {
-            my_game.despawn("bullets", bullet);
+            game.despawn("bullets", bullet);
         } else {
-            my_game.draw_body(bullet, "bullet_sprite");
+            game.draw_body(bullet, "bullet_sprite");
         }
 
-        my_game.on_collision(bullet, &enemy, [&] {
-            if (!enemy_hit) {
-                enemy_hit = true;
+        game.on_collision(bullet, &enemy, [&] {
+            if (!state.enemy_hit) {
+                state.enemy_hit = true;
                 auto coords = get_body_coordinates(&enemy);
-                my_game.play_vfx("explosion", coords.x, coords.y);
-                score += 100;
+                game.play_vfx("explosion", coords.x, coords.y);
+                state.score += 100;
             }
-            my_game.despawn("bullets", bullet);
+            game.despawn("bullets", bullet);
         });
     });
 
-    // Reset
     if (SEESAW_BUTTON_INPUT(SEESAW_START)) {
+        on_reset();
+    }
+
+    game.draw("ship_object", "ship_sprite");
+    if (!state.enemy_hit)
+        game.draw("enemy_object", "enemy_sprite");
+}
+
+} // namespace scenes::levels::space_shooter
+```
+
+```cpp
+// src/game.cc
+#include PULSE2D_HEADER
+#include PULSE2D_GRAPHICS
+#include <scenes/levels/space_shooter.h>
+
+namespace space_shooter = scenes::levels::space_shooter;
+
+PULSE2D_START_PULSE();
+PULSE_DEFINE_SCENE(Space_Shooter, 20, 6);
+PULSE_INIT_GAME(my_game, Space_Shooter);
+
+PULSE_ON_GAMESCENE_START(Space_Shooter)
+{
+    space_shooter::on_start(my_game);
+}
+
+PULSE_ON_GAMESCENE(Space_Shooter)
+{
+    my_game.tick();
+    my_game.render_backgrounds();
+
+    pulse2d_body& ship = my_game.get_body("ship_object");
+
+    space_shooter::on_tick(my_game, ship, [] {
         PULSE_SET_SCENE(my_game, Space_Shooter);
-    }
+    });
 
-    // Draw objects
-    my_game.draw("ship_object", "ship_sprite");
-    if (!enemy_hit) {
-        my_game.draw("enemy_object", "enemy_sprite");
-    }
-
-    my_game.tick_vfx();   // advance VFX
+    my_game.tick_vfx();
     my_game.render();
 }
 
-PULSE_ON_GAMESTART() {
+PULSE_ON_GAMESTART()
+{
     Serial.begin(115200);
     pulse_register_etl_error_handler();
     my_game.init(0.0f, 0.0f, 10);
@@ -1589,7 +2049,8 @@ PULSE_ON_GAMESTART() {
     PULSE_SET_SCENE(my_game, Space_Shooter);
 }
 
-PULSE_ON_GAMELOOP() {
+PULSE_ON_GAMELOOP()
+{
     PULSE_TICK_GAMESCENE();
 }
 ```

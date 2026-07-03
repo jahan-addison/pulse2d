@@ -14,16 +14,16 @@
 #if defined(PULSE2D_TEENSY)
 #include <ILI9341_t3.h>
 #else
-#include <SDL2/SDL.h>   // for SDL_Quit
-#include <SDL_render.h> // for SDL_CreateRenderer, SDL_DestroyRenderer
-#include <SDL_video.h>  // for SDL_CreateWindow, SDL_DestroyWindow
+#include <SDL2/SDL.h>
+#include <SDL_render.h>
+#include <SDL_video.h>
 #endif
 
 /****************************************************************************
  * Display
  *
- * On Teensy the target hardware is the PJRC ILI9341 320x240, and on host the
- * driver opens an SDL2 window at the same logical resolution scaled up by
+ * On Teensy the target hardware is the PJRC ILI9341 320x240; on host the
+ * driver opens a window at the same logical resolution scaled up by
  * config::scale.
  *
  * Example:
@@ -59,7 +59,7 @@ inline constexpr uint8_t touch_cs =
  * @brief Display driver
  *
  *  Teensy: ILI9341_t3 over SPI0.
- *  Host: SDL2 window at config::width × config::height × config::scale.
+ *  Host: display window at config::width × config::height × config::scale.
  */
 class Display
 {

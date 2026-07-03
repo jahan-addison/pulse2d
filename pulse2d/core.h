@@ -29,3 +29,6 @@
 #include <pulse2d/dsl.h>
 
 #include <pulse2d/api.h>
+
+// External
+#include <boost/sml.hpp>

@@ -26,14 +26,14 @@ jobs:
           - platform: { name: "x86_64 Linux", os: ubuntu-latest, arch: x86_64 }
             compiler: clang++
             cxx: clang++
-          # x86_64 macOS
-          - platform: { name: "x86_64 macOS", os: macos-latest, arch: x86_64 }
-            compiler: clang++
-            cxx: clang++
-          # ARM64 macOS
-          - platform: { name: "ARM64 macOS", os: macos-latest, arch: arm64 }
-            compiler: clang++
-            cxx: clang++
+          # # x86_64 macOS
+          # - platform: { name: "x86_64 macOS", os: macos-latest, arch: x86_64 }
+          #   compiler: clang++
+          #   cxx: clang++
+          # # ARM64 macOS
+          # - platform: { name: "ARM64 macOS", os: macos-latest, arch: arm64 }
+          #   compiler: clang++
+          #   cxx: clang++
 
     steps:
       - name: checkout

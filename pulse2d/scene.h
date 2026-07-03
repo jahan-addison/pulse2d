@@ -66,6 +66,16 @@ struct scene_base
 
 } // namespace detail
 
+/**
+ * Satisfied by any scene struct declared with PULSE_DEFINE_SCENE.
+ * Use as a constraint on template functions that accept Runtime<Scene>&
+ * without being tied to a specific scene type.
+ *
+ *   PULSE_SCENE_FN void setup(pulse2d::runtime::Runtime<Scene>& game) { ... }
+ */
+template<typename T>
+concept Scene = std::derived_from<T, detail::scene_base>;
+
 namespace assets {
 struct Background_Layer
 {
@@ -307,49 +317,65 @@ struct Pulse2d_Scene_Background
 
 #if defined(PULSE2D_TEENSY)
     using Sprite_Pool = etl::map<const char*, std::size_t, T_Sprite, CStrLess>;
+    using Embedded_Pool =
+        etl::map<const char*, std::size_t, MAX_EMBEDDED_SPRITES, CStrLess>;
 #else
     using Sprite_Pool = etl::map<std::string, std::size_t, T_Sprite>;
+    using Embedded_Pool =
+        etl::map<std::string, std::size_t, MAX_EMBEDDED_SPRITES>;
 #endif
 
     Pulse2d_Scene_Background() = delete;
 
     explicit Pulse2d_Scene_Background(Sprite_Pool& sprite_pool,
-        etl::array<pulse2d::Sprite, T_Sprite>& sprites)
+        etl::array<pulse2d::Sprite, T_Sprite>& sprites,
+        Embedded_Pool& embedded_pool,
+        etl::array<pulse2d::Sprite, MAX_EMBEDDED_SPRITES>& embedded_sprites)
         : sprite_pool_(sprite_pool)
         , sprites_(sprites)
+        , embedded_pool_(embedded_pool)
+        , embedded_sprites_(embedded_sprites)
     {
     }
 
     void update_and_draw_layers(pulse2d::Renderer& renderer, float delta_time)
     {
         for (auto& layer : background_layers) {
-            // Skip any layer whose sprite was not registered
-            auto it = sprite_pool_.find(layer.sprite_name);
-            if (it == sprite_pool_.end()) {
-                PULSE2D_DEBUG_SERIAL(
-                    "[WARN] parallax: sprite '%s' not registered, skipping\n",
-                    layer.sprite_name);
-                continue;
-            }
-
             layer.current_offset += layer.scroll_speed * delta_time;
             layer.current_offset = std::fmod(layer.current_offset, layer.width);
 
             float draw_x = -layer.current_offset;
 
-            const pulse2d::Sprite& _spr = sprites_.at(it->second);
+            const pulse2d::Sprite* _spr = nullptr;
+            auto it = sprite_pool_.find(layer.sprite_name);
+            if (it != sprite_pool_.end()) {
+                _spr = &sprites_.at(it->second);
+            } else {
+                auto eit = embedded_pool_.find(layer.sprite_name);
+                if (eit != embedded_pool_.end()) {
+                    _spr = &embedded_sprites_.at(eit->second);
+                } else {
+                    PULSE2D_DEBUG_SERIAL(
+                        "[WARN] parallax: sprite '%s' not found, skipping\n",
+                        layer.sprite_name);
+                    continue;
+                }
+            }
 
-            renderer.add_sprite(&_spr, static_cast<int16_t>(draw_x), 0);
+            renderer.add_sprite(_spr, static_cast<int16_t>(draw_x), 0);
             renderer.add_sprite(
-                &_spr, static_cast<int16_t>(draw_x + layer.width), 0);
+                _spr, static_cast<int16_t>(draw_x + layer.width), 0);
         }
     }
+
     etl::vector<assets::Background_Layer, MAX_BACKGROUND_LAYERS>
         background_layers;
 
   private:
     Sprite_Pool& sprite_pool_;
     etl::array<pulse2d::Sprite, T_Sprite>& sprites_;
+    Embedded_Pool& embedded_pool_;
+    etl::array<pulse2d::Sprite, MAX_EMBEDDED_SPRITES>& embedded_sprites_;
 };
 
 template<std::size_t T_Body, std::size_t T_Sprite, std::size_t T_Joint = 0>
@@ -360,22 +386,29 @@ struct Pulse2d_Scene_Base : detail::scene_base
     etl::array<pulse2d::graphics::Body, T_Body> bodies;
     etl::array<pulse2d::graphics::Joint, T_Joint> joints;
     etl::array<pulse2d::Sprite, T_Sprite> sprites;
+    etl::array<pulse2d::Sprite, MAX_EMBEDDED_SPRITES> embedded_sprites;
 
     std::size_t active_bodies = 0;
     std::size_t active_sprites = 0;
+    std::size_t active_embedded = 0;
 
   public:
 #if defined(PULSE2D_TEENSY)
     etl::map<const char*, std::size_t, T_Body, CStrLess> body_pool;
     etl::map<const char*, std::size_t, T_Sprite, CStrLess> sprite_pool;
+    etl::map<const char*, std::size_t, MAX_EMBEDDED_SPRITES, CStrLess>
+        embedded_pool;
 #else
     etl::map<std::string, std::size_t, T_Body> body_pool;
     etl::map<std::string, std::size_t, T_Sprite> sprite_pool;
+    etl::map<std::string, std::size_t, MAX_EMBEDDED_SPRITES> embedded_pool;
 #endif
-    Pulse2d_Scene_Kinematic_Pool pool_manager; // default constructed
-    Pulse2d_Scene_Animation animation_manager; // default constructed
+    Pulse2d_Scene_Kinematic_Pool pool_manager;
+    Pulse2d_Scene_Animation animation_manager;
     Pulse2d_Scene_Background<T_Sprite> background_manager{ sprite_pool,
-        sprites };
+        sprites,
+        embedded_pool,
+        embedded_sprites };
 };
 
 template<std::size_t T_Body, std::size_t T_Sprite, std::size_t T_Joint = 0>
@@ -400,7 +433,10 @@ class Pulse2d_Scene : public Pulse2d_Scene_Base<T_Body, T_Sprite, T_Joint>
 
     inline Sprite& get_sprite(const char* name)
     {
-        return this->sprites.at(this->sprite_pool.at(name));
+        auto it = this->sprite_pool.find(name);
+        if (it != this->sprite_pool.end())
+            return this->sprites.at(it->second);
+        return this->embedded_sprites.at(this->embedded_pool.at(name));
     }
 
   public:
@@ -448,26 +484,22 @@ class Pulse2d_Scene : public Pulse2d_Scene_Base<T_Body, T_Sprite, T_Joint>
         }
     }
 
-    void set_from_flash(const char* name,
+    void set_embedded(const char* name,
         uint16_t const* flash_data,
         uint16_t w,
         uint16_t h)
     {
-        if (this->active_sprites >= T_Sprite) {
+        if (this->active_embedded >= MAX_EMBEDDED_SPRITES) {
             PULSE2D_DEBUG_SERIAL(
-                "[WARN] sprite pool full, cannot load flash sprite '%s'\n",
-                name);
+                "[WARN] embedded sprite pool full, cannot load '%s'\n", name);
             return;
         }
-        this->sprite_pool[name] = this->active_sprites;
-
-        this->sprites.at(this->active_sprites).data = flash_data;
-        this->sprites.at(this->active_sprites).width = w;
-        this->sprites.at(this->active_sprites).height = h;
-
-        this->active_sprites++;
-
-        PULSE2D_DEBUG_SERIAL("flash sprite '%s' ready: %ux%u\n", name, w, h);
+        this->embedded_pool[name] = this->active_embedded;
+        this->embedded_sprites.at(this->active_embedded).data = flash_data;
+        this->embedded_sprites.at(this->active_embedded).width = w;
+        this->embedded_sprites.at(this->active_embedded).height = h;
+        this->active_embedded++;
+        PULSE2D_DEBUG_SERIAL("embedded sprite '%s' ready: %ux%u\n", name, w, h);
     }
 };
 

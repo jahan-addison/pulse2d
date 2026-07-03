@@ -10,10 +10,9 @@
 
 ## Overview
 
+`pulse2d` is a 2D game engine for the Teensy 4.1. Games are organized into scenes with physics bodies, sprite pools, animations, and entity state machines - all with a clean API and DSL primitives.
 
-The Teensy 4.1 is a microcontroller development board based on the NXP i.MX RT1062, an ARM Cortex-M7 running at up to 600 MHz. `pulse2d` enables you to turn the microcontroller into a 2D game platform with a display and controller, as it has hardware floating-point, a dedicated SPI bus, and a built-in SDIO SD card slot. 🎮
-
-The pilot game, [asterisk](https://github.com/jahan-addison/asterisk), is a feature complete space-shooter using the pulse2d engine. It is **recommended as a starting point for development of new games**.
+The pilot game, [asterisk](https://github.com/jahan-addison/asterisk), is a feature-complete space shooter built with pulse2d. It is **recommended as a starting point for development of new games**.
 
 Check out the [blog series](https://soliloq.uy/tag/pulse2d/)!
 
@@ -51,107 +50,133 @@ Game development in pulse2d is organized into two layers:
 
 * **Core API** - the `Runtime<Scenes...>` struct, which owns the engine, physics world, and active scene. All game actions (draw, spawn, collide, animate, etc.) are methods on this struct.
 
-📖 [See the full API reference here](API.md)
+* 📖 [See the full API reference here](API.md)
+* 📖 [Platform and memory guide](platform.md)
 
 A game that demonstrates most features:
 
 ```cpp
+// scenes/levels/space_shooter.h
+#pragma once
+
 #include PULSE2D_HEADER
 #include PULSE2D_GRAPHICS
 #include "../include/explosion-anim.h"
 #include "../include/stars-bg.h"
 
-PULSE2D_START_PULSE();
+namespace scenes::levels::space_shooter {
 
+struct State {
+    int  score     = 0;
+    int  cooldown  = 0;
+    bool enemy_hit = false;
+};
+
+PULSE_DEFINE_SCENE_STATE(State);
+
+PULSE_SCENE_FN void on_start(pulse2d_scene_runtime<Scene>& game)
+{
+    state = {};
+
+    game
+        .set_background_sprite("bg_stars", stars_bg, 320, 240)
+
+        .set_sprite("ship_sprite", "ship.bin")
+        .set_sprite("enemy_sprite", "enemy.bin")
+        .set_sprite("bullet_sprite", "bullet.bin")
+
+        .add_parallax_layer("bg_stars", 320.0f, 15.0f)
+        .register_vfx("explosion",      explosion_frames, 64, 64, 8, 12.0f)
+        .init_pool("bullets",           { .width = { 0.15f, 0.08f } })
+
+        .set_controlled_body("ship_object", {
+            .position = { -4.0f, 0.0f },
+            .width    = { 0.5f,  0.5f }
+        })
+        .set_dynamic_body("enemy_object", {
+            .position = { 3.0f, 0.0f },
+            .mass     = 1.0f,
+            .width    = { 0.6f, 0.6f }
+        });
+}
+
+PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scene>& game,
+    pulse2d_body& ship,
+    void (*on_reset)())
+{
+    PULSE_POLL_SEESAW_GAMEPAD();
+
+    game.set_arcade_directional_control("ship_object", 3.5f);
+
+    if (state.cooldown > 0)
+      state.cooldown--;
+
+    if (SEESAW_BUTTON_INPUT(SEESAW_A) && state.cooldown == 0) {
+        game.spawn("bullets", 100,
+            ship.position.x + 0.6f, ship.position.y,
+            8.0f, 0.0f);
+        state.cooldown = 10;
+    }
+
+    game.render_pool("bullets", [&](pulse2d_body* bullet) {
+        pulse2d_body& enemy = game.get_body("enemy_object");
+
+        if (bullet->position.x > 6.0f) {
+            game.despawn("bullets", bullet);
+        } else {
+            game.draw_body(bullet, "bullet_sprite");
+        }
+
+        game.on_collision(bullet, &enemy, [&] {
+            if (!state.enemy_hit) {
+                state.enemy_hit = true;
+                auto coords = get_body_coordinates(&enemy);
+                game.play_vfx("explosion", coords.x, coords.y);
+                state.score += 100;
+            }
+            game.despawn("bullets", bullet);
+        });
+    });
+
+    if (SEESAW_BUTTON_INPUT(SEESAW_START)) {
+        on_reset();
+    }
+
+    game.draw("ship_object", "ship_sprite");
+    if (!state.enemy_hit)
+        game.draw("enemy_object", "enemy_sprite");
+}
+
+} // namespace scenes::levels::space_shooter
+```
+
+```cpp
+// src/game.cc
+#include PULSE2D_HEADER
+#include PULSE2D_GRAPHICS
+#include <scenes/levels/space_shooter.h>
+
+namespace space_shooter = scenes::levels::space_shooter;
+
+PULSE2D_START_PULSE();
 PULSE_DEFINE_SCENE(Space_Shooter, 20, 6);
 PULSE_INIT_GAME(my_game, Space_Shooter);
 
-PULSE_DEFINE int score = 0;
-PULSE_DEFINE int cooldown = 0;
-PULSE_DEFINE bool enemy_hit = false;
-
 PULSE_ON_GAMESCENE_START(Space_Shooter)
 {
-    my_game.set_sprite_flash("bg_stars", stars_bg, 320, 240);
-    my_game.set_sprite("ship_sprite", "ship.bin");
-    my_game.set_sprite("enemy_sprite", "enemy.bin");
-    my_game.set_sprite("bullet_sprite", "bullet.bin");
-
-    my_game.add_parallax_layer("bg_stars", 320.0f, 15.0f);
-
-    my_game.register_vfx("explosion", explosion_frames, 64, 64, 8, 12.0f);
-
-    my_game.init_pool("bullets",
-        {
-            .width = { 0.15f, 0.08f }
-    });
-
-    my_game.set_controlled_body("ship_object",
-        {
-            .position = { -4.0f, 0.0f },
-              .width = { 0.5f,  0.5f }
-    });
-    my_game.set_dynamic_body("enemy_object",
-        {
-            .position = { 3.0f, 0.0f },
-            .mass = 1.0f,
-            .width = { 0.6f, 0.6f }
-    });
+    space_shooter::on_start(my_game);
 }
 
 PULSE_ON_GAMESCENE(Space_Shooter)
 {
     my_game.tick();
-
-    PULSE_POLL_SEESAW_GAMEPAD();
-
     my_game.render_backgrounds();
-    my_game.set_arcade_directional_control("ship_object", 3.5f);
 
     pulse2d_body& ship = my_game.get_body("ship_object");
 
-    if (cooldown > 0)
-        cooldown--;
-
-    if (SEESAW_BUTTON_INPUT(SEESAW_A) && cooldown == 0) {
-        my_game.spawn("bullets",
-            100,
-            ship.position.x + 0.6f,
-            ship.position.y,
-            8.0f,
-            0.0f);
-        cooldown = 10;
-    }
-
-    my_game.render_pool("bullets", [&](pulse2d_body* bullet) {
-        pulse2d_body& enemy = my_game.get_body("enemy_object");
-
-        if (bullet->position.x > 6.0f) {
-            my_game.despawn("bullets", bullet);
-        } else {
-            my_game.draw_body(bullet, "bullet_sprite");
-        }
-
-        my_game.on_collision(bullet, &enemy, [&] {
-            if (!enemy_hit) {
-                enemy_hit = true;
-                auto coords = get_body_coordinates(&enemy);
-                my_game.play_vfx("explosion", coords.x, coords.y);
-                score += 100;
-            }
-            my_game.despawn("bullets", bullet);
-        });
-    });
-
-    if (SEESAW_BUTTON_INPUT(SEESAW_START)) {
+    space_shooter::on_tick(my_game, ship, [] {
         PULSE_SET_SCENE(my_game, Space_Shooter);
-    }
-
-    my_game.draw("ship_object", "ship_sprite");
-
-    if (!enemy_hit) {
-        my_game.draw("enemy_object", "enemy_sprite");
-    }
+    });
 
     my_game.tick_vfx();
     my_game.render();
@@ -161,11 +186,8 @@ PULSE_ON_GAMESTART()
 {
     Serial.begin(115200);
     pulse_register_etl_error_handler();
-
     my_game.init(0.0f, 0.0f, 10);
-
     PULSE_ENABLE_SEESAW_GAMEPAD();
-
     PULSE_SET_SCENE(my_game, Space_Shooter);
 }
 
@@ -183,9 +205,101 @@ PULSE_ON_GAMELOOP()
 - Kinematic pools - pre-allocated object pools for bullets, particles, powerups
 - Parallax backgrounds - multi-layer scrolling backgrounds from flash memory
 - Gamepad profiles - arcade (instant), momentum (acceleration), and friction movement
+- Entity state machines - `Entity_Controller<SM, Data, Config>` wraps `boost/sml` for enemies, pickups, and any object with lifecycle behaviour
 - Debug tools - stack usage tracking and ETL error reporting
 
 See [API.md](API.md) for the complete reference with detailed examples.
+
+---
+
+### State Machines
+
+The state machine library [boost/sml](https://boost-ext.github.io/sml/) is available with an additional `Entity_Controller<SM, Data, Config>`, which owns a state machine (SM), its mutable data, and its per-instance config as a single stack object. sml injects `Data` and `Config` into action and guard lambdas by parameter type.
+
+```cpp
+// Events
+struct Activate_Event {};
+struct Hit_Event       {};
+struct Render_Event    {};
+
+// States
+struct Idle   {};
+struct Active {};
+struct Dead   {};
+
+// Per-instance mutable state
+struct Enemy_Data { p_ui8 hp = 3; };
+
+// Per-instance config (body ptr, sprite name, draw callback)
+struct Enemy_Config {
+    pulse2d::graphics::Body* body   = nullptr;
+    const char*              sprite = nullptr;
+    pulse2d::state::Draw_Fn  draw   = nullptr; // non-capturing fn ptr
+};
+
+struct enemy_sm {
+    auto operator()() const {
+        using namespace sml;
+
+        auto will_die  = [](Enemy_Data const& d) { return d.hp <= 1; };
+        auto on_hit    = [](Enemy_Data& d) { d.hp--; };
+        auto on_render = [](Enemy_Config const& cfg) { cfg.draw(cfg.body, cfg.sprite); };
+        auto on_death  = [](Enemy_Config const& cfg) { cfg.body->set_width({ 0.0f, 0.0f }); };
+
+        return make_transition_table(
+            *state<Idle>   + event<Activate_Event>                              = state<Active>,
+             state<Active> + event<Render_Event>              / on_render,
+             state<Active> + event<Hit_Event> [ will_die]  / on_hit             = state<Dead>,
+             state<Active> + event<Hit_Event> [!will_die]  / on_hit,
+             state<Dead>   + on_entry<_>                   / on_death
+        );
+    }
+};
+
+using Enemy = pulse2d_state::Entity_Controller<enemy_sm, Enemy_Data, Enemy_Config>;
+```
+
+```cpp
+// scenes/levels/level_one.h
+namespace scenes::levels::level_one {
+// ...
+PULSE_DEFINE Enemy enemy{};
+
+PULSE_SCENE_FN void on_start(pulse2d_scene_runtime<Scene>& game,
+    pulse2d::state::Draw_Fn draw_fn)
+{
+    enemy.configure({
+        .body   = &game.get_body("enemy_object"),
+        .sprite = "enemy_sprite",
+        .draw   = draw_fn,
+    });
+    enemy.dispatch(Activate_Event{});
+}
+
+PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scene>& game)
+{
+    enemy.dispatch(Render_Event{});
+
+    if (SEESAW_BUTTON_INPUT(SEESAW_A))
+        enemy.dispatch(Hit_Event{});
+
+    if (enemy.is<Dead>()) { /* respawn, score, etc. */ }
+}
+// ...
+} // namespace scenes::levels::level_one
+```
+
+```cpp
+// src/game.cc
+namespace level_one = scenes::levels::level_one;
+
+PULSE_ON_GAMESCENE_START(Level_One) {
+    level_one::on_start(my_game,
+        [](pulse2d_body* b, const char* s) { my_game.draw_body(b, s); });
+}
+```
+
+`reset()` tears down and reconstructs the SM in-place with no heap allocation, so entities can be reused across rounds.
 
 ---
 
@@ -211,34 +325,18 @@ target_link_libraries(my_game PRIVATE pulse2d::pulse2d)
 
 ---
 
-### Build sample game:
+### Build:
 
-The included sample game targets both SDL2 and Teensy 4.1:
-
-### Host
+### Host (tests)
 
 ```bash
-# macOS
-brew install sdl2
-
-cmake -Bbuild -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER="Address;Undefined" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DSDL2_DIR=$(brew --prefix sdl2)/lib/cmake/SDL2
+cmake -Bbuild -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER="Address;Undefined" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 cmake --build build
-./build/sample_game
-
-# Ubuntu
-sudo apt update
-sudo apt install libsdl2-dev
-
-cmake -Bbuild -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-cmake --build build
-./build/sample_game
-
-
 ```
 
 ### Teensy
 
-You can use the `Makefile.teensy` to build and flash the sample game:
+You can use the `Makefile.teensy` to build and flash:
 
 ```bash
 make -f Makefile.teensy -j                      # build
@@ -262,12 +360,9 @@ Set three variables and include `Makefile.teensy` from your own Makefile:
 PULSE2D_ROOT = /path/to/pulse2d
 GAME_SRCS    = src/mygame.cc src/level.cc
 GAME_NAME    = mygame
-GAME_INC     = -Iinclude -Isrc/shared   # optional: extra include paths for game headers
 
 include $(PULSE2D_ROOT)/Makefile.teensy
 ```
-
-`GAME_INC` appends to the compiler include path. Use it for any project-local headers (asset headers, shared types, generated animation files) that sit outside the pulse2d tree.
 
 Then from your game directory:
 
@@ -289,30 +384,22 @@ make ldscript
 
 ---
 
-# Drivers
+# Engine
 
 * [Display](#display): `pulse2d::Display`
-  - The display adapter, with a host SDL2 interface
 * [Storage](#storage): `pulse2d::Storage`
-  - Storage of textures, sprites, and other assets in memory
 * [Physics](#physics): `pulse2d::graphics::`
-  - The physics engine
 * [Renderer](#renderer): `pulse2d::Renderer`
-  - The RGB565 framebuffer, rasterization, blitting
 * [Audio](#audio): `pulse2d::Audio`
-  - Audio interface via the Teensy audio library
 * [Gamepad](#gamepad): `pulse2d::gamepad::`
-  - Seesaw Gamepad QT I2C driver
 
 ## Display
 
-On Teensy, the display driver targets the [PJRC ILI9341 TFT](https://www.pjrc.com/store/display_ili9341_touch.html), driven by the `ILI9341_t3` library. On host and local development, the driver opens an SDL2 window at the same logical resolution scaled up by `pulse2d::config::scale`.
+Targets the [PJRC ILI9341 TFT](https://www.pjrc.com/store/display_ili9341_touch.html) on hardware. On host, the same logical resolution is used for the test suite scaled by `pulse2d::config::scale` - no code changes needed between environments.
 
 ## Storage
 
-Load sprites via `Storage::load_sprite()`. On the host any image format supported by stb_image works. The image is nearest-neighbour scaled to the requested dimensions and converted to RGB565.
-
-On Teensy, `load_sprite` reads the raw binary format (`uint16_t` width, `uint16_t` height, then `width x height` RGB565 pixels) from the SD card. Width and height come from the file header — `set_sprite` omits them by default and only validates against the header when explicit dimensions are passed.
+Sprites are loaded via `Storage::load_sprite()`. On host, any format supported by stb_image works. On Teensy, `set_sprite` reads `.bin` files (raw RGB565 pixels with a two-byte width/height header) from the SD card. The `png2bin` tool converts PNGs to this format.
 
 ## Audio
 
@@ -320,17 +407,15 @@ On Teensy, `load_sprite` reads the raw binary format (`uint16_t` width, `uint16_
 
 ## Physics
 
-The physics component is a port of [box2d-lite](https://github.com/erincatto/box2d-lite) modified for embedded use: dynamic allocation replaced with fixed-size containers, all math in single-precision float, the solver tuned for the Teensy 4.1's Cortex-M7, and the broad phase replaced with a two-stage AABB prefilter and static/active partition.
-
-For more details, see the [physics readme](pulse2d/graphics/readme.md).
+A port of [box2d-lite](https://github.com/erincatto/box2d-lite) adapted for fixed-size allocation, single-precision float, and a two-stage AABB broad phase. See the [physics readme](pulse2d/graphics/readme.md) for details.
 
 ## Renderer
 
-The `Renderer` holds the full-screen RGB565 framebuffer for razterization and blitting. Each frame runs clear, draw, and render.
+Owns the full-screen RGB565 framebuffer. Each frame: clear -> draw -> `render()`.
 
 ## Gamepad
 
-The gamepad driver targets the [Adafruit Seesaw Gamepad QT](https://www.adafruit.com/product/5743) over I2C. The DSL wraps setup, polling, and input.
+Targets the [Adafruit Seesaw Gamepad QT](https://www.adafruit.com/product/5743) over I2C. The DSL (`PULSE_POLL_SEESAW_GAMEPAD`, `SEESAW_BUTTON_INPUT`, etc.) wraps polling and input into single-line calls.
 
 ---
 
@@ -346,7 +431,7 @@ Python tools for converting PNG assets are in `tools/`. The first three require 
   tools/png2bin sprite.png sprite.bin 64 64
   ```
 
-- `png2header` - converts a PNG to a C header containing a flat RGB565 pixel array for use as a parallax background layer. Register the output with `set_sprite_flash` and `add_parallax_layer`. Do not edit the generated file by hand.
+- `png2header` - converts a PNG to a C header containing a flat RGB565 pixel array for use as a parallax background layer. Register the output with `set_background_sprite` and `add_parallax_layer`. Do not edit the generated file by hand.
 
   ```bash
   tools/png2header background.png include/nebula-bg.h bg_1 320 240
@@ -384,16 +469,7 @@ Debugging tools (no dependencies):
   make sections SECTIONS_ALL=1
   ```
 
-  #### Run this after any build that changes pool sizes or static data. The linker only rejects when a region is fully exhausted - it won't warn when you are close. Short-of-overflow pressure still corrupts the stack at runtime.
-
-  On the Teensy 4.1 the practical DTCM limit (`.data` + `.bss`) is ~380 KB - below that you have at least 128 KB for SdFat's FIFO_SDIO DMA call stack. Two things to watch:
-
-  - ETL fixed-capacity containers pre-allocate their full capacity in `.bss`. Their `N` template parameter directly controls static size - oversized constants silently inflate `.bss`.
-  - `HARDWARE_Deferred_Init<T>` lands in `.bss` at `sizeof(T)` bytes, even before `emplace()` is called.
-
-  Call `stack_used()` from `scene.h` over serial after `setup()` for a runtime byte count.
-
-  If serial output stops or never appears during boot, the most likely cause is a DTCM overflow — the stack has collided with `.bss` before `Serial.begin()` returns. Run `sections` first.
+  Run this after any build that changes pool sizes or static data. The linker only rejects when a region is fully exhausted - `sections` lets you catch pressure before it becomes a crash.
 
 <img width="1266" height="854" alt="image" src="https://github.com/user-attachments/assets/458971e1-0fbf-47d1-9afe-db388e86afc5" />
 
@@ -416,10 +492,12 @@ Debugging tools (no dependencies):
 Host dependencies are fetched automatically via [CPM](https://github.com/cpm-cmake/CPM.cmake).
 
 - [`ETLCPP`](https://www.etlcpp.com/) - Embedded Template Library
+- [`boost/sml`](https://boost-ext.github.io/sml/) - State Machine Library
+
 - `box2d-lite` - Heavily modified port of [box2d-lite](https://github.com/erincatto/box2d-lite) for embedded devices
+
 - `doctest` - Test framework
 - `stb` - Image loading for the host storage backend
-- `SDL2` - Display driver for host development
 
 ## License
 

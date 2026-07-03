@@ -221,7 +221,7 @@ my_game.on_collision_with("pickup_zone", [&]() {
 });
 ```
 
-Sensors correctly detect overlaps with static bodies - they land in the active partition and are tested against every pure-static body, so a sensor on a wall or floor still fires.
+Sensors correctly detect overlaps with static bodies - they sit in the active partition and are tested against every pure-static body, so a sensor on a wall or floor still fires.
 
 Sensors are useful anywhere you need a spatial trigger with no physics effect:
 

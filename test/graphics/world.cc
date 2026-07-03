@@ -232,7 +232,7 @@ TEST_CASE("world.cc: World::step produces arbiters when bodies collide")
 TEST_CASE("world.cc: World::step - dynamic box does not sink through "
           "static floor")
 {
-    // Run the simulation long enough for a falling box to land and settle.
+    // Run the simulation long enough for a falling box to sit and settle.
     // The box's final y position should be above the floor surface.
     pulse2d::graphics::World world({ 0.0f, -10.0f }, 10);
 

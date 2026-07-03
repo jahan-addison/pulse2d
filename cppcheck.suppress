@@ -20,5 +20,6 @@ cstyleCast
 // ignore dependencies
 // Use ** to match path separators (folders) for Cppcheck 2.18+
 *:*/**test**
+*:*/**external
 *:*/**cpm_modules**
 *:*/**_deps**
