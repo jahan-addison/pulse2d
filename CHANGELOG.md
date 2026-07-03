@@ -1,3 +1,16 @@
+## [1.1.0] - 2026-07-03
+
+- feat: embedded sprite pool, scene architecture, state machines and state types, additional API primitives, documentation
+- feat: add Entropy/TRNG support, body field setters, trng_random docs, and GAME_INC to Makefile.teensy
+- feat: add px_to_units, overload pattern, body debug serial, and sections limit warnings
+- feat: add set_sprite(name, path) overload for .bin files, since dimensions come from the file header
+
+- chore: v1.1.0 🚀
+- chore: update CHANGELOG.md for v1.0.1
+
+- refactor: perfect forwarding on action callbacks, trng improvements
+- ci: improvements to release workflow
+- Merge pull request #1 from jahan-addison/chore/changelog-v1.0.1
 ## [1.0.1] - 2026-06-28
 
 - feat: changelog generation, changelog.md
