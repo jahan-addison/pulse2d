@@ -1,6 +1,6 @@
 # API Reference
 
-Game development in pulse2d is split into two layers. The **Internal DSL** provides the structural skeleton: type aliases, lifecycle hooks, scene declarations, and animation blueprints. The **Core API** provides `Runtime<Scenes...>`, which owns the engine, physics world, and active scene and exposes all game actions as methods.
+Game development in Pulse2D is split into two layers. The **Internal DSL** provides the structural skeleton: type aliases, lifecycle hooks, scene declarations, and animation blueprints. The **Core API** provides `Runtime<Scenes...>`, which owns the engine, physics world, and active scene and exposes all game actions as methods.
 
 Include both headers:
 
@@ -78,7 +78,7 @@ using p_i8   = int8_t;
 
 `pulse2d_math` is an alias for `pulse2d::graphics::math`, which provides `Vec2`, `Mat22`, and random number helpers.
 
-`pulse2d_math::random()` returns a float in `[-1, 1]`. `pulse2d_math::random(lo, hi)` returns a float in `[lo, hi]`. On Teensy both use `rand()`; on host both use `arc4random`:
+`pulse2d_math::random(lo, hi)` returns a float in `[lo, hi]`. On Teensy both use `rand()`; on host both use `arc4random`:
 
 ```cpp
 // Spawn a bullet with a small random vertical spread
@@ -111,8 +111,6 @@ PULSE_ON_GAMESCENE(Level_One)
 }
 ```
 
-`trng_random` and `init_trng_engine_random` are Teensy-only (`#if defined(__IMXRT1062__)`). On host, use `random(lo, hi)`.
-
 Explicit narrowing casts - use these when passing arithmetic results to APIs that take a specific integer width:
 
 ```cpp
@@ -140,13 +138,11 @@ std::visit(pulse2d_util::overload{
 }, obj.state);
 ```
 
-`overload` is a variadic struct that inherits `operator()` from each lambda. The deduction guide is included - pass a brace-initializer list of lambdas.
-
 ---
 
 ### State Machines
 
-`sml` is an alias for `boost::sml`, available in all game code via `#include PULSE2D_HEADER`. On Teensy it resolves from `external/boost/sml.hpp`; on host it is fetched via CPM.
+`sml` is an alias for `boost::sml`, available in all game code via `#include PULSE2D_HEADER`.
 
 [boost/sml](https://github.com/boost-ext/sml) is a header-only, zero-allocation state machine library. It compiles the transition table into a jump table at compile time - no heap, no virtual dispatch, no RTTI. Those properties make it a natural fit for the Teensy 4.1.
 
@@ -1145,7 +1141,7 @@ my_game
 my_game.set_sprite_embedded("name", data_array, width, height);
 ```
 
-Registers a compiled sprite array as a named sprite in the embedded pool. Use for any asset compiled into the binary - animation sheets, large art, `png2header` output.
+Registers a compiled sprite array as a named sprite in the embedded pool. Use for any asset compiled into the binary - animation sheets, large art, or any additional sprites from `png2header` output.
 
 **Scope:** `PULSE_ON_GAMESCENE_START`
 
@@ -1264,7 +1260,10 @@ my_game.add_background_layer("menu_bg", 320.0f);
 
 ### Animations (Runtime)
 
-Two animation systems serve different purposes. **Persistent animations** drive looped character states - idle, walk, jump - by mutating a sprite's frame pointer each tick. **VFX one-shots** fire and forget: play once and remove automatically, suited for explosions and impacts.
+There are two different animation systems available:
+
+* **Persistent animations** drive looped character states - idle, walk, jump - by mutating a sprite's frame pointer each tick.
+* **VFX one-shots** fire and forget: play once and remove automatically, suited for explosions and impacts.
 
 ---
 
@@ -1279,12 +1278,12 @@ Advances the animator's frame accumulator and writes the current frame's pixel p
 **Scope:** `PULSE_ON_GAMESCENE`
 
 ```cpp
-// Declare at file scope (DSL)
+// Declare at file scope
 PULSE_DEFINE_ANIMATOR(player_anim);
 PULSE_ANIMATION_DEFINITION(anim_idle, idle_frames, 32, 48, 4, 8);
 PULSE_ANIMATION_DEFINITION(anim_walk, walk_frames, 32, 48, 6, 12);
 
-// In scene function
+// In scene function:
 if (SEESAW_DIRECTION_IS_LEFT() || SEESAW_DIRECTION_IS_RIGHT()) {
     register_animation(player_anim, anim_walk);
 } else {

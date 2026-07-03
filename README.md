@@ -10,9 +10,9 @@
 
 ## Overview
 
-`pulse2d` is a 2D game engine for the Teensy 4.1. Games are organized into scenes with physics bodies, sprite pools, animations, and entity state machines - all with a clean API and DSL primitives.
+Pulse2D is a 2D game engine for the Teensy 4.1. Games are organized into scenes with physics bodies, sprite pools, animations, and entity state machines - all with a clean API and DSL primitives.
 
-The pilot game, [asterisk](https://github.com/jahan-addison/asterisk), is a feature-complete space shooter built with pulse2d. It is **recommended as a starting point for development of new games**.
+The pilot game, [asterisk](https://github.com/jahan-addison/asterisk), is a feature-complete space shooter built with Pulse2D. It is **recommended as a starting point for development of new games**.
 
 Check out the [blog series](https://soliloq.uy/tag/pulse2d/)!
 
@@ -44,7 +44,7 @@ This installs the Teensy core, libraries, and linker scripts into your local Ard
 
 ## Game Development
 
-Game development in pulse2d is organized into two layers:
+Game development in Pulse2D is organized into two layers:
 
 * **Internal DSL** - macros for the game's structural skeleton: type aliases, lifecycle hooks (`PULSE_ON_GAMESTART`, `PULSE_ON_GAMESCENE`), scene declarations, animation blueprints, and debug helpers.
 
@@ -61,8 +61,8 @@ A game that demonstrates most features:
 
 #include PULSE2D_HEADER
 #include PULSE2D_GRAPHICS
-#include "../include/explosion-anim.h"
-#include "../include/stars-bg.h"
+#include <assets/explosion-anim.h>
+#include <assets/stars-bg.h>
 
 namespace scenes::levels::space_shooter {
 
@@ -111,7 +111,7 @@ PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scene>& game,
     if (state.cooldown > 0)
       state.cooldown--;
 
-    if (SEESAW_BUTTON_INPUT(SEESAW_A) && state.cooldown == 0) {
+    if (SEESAW_BUTTON_INPUT(SEESAW_A) and state.cooldown == 0) {
         game.spawn("bullets", 100,
             ship.position.x + 0.6f, ship.position.y,
             8.0f, 0.0f);

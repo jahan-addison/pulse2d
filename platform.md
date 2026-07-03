@@ -18,7 +18,7 @@ The practical DTCM budget for `.data` + `.bss` is ~380 KB. Below that, SdFat's F
 
 ## Static allocation
 
-pulse2d uses fixed-size containers with `etlcpp`. Every sizing decision is a compile-time constant that sits directly in `.bss`.
+Pulse2D uses fixed-size containers with `etlcpp`. Every sizing decision is a compile-time constant that sits directly in `.bss`.
 
 ### ETL containers
 
