@@ -12,7 +12,7 @@ The i.MX RT1062 has five usable memory regions. The Teensyduino linker script as
 - **FLASH** (8 MB, cached) - read-only data (`PULSE2D_FLASHMEM`) and overflow code
 - **PSRAM** (8 MB, slower) - extended memory
 
-The practical DTCM budget for `.data` + `.bss` is ~380 KB. Below that, SdFat's FIFO_SDIO DMA needs at least 128 KB of call stack. The linker only errors when a region is fully exhausted - it will not warn when you are close.
+The DTCM budget for `.data` + `.bss` is about 380 KB. Below that, SdFat's FIFO_SDIO DMA needs at least 128 KB of call stack. The linker only errors when a region is fully exhausted - use the `sections` tool to know when you're close.
 
 ---
 
@@ -38,7 +38,7 @@ static pulse2d::Static_Inplace_T<Pulse2d> engine;
 
 ### Scene pools
 
-`PULSE_DEFINE_SCENE(name, bodies, sprites)` allocates fixed arrays for physics bodies and sprite slots. Start conservative and expand only if needed.
+`PULSE_DEFINE_SCENE(name, bodies, sprites)` allocates fixed arrays for physics bodies and sprite slots. Start conservative and expand only when needed.
 
 ```cpp
 PULSE_DEFINE_SCENE(Level_One, 7, 12);
@@ -52,7 +52,7 @@ PULSE_DEFINE_SCENE(Level_One, 7, 12);
 
 Never create a body with `width = {0, 0}`. `set_dynamic_body` calls `Body::Set(width, mass)`, which computes the moment of inertia as `I = mass * (w² + h²) / 12`. With zero width, `I = 0` and `inv_i = 1 / 0` - infinity or NaN depending on the FPU. The physics solver propagates that into every subsequent integration step for that body. Later calling `set_width` on the body does not patch `I` or `inv_i`, so the corruption is permanent for the lifetime of that body.
 
-If you need a body to start inactive, park it off-screen with its real dimensions and zero velocity instead:
+If you need a body to start inactive, spawn it off-screen with its real dimensions and zero velocity instead:
 
 ```cpp
 asterisk.set_dynamic_body("enemy",
@@ -65,7 +65,7 @@ asterisk.set_dynamic_body("enemy",
 });
 ```
 
-Move it into play and restore its velocity when the game logic activates it.
+When ready, move it into play and restore its velocity when the game logic activates it.
 
 ---
 
@@ -103,7 +103,7 @@ make sections
 make sections SECTIONS_ALL=1
 ```
 
-Run this after any build that changes pool sizes, adds global state, or introduces large asset headers. The output makes it immediately visible which ETL containers are unexpectedly large and whether any region is approaching its limit.
+**Run this after any build that changes pool sizes, adds global state, or introduces large asset headers.** The output makes it immediately visible which ETL containers are unexpectedly large and whether any region is approaching its limit.
 
 <img width="1266" height="854" alt="sections tool output" src="https://github.com/user-attachments/assets/458971e1-0fbf-47d1-9afe-db388e86afc5" />
 
@@ -147,7 +147,7 @@ PULSE_POLL_SERIAL_CONNECTION();
 
 ### Serial output never appears
 
-Almost always a DTCM overflow: the stack has collided with `.bss` before `Serial.begin()` returns. Run `make sections` and look at the DTCM row. If `.data` + `.bss` is close to 380 KB, reduce pool sizes or move large constants to `PULSE2D_FLASHMEM`.
+Almost always a DTCM overflow: the stack has collided with `.bss` before `Serial.begin()` returns. Run `make sections` and look at the DTCM row. If `.data` + `.bss` is close to 380 KB or in red, reduce pool sizes or move large constants to `PULSE2D_FLASHMEM`.
 
 ### Crash or hang after a few frames
 
@@ -166,6 +166,12 @@ PULSE_ON_GAMESTART() {
 ```
 
 ETL fires on out-of-bounds access, full-container insertions, and similar violations. The handler prints the file name, line number, and error string to serial. Without it, a violation silently corrupts state.
+
+Below are the most common triggers:
+
+- Insufficient scene sizing: If you spawn 3 bodies or 3 loaded sprites, but your scene is sized as `PULSE_DEFINE_SCENE(Level_One, 2, 2)`, the game will crash. Enable `PULSE_POLL_SERIAL_CONNECTION()` that provides helpful body and sprite spawn count details to ensure the number is correct.
+- Cached pointer across a scene transition: `PULSE_SET_SCENE` calls `emplace<scene>()`, which destroys the old scene and default-constructs a fresh one. Any `pulse2d_body*` held from the previous scene is immediately a dangling pointer. Use `PULSE_DEFER_SCENE` from tick callbacks so the transition fires after the full tick completes, and never store a body pointer that outlives the scene that owns it.
+- Access before registration: Bodies and sprites are not registered until `PULSE_ON_GAMESCENE_START` runs. A name lookup that fires before registration (for example, in a constructor or a tick that somehow executes before start) is an OOB access against an empty map.
 
 ---
 

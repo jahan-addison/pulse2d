@@ -75,12 +75,12 @@ class Renderer
     /**
      * @brief Set the OCRAM framebuffer to this renderer instance
      */
-    inline void init() { framebuffer_ = &s_framebuffer; }
+    PULSE2D_INLINE void init() { framebuffer_ = &s_framebuffer; }
 
     /**
      * @brief Project a world-space position to screen pixel coordinates
      */
-    inline static Screen project_coordinates(float wx, float wy)
+    PULSE2D_INLINE static Screen units_to_pixels(float wx, float wy)
     {
         return { static_cast<int16_t>(
                      static_cast<int>(wx * k_pixels_per_unit) + k_center_x),
@@ -90,7 +90,10 @@ class Renderer
     /**
      * @brief Blit the framebuffer to the display driver
      */
-    inline void render() { display_.blit(framebuffer_, k_width * k_height); }
+    PULSE2D_INLINE void render()
+    {
+        display_.blit(framebuffer_, k_width * k_height);
+    }
 
   public:
     void clear(uint16_t color = 0x0000);

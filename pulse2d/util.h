@@ -24,9 +24,9 @@
 #define PULSE2D_PRIVATE private
 #endif
 
-#if defined(PULSE2D_TEENSY)
-
 #define PULSE2D_INLINE inline __attribute__((always_inline))
+
+#if defined(PULSE2D_TEENSY)
 
 /**
  * @brief Place a variable in OCRAM (the secondary 512 KB RAM bank on the

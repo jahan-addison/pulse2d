@@ -207,10 +207,6 @@ namespace sml = boost::sml;
  */
 #define PULSE_ON_GAMELOOP() void loop()
 
-#define PULSE_FWD_DECLARE_SCENE(scene)  \
-    void pulse2d_scene_enter_##scene(); \
-    void pulse2d_scene_fn_##scene()
-
 /**
  * @brief
  * Declare the scene dispatch function pointers.
@@ -244,7 +240,9 @@ namespace sml = boost::sml;
 #define PULSE_DEFINE_SCENE(name, bodies, sprites, ...)                       \
     struct name                                                              \
         : pulse2d::Pulse2d_Scene<bodies, sprites __VA_OPT__(, ) __VA_ARGS__> \
-    {}
+    {};                                                                      \
+    void pulse2d_scene_enter_##name();                                       \
+    void pulse2d_scene_fn_##name()
 
 /**
  * @brief
@@ -278,7 +276,7 @@ namespace sml = boost::sml;
  * @brief
  * Clear the physics world and storage, then enter and register the given scene.
  *
- * @scope: PULSE_ON_GAMESCENE, PULSE_ON_GAMESCENE
+ * @scope: PULSE_ON_GAMESTART
  * @param scene scene type to transition into
  * @return
  */
@@ -294,13 +292,16 @@ namespace sml = boost::sml;
 /**
  * @brief
  * Defer transition to another scene until the end of the current scene tick.
+ * Safe to call mid-tick: the current scene function runs to completion
+ * (including render()) before the transition executes.
  *
  * @scope: PULSE_ON_GAMESCENE
- * @param to scene type to transition into
+ * @param game game runtime instance
+ * @param scene scene type to transition into
  * @return
  */
-#define PULSE_DEFER_SCENE(to) \
-    pending_transition = []() { PULSE2D_SET_SCENE(to); }
+#define PULSE_DEFER_SCENE(game, scene) \
+    pending_transition = []() { PULSE_SET_SCENE(game, scene); }
 
 /**
  * @brief
@@ -485,7 +486,8 @@ namespace sml = boost::sml;
  * @param anim_def Animation_Def to play
  * @return
  */
-PULSE2D_INLINE void register_animation(pulse2d::Sprite_Animator& animator_inst,
+PULSE2D_INLINE
+void register_animation(pulse2d::Sprite_Animator& animator_inst,
     pulse2d::assets::Animation_Def const& anim_def)
 {
     animator_inst.set_state(&anim_def);
@@ -499,10 +501,25 @@ PULSE2D_INLINE void register_animation(pulse2d::Sprite_Animator& animator_inst,
  * @param body_ptr pointer to the body
  * @return Renderer::Screen with int16_t x and y pixel coordinates
  */
-pulse2d::Renderer::Screen get_body_coordinates(pulse2d_body const* body_ptr)
+PULSE2D_INLINE pulse2d::Renderer::Screen get_body_coordinates(
+    pulse2d_body const* body_ptr)
 {
-    return pulse2d::Renderer::project_coordinates(
+    return pulse2d::Renderer::units_to_pixels(
         body_ptr->position.x, body_ptr->position.y);
+}
+
+/**
+ * @brief
+ * Get the pixel coordinates of units in physics space
+ *
+ * @scope: PULSE_ON_GAMESCENE
+ * @param body_ptr pointer to the body
+ * @return Renderer::Screen with int16_t x and y pixel coordinates
+ */
+PULSE2D_INLINE pulse2d::Renderer::Screen units_to_pixels(float unit_w,
+    float unit_h)
+{
+    return pulse2d::Renderer::units_to_pixels(unit_w, unit_h);
 }
 
 //////////////
@@ -530,7 +547,7 @@ constexpr pulse2d::graphics::math::Vec2 px_to_units(float px_w,
 // Named free function required by etl::error_handler::set_callback<F>().
 #if defined(DEBUG)
 namespace pulse2d::debug {
-inline void etl_serial_error_handler(etl::exception const& e)
+PULSE2D_INLINE void etl_serial_error_handler(etl::exception const& e)
 {
     if (Serial) {
         Serial.printf("[ETL] Error in %s:%d with '%s'\n",

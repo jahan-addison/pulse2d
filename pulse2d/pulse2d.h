@@ -40,7 +40,7 @@ class Pulse2d
     /**
      * @brief Hardware and component initialization
      */
-    inline void init()
+    PULSE2D_INLINE void init()
     {
         storage_.init();
         PULSE2D_DEBUG_SERIAL("Pulse2d: storage OK");
@@ -54,15 +54,15 @@ class Pulse2d
     /**
      * @brief Per-frame update, rendering and logic each loop() tick
      */
-    inline void tick(graphics::World const& world)
+    PULSE2D_INLINE void tick(graphics::World const& world)
     {
         renderer_.clear();
         renderer_.draw(world);
         renderer_.render();
     }
 
-    Renderer& renderer() { return renderer_; }
-    Storage& storage() { return storage_; }
+    PULSE2D_INLINE Renderer& renderer() { return renderer_; }
+    PULSE2D_INLINE Storage& storage() { return storage_; }
 
   private:
     Display display_;

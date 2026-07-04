@@ -1,6 +1,6 @@
 # API Reference
 
-Game development in Pulse2D is split into two layers. The **Internal DSL** provides the structural skeleton: type aliases, lifecycle hooks, scene declarations, and animation blueprints. The **Core API** provides `Runtime<Scenes...>`, which owns the engine, physics world, and active scene and exposes all game actions as methods.
+Game development in Pulse2D is split into two layers: The **Internal DSL** provides the structural skeleton, i.e. lifecycle hooks, scene declarations, type aliases, and animation blueprints. The **Core API** provides `Runtime<Scenes...>`, which owns the engine, physics world, and active scene and exposes all game actions as methods.
 
 Include both headers:
 
@@ -46,7 +46,7 @@ Include both headers:
 
 ## Internal DSL
 
-The Internal DSL is in `pulse2d/dsl.h` and provides the structural skeleton of a game: type aliases, lifecycle entry points, scene declarations, animation blueprints, and debug helpers. These are macros and free functions that do not require the engine or physics world at the call site.
+The Internal DSL is in `pulse2d/dsl.h` and provides the structural skeleton of a game: lifecycle entry points, scene declarations, type aliases, animation blueprints, and debug helpers. These are macros and free functions that do not require the engine or physics world.
 
 ---
 
@@ -94,7 +94,7 @@ float angle = pulse2d_math::random(-0.5f, 0.5f);
 pulse2d_math::Vec2 dir = { 1.0f, angle };
 ```
 
-For gameplay randomness on Teensy, prefer `trng_random` - it seeds a PCG32 engine from the i.MX RT1062 hardware TRNG via the Entropy library, which produces better statistical quality than `rand()`. Call `init_trng_engine_random()` once in `PULSE_ON_GAMESTART`, then use `trng_random(lo, hi)` anywhere in the game loop:
+For gameplay randomness on Teensy, **prefer `trng_random`** - it seeds a PCG32 engine from the i.MX RT1062 hardware TRNG via the Entropy library, which produces better statistical quality than `rand()`. Call `init_trng_engine_random()` once in `PULSE_ON_GAMESTART`, then use `trng_random(lo, hi)` anywhere in the game loop:
 
 ```cpp
 PULSE_ON_GAMESTART()
@@ -259,7 +259,7 @@ Declares a hardware-deferred type for late initialization. Used internally. You 
 PULSE2D_START_PULSE();
 ```
 
-Declares the two function pointers that drive scene dispatch: `pending_transition` and `active_scene_fn`. In addition, it also exposes the runtime namespace. Place this at file scope, once per game.
+Declares the two function pointers that control scene dispatch: `pending_transition` and `active_scene_fn`. In addition, it also exposes the runtime namespace. Place this at file scope, once per game.
 
 **Scope:** `global`
 
@@ -404,10 +404,15 @@ Transitions to a scene:
 4. Calls the scene's entry function (`PULSE_ON_GAMESCENE_START`)
 5. Registers the scene's tick function
 
-**Scope:** `PULSE_ON_GAMESTART`, `PULSE_ON_GAMESCENE`
+**Scope:** `PULSE_ON_GAMESTART`
+
+Safe to call from `PULSE_ON_GAMESTART` before the game loop starts. Do not call directly from inside `PULSE_ON_GAMESCENE` — the transition takes effect immediately, destroying the current scene while the tick function is still on the call stack. Any code that runs after the call (animation ticks, `render()`) will execute against the new scene's empty pools. Use `PULSE_DEFER_SCENE` instead.
 
 ```cpp
-PULSE_SET_SCENE(my_game, Game_Level);
+PULSE_ON_GAMESTART() {
+    my_game.init(0.0f, 0.0f, 10);
+    PULSE_SET_SCENE(my_game, Main_Menu);
+}
 ```
 
 ---
@@ -415,19 +420,29 @@ PULSE_SET_SCENE(my_game, Game_Level);
 #### PULSE_DEFER_SCENE
 
 ```cpp
-PULSE_DEFER_SCENE(scene_name);
+PULSE_DEFER_SCENE(game, scene_name);
 ```
 
-Defers a scene transition to the end of the current frame tick. Safe to call from inside a scene function.
+Defers a scene transition to the end of the current frame tick. The current scene function runs to completion — including `render()` — before the transition executes. This is the correct way to transition from inside a scene tick or a callback passed to a scene function.
 
 **Scope:** `PULSE_ON_GAMESCENE`
 
 ```cpp
+// Direct use in a scene function:
 PULSE_ON_GAMESCENE(Level_One) {
     // ...
     if (player_dead) {
-        PULSE_DEFER_SCENE(Game_Over);
+        PULSE_DEFER_SCENE(my_game, Game_Over);
     }
+}
+
+// Inside a callback passed to a PULSE_SCENE_FN:
+PULSE_ON_GAMESCENE(Level_One) {
+    level_one::on_tick(my_game, ship, [] {
+        PULSE_DEFER_SCENE(my_game, Game_Over);
+    });
+    my_game.tick_vfx();
+    my_game.render(); // still runs against Level_One; transition fires after
 }
 ```
 
@@ -1279,7 +1294,7 @@ my_game.add_background_layer("menu_bg", 320.0f);
 
 There are two different animation systems available:
 
-* **Persistent animations** drive looped character states - idle, walk, jump - by mutating a sprite's frame pointer each tick.
+* **Persistent animations** control looped character states - idle, walk, jump - by mutating a sprite's frame pointer each tick.
 * **VFX one-shots** fire and forget: play once and remove automatically, suited for explosions and impacts.
 
 ---
@@ -1508,7 +1523,7 @@ my_game.on_collision_with("enemy", [&]() {
 
 my_game.on_collision_with("powerup", [&]() {
     score += 100;
-    PULSE_SET_SCENE(my_game, Next_Level);
+    PULSE_DEFER_SCENE(my_game, Next_Level);
 });
 ```
 
@@ -1781,9 +1796,9 @@ PULSE_ON_GAMESCENE_START(Level_One) {
 
 ### on\_reset callback
 
-`PULSE_SET_SCENE` uses token-pasting to construct function names (`pulse2d_scene_enter_Level_One`). Inside a template function the second argument must be a literal token, not a template parameter - `PULSE_SET_SCENE(game, Scenes)` would paste `Scenes` literally, not the actual scene name, and fail to resolve.
+`PULSE_DEFER_SCENE` (and `PULSE_SET_SCENE` underneath it) uses token-pasting to construct function names (`pulse2d_scene_enter_Level_One`). Inside a template function the second argument must be a literal token, not a template parameter - `PULSE_DEFER_SCENE(game, Scenes)` would paste `Scenes` literally, not the actual scene name, and fail to resolve.
 
-Pass an `on_reset` callback instead. The caller in the concrete scene function provides the lambda, where `PULSE_SET_SCENE` has the concrete name:
+Pass an `on_reset` callback instead. The caller in the concrete scene function provides the lambda, where `PULSE_DEFER_SCENE` has the concrete name:
 
 ```cpp
 // level header - on_reset abstracts the scene transition
@@ -1796,15 +1811,16 @@ PULSE_SCENE_FN void on_level_tick(pulse2d_scene_runtime<Scenes...>& game,
         state.current_enemy  = 0;
         state.level_complete = false;
         on_reset();
+        return;
     }
 }
 ```
 
 ```cpp
-// game translation unit - PULSE_SET_SCENE used with the concrete name
+// game translation unit - PULSE_DEFER_SCENE used with the concrete name
 PULSE_ON_GAMESCENE(Level_One) {
     level_one::on_level_tick(my_game, ship, [] {
-        PULSE_SET_SCENE(my_game, Level_One);
+        PULSE_DEFER_SCENE(my_game, Level_One);
     });
 }
 ```
@@ -1861,6 +1877,7 @@ PULSE_SCENE_FN void on_level_tick(pulse2d_scene_runtime<Scenes...>& game,
 
     if (SEESAW_BUTTON_INPUT(SEESAW_START)) {
         on_reset();
+        return;
     }
 
     game.draw("player", "player_sprite");
@@ -1905,7 +1922,7 @@ PULSE_ON_GAMESCENE(Level_One)
     pulse2d_body& player = my_game.get_body("player");
 
     level_one::on_level_tick(my_game, player, [] {
-        PULSE_SET_SCENE(my_game, Level_One);
+        PULSE_DEFER_SCENE(my_game, Level_One);
     });
 
     my_game.tick_vfx();
@@ -2014,6 +2031,7 @@ PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scenes...>& game,
 
     if (SEESAW_BUTTON_INPUT(SEESAW_START)) {
         on_reset();
+        return;
     }
 
     game.draw("ship_object", "ship_sprite");
@@ -2049,7 +2067,7 @@ PULSE_ON_GAMESCENE(Space_Shooter)
     pulse2d_body& ship = my_game.get_body("ship_object");
 
     space_shooter::on_tick(my_game, ship, [] {
-        PULSE_SET_SCENE(my_game, Space_Shooter);
+        PULSE_DEFER_SCENE(my_game, Space_Shooter);
     });
 
     my_game.tick_vfx();

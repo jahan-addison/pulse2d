@@ -689,7 +689,7 @@ struct Runtime
     {
         execute_scene([&](auto& scene) {
             const auto& _body = scene.get_body(body_name);
-            auto [sx, sy] = pulse2d::Renderer::project_coordinates(
+            auto [sx, sy] = pulse2d::Renderer::units_to_pixels(
                 _body.position.x, _body.position.y);
             const pulse2d::Sprite& _spr = scene.get_sprite(sprite_name);
             engine->renderer().add_sprite(&_spr,
@@ -704,7 +704,7 @@ struct Runtime
     {
         execute_scene([&](auto& scene) {
             const auto& _body = scene.get_body(body_name);
-            auto [sx, sy] = pulse2d::Renderer::project_coordinates(
+            auto [sx, sy] = pulse2d::Renderer::units_to_pixels(
                 _body.position.x, _body.position.y);
             const pulse2d::Sprite& _spr = scene.get_sprite(sprite_name);
             engine->renderer().add_sprite(&_spr,
@@ -749,7 +749,7 @@ struct Runtime
         const char* sprite_name)
     {
         execute_scene([&](auto& scene) {
-            auto [sx, sy] = pulse2d::Renderer::project_coordinates(
+            auto [sx, sy] = pulse2d::Renderer::units_to_pixels(
                 body_ptr->position.x, body_ptr->position.y);
             const pulse2d::Sprite& _spr = scene.get_sprite(sprite_name);
             engine->renderer().add_sprite(&_spr,
@@ -763,7 +763,7 @@ struct Runtime
         float rotation)
     {
         execute_scene([&](auto& scene) {
-            auto [sx, sy] = pulse2d::Renderer::project_coordinates(
+            auto [sx, sy] = pulse2d::Renderer::units_to_pixels(
                 body_ptr->position.x, body_ptr->position.y);
             const pulse2d::Sprite& _spr = scene.get_sprite(sprite_name);
             engine->renderer().add_sprite(&_spr,

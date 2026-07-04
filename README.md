@@ -140,6 +140,7 @@ PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scenes...>& game,
 
     if (SEESAW_BUTTON_INPUT(SEESAW_START)) {
         on_reset();
+        return;
     }
 
     game.draw("ship_object", "ship_sprite");
@@ -175,7 +176,7 @@ PULSE_ON_GAMESCENE(Space_Shooter)
     pulse2d_body& ship = my_game.get_body("ship_object");
 
     space_shooter::on_tick(my_game, ship, [] {
-        PULSE_SET_SCENE(my_game, Space_Shooter);
+        PULSE_DEFER_SCENE(my_game, Space_Shooter);
     });
 
     my_game.tick_vfx();
