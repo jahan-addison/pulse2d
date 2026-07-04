@@ -89,8 +89,8 @@ using pulse2d_arbiter = pulse2d::graphics::Arbiter;
 using pulse2d_joint = pulse2d::graphics::Joint;
 
 // Alias for the Runtime template - used in PULSE_SCENE_FN function signatures.
-template<pulse2d::Scene Scene>
-using pulse2d_scene_runtime = pulse2d::runtime::Runtime<Scene>;
+template<pulse2d::Scene... Scenes>
+using pulse2d_scene_runtime = pulse2d::runtime::Runtime<Scenes...>;
 
 // Portable primitive aliases - useful for pool lambda parameters and state.
 
@@ -207,6 +207,10 @@ namespace sml = boost::sml;
  */
 #define PULSE_ON_GAMELOOP() void loop()
 
+#define PULSE_FWD_DECLARE_SCENE(scene)  \
+    void pulse2d_scene_enter_##scene(); \
+    void pulse2d_scene_fn_##scene()
+
 /**
  * @brief
  * Declare the scene dispatch function pointers.
@@ -245,28 +249,29 @@ namespace sml = boost::sml;
 /**
  * @brief
  * Declare a template function constrained to valid scene types
- * (pulse2d::Scene). The type parameter is always named Scene and is available
- * in the function signature and body. Use for level or scene utility functions
- * that take a Runtime<Scene>& without being tied to a concrete scene.
+ * (pulse2d::Scene). The type parameter pack is always named Scenes and is
+ * available in the function signature and body. Use for level or scene utility
+ * functions that take a Runtime<Scenes...>& without being tied to a concrete
+ * scene.
  *
- * @note Functions must spell the type parameter as Scene - the macro fixes
- *       the name so call sites can deduce Scene from the Runtime<Scene>&
+ * @note Functions must spell the type parameter as Scenes - the macro fixes
+ *       the name so call sites can deduce Scenes from the Runtime<Scenes...>&
  *       argument without an explicit template argument.
  *
- *   PULSE_SCENE_FN void setup_walls(pulse2d_scene_runtime<Scene>& game)
+ *   PULSE_SCENE_FN void setup_walls(pulse2d_scene_runtime<Scenes...>& game)
  *   {
  *       game.set_static_body("floor", { .position = { 0.0f, -5.0f },
  *                                       .width    = { 10.0f, 0.5f } });
  *   }
  *
- *   // called from PULSE_ON_GAMESCENE_START(Level_One) - Scene deduced as
+ *   // called from PULSE_ON_GAMESCENE_START(Level_One) - Scenes deduced as
  * Level_One setup_walls(my_game);
  *
  * @scope: global
  * @return
  */
-#define PULSE_SCENE_FN             \
-    template<pulse2d::Scene Scene> \
+#define PULSE_SCENE_FN                 \
+    template<pulse2d::Scene... Scenes> \
     PULSE2D_INLINE
 
 /**

@@ -74,7 +74,7 @@ struct State {
 
 PULSE_DEFINE_SCENE_STATE(State);
 
-PULSE_SCENE_FN void on_start(pulse2d_scene_runtime<Scene>& game)
+PULSE_SCENE_FN void on_start(pulse2d_scene_runtime<Scenes...>& game)
 {
     state = {};
 
@@ -100,7 +100,7 @@ PULSE_SCENE_FN void on_start(pulse2d_scene_runtime<Scene>& game)
         });
 }
 
-PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scene>& game,
+PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scenes...>& game,
     pulse2d_body& ship,
     void (*on_reset)())
 {
@@ -265,7 +265,7 @@ namespace scenes::levels::level_one {
 // ...
 PULSE_DEFINE Enemy enemy{};
 
-PULSE_SCENE_FN void on_start(pulse2d_scene_runtime<Scene>& game,
+PULSE_SCENE_FN void on_start(pulse2d_scene_runtime<Scenes...>& game,
     pulse2d::state::Draw_Fn draw_fn)
 {
     enemy.configure({
@@ -276,7 +276,7 @@ PULSE_SCENE_FN void on_start(pulse2d_scene_runtime<Scene>& game,
     enemy.dispatch(Activate_Event{});
 }
 
-PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scene>& game)
+PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scenes...>& game)
 {
     enemy.dispatch(Render_Event{});
 

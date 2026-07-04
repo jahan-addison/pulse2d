@@ -349,10 +349,10 @@ PULSE_DEFINE_SCENE(Boss_Fight, 15, 12, 4);  // 4 joints
 #### PULSE_SCENE_FN
 
 ```cpp
-PULSE_SCENE_FN void function_name(pulse2d_scene_runtime<Scene>& game, ...);
+PULSE_SCENE_FN void function_name(pulse2d_scene_runtime<Scenes...>& game, ...);
 ```
 
-Declares a template function constrained to valid scene types (`pulse2d::Scene`). The type parameter is always named `Scene` and is deduced from the `Runtime<Scene>&` argument at the call site - no explicit template argument needed.
+Declares a template function constrained to valid scene types (`pulse2d::Scene`). The type parameter pack is always named `Scenes` and is deduced from the `Runtime<Scenes...>&` argument at the call site - no explicit template argument needed.
 
 Use this for level or scene utility functions that should work with any scene without being hardcoded to a specific one. The constraint catches misuse at the call site if a non-scene type is passed.
 
@@ -362,13 +362,13 @@ Use this for level or scene utility functions that should work with any scene wi
 // scenes/levels/level_one.h
 namespace scenes::levels::level_one {
 
-PULSE_SCENE_FN void setup_walls(pulse2d_scene_runtime<Scene>& game)
+PULSE_SCENE_FN void setup_walls(pulse2d_scene_runtime<Scenes...>& game)
 {
     game.set_static_body("top_wall",    { .position = { 0.0f,  4.5f }, .width = { 20.0f, 0.5f } })
         .set_static_body("bottom_wall", { .position = { 0.0f, -4.5f }, .width = { 20.0f, 0.5f } });
 }
 
-PULSE_SCENE_FN void setup_background(pulse2d_scene_runtime<Scene>& game)
+PULSE_SCENE_FN void setup_background(pulse2d_scene_runtime<Scenes...>& game)
 {
     game.set_background_sprite("bg_stars", stars_data, 320, 240)
         .add_parallax_layer("bg_stars", 320.0f, 20.0f);
@@ -387,7 +387,7 @@ PULSE_ON_GAMESCENE_START(Level_One) {
 }
 ```
 
-`PULSE_SCENE_FN` fixes the template parameter name as `Scene`. Functions that reference it in their signature or body must use that exact name.
+`PULSE_SCENE_FN` fixes the template parameter name as `Scenes`. Functions that reference it in their signature or body must use that exact name.
 
 ---
 
@@ -449,7 +449,7 @@ Defines the entry function for a scene. Called once automatically by `PULSE_SET_
 // scenes/levels/game_level.h
 namespace scenes::levels::game_level {
 
-PULSE_SCENE_FN void on_start(pulse2d_scene_runtime<Scene>& game)
+PULSE_SCENE_FN void on_start(pulse2d_scene_runtime<Scenes...>& game)
 {
     game
         .set_sprite("player_sprite", "player.bin")
@@ -493,7 +493,7 @@ Defines the per-frame function for a scene. Registered as the active tick functi
 // scenes/levels/game_level.h
 namespace scenes::levels::game_level {
 
-PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scene>& game)
+PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scenes...>& game)
 {
     PULSE_POLL_SEESAW_GAMEPAD();
 
@@ -1212,6 +1212,23 @@ my_game.render_pool("bullet_pool", [&](pulse2d_body* bullet) {
 
 ---
 
+#### draw_sprite
+
+```cpp
+my_game.draw_sprite("sprite_name", x, y);
+```
+
+Writes a named sprite directly to the screen at pixel coordinates, bypassing body lookup and world-space projection. Use for HUD elements, score displays, and fixed-position overlays that have no associated physics body.
+
+**Scope:** `PULSE_ON_GAMESCENE`
+
+```cpp
+my_game.draw_sprite("health_bar", 4, 220);
+my_game.draw_sprite("crosshair",  static_cast<int16_t>(cursor_x), static_cast<int16_t>(cursor_y));
+```
+
+---
+
 ### Backgrounds
 
 Background layers are drawn in the order they are added. Always call `my_game.render_backgrounds()` before any `draw` calls in the scene function.
@@ -1692,11 +1709,11 @@ PULSE_DEFINE_SCENE_STATE(State);
 
 ### Functions
 
-Level functions use `PULSE_SCENE_FN` and accept a `pulse2d_scene_runtime<Scene>&` as their first parameter. They live in the same namespace as the state and call it directly (no parameter needed - `state` is namespace-scoped static storage):
+Level functions use `PULSE_SCENE_FN` and accept a `pulse2d_scene_runtime<Scenes...>&` as their first parameter. They live in the same namespace as the state and call it directly — `state` is namespace-scoped static storage:
 
 ```cpp
 // Startup: called once from PULSE_ON_GAMESCENE_START
-PULSE_SCENE_FN void on_level_start(pulse2d_scene_runtime<Scene>& game)
+PULSE_SCENE_FN void on_level_start(pulse2d_scene_runtime<Scenes...>& game)
 {
     // set up backgrounds, walls, sprites, bodies...
     game.set_sprite("enemy_sprite", "enemy.bin")
@@ -1710,7 +1727,7 @@ PULSE_SCENE_FN void on_level_start(pulse2d_scene_runtime<Scene>& game)
 }
 
 // Tick: called every frame from PULSE_ON_GAMESCENE
-PULSE_SCENE_FN void on_level_tick(pulse2d_scene_runtime<Scene>& game,
+PULSE_SCENE_FN void on_level_tick(pulse2d_scene_runtime<Scenes...>& game,
     pulse2d_body& player,
     void (*on_reset)())
 {
@@ -1723,13 +1740,13 @@ PULSE_SCENE_FN void on_level_tick(pulse2d_scene_runtime<Scene>& game,
 }
 ```
 
-`PULSE_SCENE_FN` fixes the template parameter as `Scene`, so the `pulse2d_scene_runtime<Scene>&` in the signature refers to the same deduced type - no explicit template argument needed at the call site.
+`PULSE_SCENE_FN` fixes the template parameter pack as `Scenes`, so the `pulse2d_scene_runtime<Scenes...>&` in the signature refers to the same deduced type — no explicit template argument needed at the call site.
 
 ---
 
 ### draw\_fn pass-through
 
-`pulse2d::state::Draw_Fn` is a non-capturing function pointer (`void (*)(pulse2d_body*, const char*)`). Lambdas stored in this type cannot close over local variables, including the `Runtime<Scene>&` parameter.
+`pulse2d::state::Draw_Fn` is a non-capturing function pointer (`void (*)(pulse2d_body*, const char*)`). Lambdas stored in this type cannot close over local variables, including the `Runtime<Scenes...>&` parameter.
 
 The solution: accept the draw function as a parameter to `on_level_start`, store it in `state.draw` (which has static storage duration), then copy `state.draw` directly into any config struct that needs it. Lambdas that later *read* from `state.draw` (or from `state` in general) remain non-capturing because they reference namespace-scoped static storage - not the parameter:
 
@@ -1740,7 +1757,7 @@ struct State {
 };
 PULSE_DEFINE_SCENE_STATE(State);
 
-PULSE_SCENE_FN void on_level_start(pulse2d_scene_runtime<Scene>& game,
+PULSE_SCENE_FN void on_level_start(pulse2d_scene_runtime<Scenes...>& game,
     pulse2d::state::Draw_Fn draw_fn)
 {
     state.draw = draw_fn;   // store in static; lambdas below stay non-capturing
@@ -1764,13 +1781,13 @@ PULSE_ON_GAMESCENE_START(Level_One) {
 
 ### on\_reset callback
 
-`PULSE_SET_SCENE` uses token-pasting to construct function names (`pulse2d_scene_enter_Level_One`). Inside a template function the second argument must be a literal token, not a template parameter - `PULSE_SET_SCENE(game, Scene)` would paste `Scene` literally, not the actual scene name, and fail to resolve.
+`PULSE_SET_SCENE` uses token-pasting to construct function names (`pulse2d_scene_enter_Level_One`). Inside a template function the second argument must be a literal token, not a template parameter - `PULSE_SET_SCENE(game, Scenes)` would paste `Scenes` literally, not the actual scene name, and fail to resolve.
 
 Pass an `on_reset` callback instead. The caller in the concrete scene function provides the lambda, where `PULSE_SET_SCENE` has the concrete name:
 
 ```cpp
 // level header - on_reset abstracts the scene transition
-PULSE_SCENE_FN void on_level_tick(pulse2d_scene_runtime<Scene>& game,
+PULSE_SCENE_FN void on_level_tick(pulse2d_scene_runtime<Scenes...>& game,
     pulse2d_body& player,
     void (*on_reset)())
 {
@@ -1819,7 +1836,7 @@ struct State {
 
 PULSE_DEFINE_SCENE_STATE(State);
 
-PULSE_SCENE_FN void on_level_start(pulse2d_scene_runtime<Scene>& game,
+PULSE_SCENE_FN void on_level_start(pulse2d_scene_runtime<Scenes...>& game,
     pulse2d::state::Draw_Fn draw_fn)
 {
     state.draw = draw_fn;
@@ -1834,7 +1851,7 @@ PULSE_SCENE_FN void on_level_start(pulse2d_scene_runtime<Scene>& game,
               .width    = px_to_units(32.0f, 32.0f), .mass = 1.0f, .is_sensor = true });
 }
 
-PULSE_SCENE_FN void on_level_tick(pulse2d_scene_runtime<Scene>& game,
+PULSE_SCENE_FN void on_level_tick(pulse2d_scene_runtime<Scenes...>& game,
     pulse2d_body& player,
     void (*on_reset)())
 {
@@ -1933,7 +1950,7 @@ struct State {
 
 PULSE_DEFINE_SCENE_STATE(State);
 
-PULSE_SCENE_FN void on_start(pulse2d_scene_runtime<Scene>& game)
+PULSE_SCENE_FN void on_start(pulse2d_scene_runtime<Scenes...>& game)
 {
     state = {};
 
@@ -1959,7 +1976,7 @@ PULSE_SCENE_FN void on_start(pulse2d_scene_runtime<Scene>& game)
         });
 }
 
-PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scene>& game,
+PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scenes...>& game,
     pulse2d_body& ship,
     void (*on_reset)())
 {

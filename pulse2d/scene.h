@@ -68,13 +68,20 @@ struct scene_base
 
 /**
  * Satisfied by any scene struct declared with PULSE_DEFINE_SCENE.
- * Use as a constraint on template functions that accept Runtime<Scene>&
+ * Use as a constraint on template functions that accept Runtime<Scenes...>&
  * without being tied to a specific scene type.
  *
- *   PULSE_SCENE_FN void setup(pulse2d::runtime::Runtime<Scene>& game) { ... }
+ *   PULSE_SCENE_FN void setup(pulse2d::runtime::Runtime<Scenes...>& game) { ...
+ * }
  */
 template<typename T>
 concept Scene = std::derived_from<T, detail::scene_base>;
+
+template<typename... Ts>
+concept Scenes = (std::derived_from<Ts, detail::scene_base> && ...);
+
+// template<typename... T>
+// concept Scenes = std::derived_from<T..., detail::scene_base>;
 
 namespace assets {
 struct Background_Layer

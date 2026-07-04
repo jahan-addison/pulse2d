@@ -716,6 +716,27 @@ struct Runtime
 
     /**
      * @brief
+     * Directly write a sprite to screen at pixel coordinates, bypassing body
+     * projection. Use for HUD elements and fixed-position overlays.
+     *
+     * @scope: PULSE_ON_GAMESCENE
+     * @param sprite_name named sprite identifier string
+     * @param x screen x position in pixels
+     * @param y screen y position in pixels
+     * @return
+     */
+    PULSE2D_INLINE void draw_sprite(const char* sprite_name,
+        int16_t x,
+        int16_t y)
+    {
+        execute_scene([&](auto& scene) {
+            const pulse2d::Sprite& _spr = scene.get_sprite(sprite_name);
+            engine->renderer().add_sprite(&_spr, x, y);
+        });
+    }
+
+    /**
+     * @brief
      * Like draw, but takes a body pointer instead of a name.
      * Use inside render_pool lambdas.
      *
