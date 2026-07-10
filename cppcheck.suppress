@@ -8,6 +8,7 @@ useInitializationList
 
 // Causes false positives
 unusedStructMember
+uninitMemberVarNoCtor
 functionStatic
 derefInvalidIteratorRedundantCheck
 

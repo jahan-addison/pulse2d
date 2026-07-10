@@ -87,6 +87,7 @@ using pulse2d_body = pulse2d::graphics::Body;
 using pulse2d_world = pulse2d::graphics::World;
 using pulse2d_arbiter = pulse2d::graphics::Arbiter;
 using pulse2d_joint = pulse2d::graphics::Joint;
+using pulse2d_color = pulse2d::Renderer::Color;
 
 // Alias for the Runtime template - used in PULSE_SCENE_FN function signatures.
 template<pulse2d::Scene... Scenes>

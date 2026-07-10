@@ -232,6 +232,11 @@ $(OUT)/libteensy_core.a: $(CORE_OBJ)
 
 #####################################################
 #  @step ILI9341_t3
+#  @description
+#       Compiles the display driver and all font tables
+#       (font_Arial.c, font_ArialBold.c, ...) via wildcard.
+#       Font headers (font_Arial.h, font_ArialBold.h) are
+#       already on the include path via -isystem$(LIBS)/ILI9341_t3.
 #####################################################
 
 $(OUT)/ili9341/%.o: $(LIBS)/ILI9341_t3/%.cpp

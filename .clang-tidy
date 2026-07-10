@@ -1,0 +1,12 @@
+---
+Checks: >
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-implicit-widening-of-multiplication-result,
+  modernize-use-nullptr,
+  modernize-use-override,
+  performance-unnecessary-copy-initialization,
+  performance-unnecessary-value-param
+
+HeaderFilterRegex: 'pulse2d/.*'
+WarningsAsErrors: ''

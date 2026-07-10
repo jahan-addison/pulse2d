@@ -18,9 +18,8 @@
 /****************************************************************************
  * Display
  *
- * On Teensy the target hardware is the PJRC ILI9341 320x240, and on host the
- * driver opens an SDL2 window at the same logical resolution scaled up by
- * config::scale.
+ * Teensy 4.1 driver for the PJRC ILI9341 320x240
+ *   Note: SDL is made available for unit testing
  *
  * Example:
  *
@@ -33,7 +32,7 @@
 namespace pulse2d {
 
 /**
- * @brief Create window, renderer, and streaming RGB565 texture; clear to black
+ * @brief Create window, renderer, and streaming RGB565 texture
  */
 void Display::init()
 {
@@ -73,8 +72,7 @@ void Display::init()
 }
 
 /**
- * @brief Upload framebuffer to the SDL texture and present the frame
- *   Uses TFT writeRect on teensy target
+ * @brief TFT writeRect for blitting, fallback for host SDL
  */
 void Display::blit(frame_buffer_t const* framebuffer, [[maybe_unused]] int len)
 {
@@ -91,8 +89,8 @@ void Display::blit(frame_buffer_t const* framebuffer, [[maybe_unused]] int len)
 }
 
 /**
- * @brief Expand RGB565 color to RGB888 and clear the SDL renderer
- *   Uses TFT fillScreen on teensy target
+ * @brief Uses TFT fillScreen on teensy target
+ * Expand RGB565 color to RGB888 and clear the SDL renderer
  */
 void Display::clear(uint16_t color)
 {

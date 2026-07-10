@@ -22,9 +22,8 @@
 /****************************************************************************
  * Display
  *
- * On Teensy the target hardware is the PJRC ILI9341 320x240; on host the
- * driver opens a window at the same logical resolution scaled up by
- * config::scale.
+ * Teensy 4.1 driver for the PJRC ILI9341 320x240
+ *   Note: SDL is made available for unit testing
  *
  * Example:
  *
@@ -55,12 +54,6 @@ inline constexpr uint8_t touch_cs =
 
 #endif
 
-/**
- * @brief Display driver
- *
- *  Teensy: ILI9341_t3 over SPI0.
- *  Host: display window at config::width × config::height × config::scale.
- */
 class Display
 {
   public:
@@ -102,6 +95,8 @@ class Display
   private:
 #if defined(PULSE2D_TEENSY)
     ILI9341_t3 tft_;
+
+  private:
 #else
     SDL_Window* window_{ nullptr };
     SDL_Renderer* renderer_{ nullptr };

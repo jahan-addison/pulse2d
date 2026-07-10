@@ -7,13 +7,15 @@
 
 #include <pulse2d/renderer.h>
 
-#include <algorithm>                // for for_each
-#include <cmath>                    // for cosf, sinf, sqrtf
-#include <etl/utility.h>            // for forward
-#include <pulse2d/graphics/body.h>  // for Body
-#include <pulse2d/graphics/math.h>  // for Vec2
-#include <pulse2d/graphics/world.h> // for World
-#include <pulse2d/sprite.h>         // for Sprite
+#include <algorithm>                 // for for_each
+#include <cmath>                     // for cosf, sinf, sqrtf
+#include <etl/utility.h>             // for forward
+#include <pulse2d/detail/glcdfont.h> // for k_glcd_font, k_glcd_cell_w/h
+#include <pulse2d/graphics/body.h>   // for Body
+#include <pulse2d/graphics/math.h>   // for Vec2
+#include <pulse2d/graphics/world.h>  // for World
+#include <pulse2d/sprite.h>          // for Sprite
+#include <string_view>               // for string_view
 
 /****************************************************************************
  * Renderer
@@ -84,6 +86,35 @@ void Renderer::draw(graphics::World const& world)
         });
 
     sprite_queue_.clear();
+
+    // flush text entries after sprites so glyphs composite on top
+    for (auto const& e : text_queue_) {
+        using namespace detail;
+        const uint8_t* fdata = e.font ? e.font->data : k_glcd_font;
+        uint8_t fw = e.font ? e.font->cell_w : k_glcd_cell_w;
+        uint8_t fh = e.font ? e.font->cell_h : k_glcd_cell_h;
+        uint8_t first = e.font ? e.font->first_char : 0;
+        int cx = e.x;
+        int cy = e.y;
+        for (char c : e.sv) {
+            const auto uc = static_cast<uint8_t>(c);
+            if (c == '\n') {
+                cy += static_cast<int>((fh + 1) * e.size);
+                cx = e.x;
+            } else if (!e.font || uc >= first) {
+                draw_glyph(e.font ? (uc - first) : uc,
+                    fdata,
+                    fw,
+                    fh,
+                    cx,
+                    cy,
+                    e.color,
+                    e.size);
+                cx += static_cast<int>((fw + 1) * e.size);
+            }
+        }
+    }
+    text_queue_.clear();
 }
 
 /**
@@ -194,6 +225,63 @@ void Renderer::fill_rect(int x, int y, int w, int h, uint16_t color)
             (*framebuffer_)[row * k_width + col] = color;
         }
     }
+}
+
+/**
+ * @brief Blit one glyph into the framebuffer.
+ * glyph_idx is the pre-offset index into data (i.e. c - first_char for
+ * custom fonts, or the raw ASCII value for the built-in font).
+ */
+void Renderer::draw_glyph(uint8_t glyph_idx,
+    const uint8_t* data,
+    uint8_t cell_w,
+    uint8_t cell_h,
+    int x,
+    int y,
+    uint16_t color,
+    float scale)
+{
+    const uint8_t* glyph = data + (glyph_idx * cell_w);
+    const int out_w = static_cast<int>(cell_w * scale + 0.5f);
+    const int out_h = static_cast<int>(cell_h * scale + 0.5f);
+
+    for (int oy = 0; oy < out_h; ++oy) {
+        const auto src_row = static_cast<uint8_t>(oy / scale);
+        if (src_row >= cell_h)
+            continue;
+        for (int ox = 0; ox < out_w; ++ox) {
+            const auto src_col = static_cast<uint8_t>(ox / scale);
+            if (src_col >= cell_w)
+                continue;
+            if (!(glyph[src_col] & (1u << src_row)))
+                continue;
+            const int px = x + ox;
+            const int py = y + oy;
+            if (px >= 0 && px < k_width && py >= 0 && py < k_height)
+                (*framebuffer_)[py * k_width + px] = color;
+        }
+    }
+}
+
+void Renderer::draw_text(std::string_view sv,
+    int x,
+    int y,
+    uint16_t color,
+    float size)
+{
+    if (!text_queue_.full())
+        text_queue_.emplace_back(TextEntry{ sv, x, y, color, size, nullptr });
+}
+
+void Renderer::draw_text(std::string_view sv,
+    int x,
+    int y,
+    uint16_t color,
+    const Font_Def& font,
+    float size)
+{
+    if (!text_queue_.full())
+        text_queue_.emplace_back(TextEntry{ sv, x, y, color, size, &font });
 }
 
 } // namespace pulse2d

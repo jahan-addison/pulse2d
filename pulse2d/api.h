@@ -178,6 +178,77 @@ struct Runtime
         });
     }
 
+    //////////
+    // Text //
+    //////////
+
+    /**
+     * @brief
+     * Queue text to draw using the built-in 5x7 bitmap font.
+     * Flushed during render() after sprites, so it composites on top.
+     * Supports '\n' for line breaks and integer size scaling.
+     *
+     * @scope: PULSE_ON_GAMESCENE
+     * @param text string to render
+     * @param x screen x position in pixels
+     * @param y screen y position in pixels (top of the first glyph row)
+     * @param color RGB565 value; use text_color(r, g, b) to pack from 8-bit
+     * @param size integer scale multiplier, default 1
+     */
+    PULSE2D_INLINE void draw_text(std::string_view text,
+        int x,
+        int y,
+        uint16_t color,
+        float size = 1.0f)
+    {
+        engine->renderer().draw_text(text, x, y, color, size);
+    }
+
+    /**
+     * @brief
+     * Draw text using a custom Font_Def from font2bytes or a compatible
+     * column-major 1bpp bitmap font tool.
+     *
+     * @scope: PULSE_ON_GAMESCENE
+     * @param text string to render
+     * @param x screen x position in pixels
+     * @param y screen y position in pixels
+     * @param color RGB565 color value
+     * @param font Font_Def descriptor pointing to the glyph table
+     * @param size float scale multiplier, default 1.0
+     */
+    PULSE2D_INLINE void draw_text(std::string_view text,
+        int x,
+        int y,
+        uint16_t color,
+        const pulse2d::Renderer::Font_Def& font,
+        float size = 1.0f)
+    {
+        engine->renderer().draw_text(text, x, y, color, font, size);
+    }
+
+    /**
+     * @brief
+     * Pack red, green, blue 8-bit components into an RGB565 value for
+     * draw_text. Compute once at startup and reuse; not per-frame.
+     *
+     * @param r red   0–255
+     * @param g green 0–255
+     * @param b blue  0–255
+     */
+    PULSE2D_INLINE static uint16_t text_color(uint8_t r, uint8_t g, uint8_t b)
+    {
+        return pulse2d::Renderer::text_color(r, g, b);
+    }
+
+    /**
+     * @brief Cast a named Color constant to a uint16_t for any color parameter.
+     */
+    PULSE2D_INLINE static uint16_t color(pulse2d::Renderer::Color c)
+    {
+        return static_cast<uint16_t>(c);
+    }
+
     /////////////
     // Gamepad //
     /////////////
