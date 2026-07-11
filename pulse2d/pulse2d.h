@@ -63,6 +63,7 @@ class Pulse2d
 
     PULSE2D_INLINE Renderer& renderer() { return renderer_; }
     PULSE2D_INLINE Storage& storage() { return storage_; }
+    PULSE2D_INLINE Audio& audio() { return audio_; }
 
   private:
     Display display_;

@@ -35,6 +35,7 @@ Include both headers:
   - [Kinematic Pools](#kinematic-pools)
   - [Collision](#collision)
   - [Gamepad Controls (Runtime)](#gamepad-controls-runtime)
+  - [Audio (Runtime)](#audio-runtime)
 - [Levels](#levels)
   - [State](#state-1)
   - [Functions](#functions)
@@ -1781,6 +1782,111 @@ my_game.set_sliding_friction_directional_control("body_name", drag_amount);
 Applies linear drag to the body each frame. `drag_amount` is a multiplier (< 1.0 for braking effect, e.g. 0.9).
 
 **Scope:** `PULSE_ON_GAMESCENE`
+
+---
+
+### Audio (Runtime)
+
+Audio data must be in the `AudioPlayMemory` format produced by Teensy's `wav2sketch` tool. Run `wav2sketch` on your 8-bit WAV file to get a `.h` with a `const unsigned int` array. Then include that header and pass the array pointer directly to `play_music` or `play_sfx`.
+
+Music and SFX are mixed through a 4-channel `AudioMixer4` before I2S output. The mixer layout is fixed:
+
+| Channel | Use |
+|---------|-----|
+| 0 | Looping music (`play_music`) |
+| 1 | SFX slot 1 (`play_sfx`) |
+| 2 | SFX slot 2 (`play_sfx2`) |
+| 3 | Reserved |
+
+Channels 1 and 2 are fully independent. Both can play simultaneously, so a laser fire on channel 1 won't interrupt an explosion on channel 2. Call `tick_audio()` once per frame to keep looping music going.
+
+```cpp
+// PULSE_ON_GAMESCENE_START
+#include <audio/level1_music.h>
+game.play_music(AudioSampleLevel1_music);
+
+// PULSE_ON_GAMESCENE, one call per frame
+game.tick_audio();
+
+// two SFX playing at the same time
+if (SEESAW_BUTTON_INPUT(SEESAW_A)) {
+    game.play_sfx(AudioSampleLaser);      // channel 1
+}
+// explosion on a separate channel, won't cut the laser
+game.play_sfx2(AudioSampleExplosion);     // channel 2
+```
+
+---
+
+#### play_music
+
+```cpp
+void play_music(unsigned int const* data);
+```
+
+Start playing a looping music track. Restarts automatically each frame via `tick_audio()`. Interrupts any music currently playing.
+
+**Scope:** `PULSE_ON_GAMESCENE_START` or `PULSE_ON_GAMESCENE`
+
+---
+
+#### stop_music
+
+```cpp
+void stop_music();
+```
+
+Stop the current music track. Clears the loop pointer so `tick_audio()` will not restart it.
+
+**Scope:** `PULSE_ON_GAMESCENE`
+
+---
+
+#### play_sfx
+
+```cpp
+void play_sfx(unsigned int const* data);
+```
+
+Play a one-shot SFX clip on mixer channel 1. Interrupts any clip currently playing on this channel. Use for your primary event sound (laser fire, menu confirm, etc.).
+
+**Scope:** `PULSE_ON_GAMESCENE`
+
+---
+
+#### play_sfx2
+
+```cpp
+void play_sfx2(unsigned int const* data);
+```
+
+Play a one-shot SFX clip on mixer channel 2. Runs independently of `play_sfx` so both channels can play at the same time without interrupting each other. Use for a secondary event sound (explosions, enemy hits, pickups) that may overlap with channel 1.
+
+**Scope:** `PULSE_ON_GAMESCENE`
+
+---
+
+#### tick_audio
+
+```cpp
+void tick_audio();
+```
+
+Advance the audio engine one frame. Restarts looping music if it has finished. Call once per frame in `PULSE_ON_GAMESCENE`, typically alongside `tick_vfx()`.
+
+**Scope:** `PULSE_ON_GAMESCENE`
+
+---
+
+#### set_volume
+
+```cpp
+void set_volume(float v);
+```
+
+Set the master output volume for both music and SFX. Range is 0.0 (silent) to 1.0 (full). Default is 0.5.
+
+**Scope:** `PULSE_ON_GAMESCENE_START` or `PULSE_ON_GAMESCENE`
 
 ---
 

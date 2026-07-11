@@ -174,6 +174,9 @@ ILI_OBJ := \
 AUDIO_OBJ := \
   $(OUT)/audio/output_i2s.o       \
   $(OUT)/audio/control_sgtl5000.o \
+  $(OUT)/audio/play_memory.o      \
+  $(OUT)/audio/data_ulaw.o        \
+  $(OUT)/audio/mixer.o            \
   $(OUT)/audio/imxrt_hw.o         \
   $(OUT)/audio/sqrt_integer.o     \
   $(OUT)/audio/memcpy_audio.o
@@ -265,6 +268,21 @@ $(OUT)/audio/output_i2s.o: $(LIBS)/Audio/output_i2s.cpp
 	@$(CXX) $(LIB_CXXFLAGS) -c $< -o $@
 
 $(OUT)/audio/control_sgtl5000.o: $(LIBS)/Audio/control_sgtl5000.cpp
+	@mkdir -p $(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "CXX" "$(notdir $<)"
+	@$(CXX) $(LIB_CXXFLAGS) -c $< -o $@
+
+$(OUT)/audio/play_memory.o: $(LIBS)/Audio/play_memory.cpp
+	@mkdir -p $(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "CXX" "$(notdir $<)"
+	@$(CXX) $(LIB_CXXFLAGS) -c $< -o $@
+
+$(OUT)/audio/data_ulaw.o: $(LIBS)/Audio/data_ulaw.c
+	@mkdir -p $(@D)
+	@printf "  $(_DM)%-3s$(_R)  %s\n" "CC" "$(notdir $<)"
+	@$(CC) $(LIB_CFLAGS) -c $< -o $@
+
+$(OUT)/audio/mixer.o: $(LIBS)/Audio/mixer.cpp
 	@mkdir -p $(@D)
 	@printf "  $(_DM)%-3s$(_R)  %s\n" "CXX" "$(notdir $<)"
 	@$(CXX) $(LIB_CXXFLAGS) -c $< -o $@

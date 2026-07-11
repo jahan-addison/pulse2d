@@ -451,6 +451,85 @@ struct Runtime
         });
     }
 
+    ///////////
+    // Audio //
+    ///////////
+
+    /**
+     * @brief
+     * Start playing a looping music track. The track restarts automatically
+     * when tick_audio() is called each frame. Data must be in the
+     * AudioPlayMemory format produced by wav2sketch.
+     *
+     * @scope: PULSE_ON_GAMESCENE_START or PULSE_ON_GAMESCENE
+     * @param data pointer to the wav2sketch audio array
+     * @return
+     */
+    PULSE2D_INLINE void play_music(const unsigned int* data)
+    {
+        engine->audio().play_music(data);
+    }
+
+    /**
+     * @brief
+     * Stop the current music track. Clears the loop pointer so tick_audio()
+     * will not restart it.
+     *
+     * @scope: PULSE_ON_GAMESCENE
+     * @return
+     */
+    PULSE2D_INLINE void stop_music() { engine->audio().stop_music(); }
+
+    /**
+     * @brief
+     * Play a one-shot SFX clip on channel 1. Interrupts any clip currently
+     * playing on this channel. Data must be in the AudioPlayMemory format
+     * produced by wav2sketch.
+     *
+     * @scope: PULSE_ON_GAMESCENE
+     * @param data pointer to the wav2sketch audio array
+     * @return
+     */
+    PULSE2D_INLINE void play_sfx(const unsigned int* data)
+    {
+        engine->audio().play_sfx(data);
+    }
+
+    /**
+     * @brief
+     * Play a one-shot SFX clip on channel 2. Runs independently of channel 1
+     * so both SFX channels can play simultaneously.
+     * Data must be in the AudioPlayMemory format produced by wav2sketch.
+     *
+     * @scope: PULSE_ON_GAMESCENE
+     * @param data pointer to the wav2sketch audio array
+     * @return
+     */
+    PULSE2D_INLINE void play_sfx2(const unsigned int* data)
+    {
+        engine->audio().play_sfx2(data);
+    }
+
+    /**
+     * @brief
+     * Advance the audio engine one frame. Restarts looping music if it has
+     * finished playing. Call once per frame in PULSE_ON_GAMESCENE.
+     *
+     * @scope: PULSE_ON_GAMESCENE
+     * @return
+     */
+    PULSE2D_INLINE void tick_audio() { engine->audio().tick(); }
+
+    /**
+     * @brief
+     * Set the master output volume for both music and SFX (0.0–1.0).
+     *
+     * @scope: PULSE_ON_GAMESCENE_START or PULSE_ON_GAMESCENE
+     * @param v volume level
+     * @return
+     */
+    PULSE2D_INLINE void set_volume(float v) { engine->audio().set_volume(v); }
+
     ///////////////
     // Collision //
     ///////////////

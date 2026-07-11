@@ -63,6 +63,9 @@ A game that demonstrates most features:
 #include PULSE2D_GRAPHICS
 #include <assets/explosion-anim.h>
 #include <assets/stars-bg.h>
+#include <audio/music.h>
+#include <audio/laser-sfx.h>
+#include <audio/explosion-sfx.h>
 
 namespace scenes::levels::space_shooter {
 
@@ -98,6 +101,8 @@ PULSE_SCENE_FN void on_start(pulse2d_scene_runtime<Scenes...>& game)
             .mass     = 1.0f,
             .width    = { 0.6f, 0.6f }
         });
+
+    game.play_music(AudioSampleMusic);
 }
 
 PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scenes...>& game,
@@ -106,6 +111,7 @@ PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scenes...>& game,
 {
     PULSE_POLL_SEESAW_GAMEPAD();
 
+    game.tick_audio();
     game.set_arcade_directional_control("ship_object", 3.5f);
 
     if (state.cooldown > 0)
@@ -115,6 +121,7 @@ PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scenes...>& game,
         game.spawn("bullets", 100,
             ship.position.x + 0.6f, ship.position.y,
             8.0f, 0.0f);
+        game.play_sfx(AudioSampleLaserSfx);
         state.cooldown = 10;
     }
 
@@ -132,6 +139,7 @@ PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scenes...>& game,
                 state.enemy_hit = true;
                 auto coords = get_body_coordinates(&enemy);
                 game.play_vfx("explosion", coords.x, coords.y);
+                game.play_sfx2(AudioSampleExplosionSfx);
                 state.score += 100;
             }
             game.despawn("bullets", bullet);
@@ -202,6 +210,7 @@ PULSE_ON_GAMELOOP()
 
 - Scene management - organize game states as scenes with isolated body and sprite pools
 - Physics management - static, controlled, and dynamic objects with collision detection
+- Audio - looping background music and two independent SFX channels via the SGTL5000 codec
 - Animations - spritesheet animations for VFX and persistent looping with automatic frame advancement
 - Kinematic pools - pre-allocated object pools for bullets, particles, powerups
 - Parallax backgrounds - multi-layer scrolling backgrounds from flash memory
@@ -404,7 +413,7 @@ Sprites are loaded via `Storage::load_sprite()`. On host, any format supported b
 
 ## Audio
 
-* TODO
+Targets the SGTL5000 codec over I2S. Three independent `AudioPlayMemory` channels (looping background music, SFX slot 1, and SFX slot 2) are mixed through a 4-channel `AudioMixer4` before output. Channel 3 is reserved. Both SFX channels play simultaneously without interrupting each other. Audio data must be in the `AudioPlayMemory` format produced by Teensy's `wav2sketch` tool. The runtime API exposes `play_music`, `stop_music`, `play_sfx`, `play_sfx2`, `tick_audio`, and `set_volume`. Call `tick_audio()` once per frame to keep looping music going.
 
 ## Physics
 
