@@ -50,7 +50,7 @@ Game development in Pulse2D is organized into two layers:
 
 * **Core API** - the `Runtime<Scenes...>` struct, which owns the engine, physics world, and active scene. All game actions (draw, spawn, collide, animate, etc.) are methods on this struct.
 
-* 📖 [See the full API reference here](API.md)
+* 📖 [See the full API reference here](api.md)
 * 📖 [Platform and memory guide](platform.md)
 
 A game that demonstrates most features:
@@ -102,7 +102,7 @@ PULSE_SCENE_FN void on_start(pulse2d_scene_runtime<Scenes...>& game)
             .width    = { 0.6f, 0.6f }
         });
 
-    game.play_music(AudioSampleMusic);
+    game.play_music(AudioBackgroundMusic);
 }
 
 PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scenes...>& game,
@@ -121,7 +121,7 @@ PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scenes...>& game,
         game.spawn("bullets", 100,
             ship.position.x + 0.6f, ship.position.y,
             8.0f, 0.0f);
-        game.play_sfx(AudioSampleLaserSfx);
+        game.play_sfx(AudioLaserSfx);
         state.cooldown = 10;
     }
 
@@ -139,7 +139,7 @@ PULSE_SCENE_FN void on_tick(pulse2d_scene_runtime<Scenes...>& game,
                 state.enemy_hit = true;
                 auto coords = get_body_coordinates(&enemy);
                 game.play_vfx("explosion", coords.x, coords.y);
-                game.play_sfx2(AudioSampleExplosionSfx);
+                game.play_sfx2(AudioExplosionSfx);
                 state.score += 100;
             }
             game.despawn("bullets", bullet);
@@ -218,7 +218,7 @@ PULSE_ON_GAMELOOP()
 - Entity state machines - `Entity_Controller<SM, Data, Config>` wraps `boost/sml` for enemies, pickups, and any object with lifecycle behaviour
 - Debug tools - stack usage tracking and ETL error reporting
 
-See [API.md](API.md) for the complete reference with detailed examples.
+See [api.md](api.md) for the complete reference with detailed examples.
 
 ---
 

@@ -1,3 +1,17 @@
+## [1.1.1] - 2026-07-11
+
+- feat(audio): looping music and dual SFX channels via SGTL5000 and AudioMixer4
+- feat(renderer): text writing with glcdfont, Color enum, float size scale
+- feat(api): add draw_sprite, standardize PULSE_SCENE_FN concept to pulse2d::Scene
+
+- fix(dsl): PULSE_DEFER_SCENE, rename units_to_pixels, update scene transition docs
+
+- chore: v1.1.1
+- chore: documentation clean up
+- chore: update CHANGELOG.md for v1.1.0
+
+- refactor: HARDWARE_Deferred_Init -> Static_Inplace_T
+- Merge pull request #2 from jahan-addison/chore/changelog-v1.1.0
 ## [1.1.0] - 2026-07-03
 
 - feat: embedded sprite pool, scene architecture, state machines and state types, additional API primitives, documentation
