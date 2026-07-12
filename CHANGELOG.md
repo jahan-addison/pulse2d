@@ -1,3 +1,11 @@
+## [1.1.3] - 2026-07-12
+
+- feat: draw_text_centered, bss_symbols tool, EXTMEM game runtime object, 32KB block trap docs
+
+- chore: v1.1.3
+- chore: update CHANGELOG.md for v1.1.2
+
+- Merge pull request #4 from jahan-addison/chore/changelog-v1.1.2
 ## [1.1.2] - 2026-07-12
 
 - fix(audio): move AudioStream objects to file scope, add enable_audio runtime init; px_to_units -> pixels_to_units
