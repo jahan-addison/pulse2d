@@ -1,3 +1,11 @@
+## [1.1.2] - 2026-07-12
+
+- fix(audio): move AudioStream objects to file scope, add enable_audio runtime init; px_to_units -> pixels_to_units
+
+- chore: v1.1.2
+- chore: update CHANGELOG.md for v1.1.1
+
+- Merge pull request #3 from jahan-addison/chore/changelog-v1.1.1
 ## [1.1.1] - 2026-07-11
 
 - feat(audio): looping music and dual SFX channels via SGTL5000 and AudioMixer4
@@ -16,7 +24,7 @@
 
 - feat: embedded sprite pool, scene architecture, state machines and state types, additional API primitives, documentation
 - feat: add Entropy/TRNG support, body field setters, trng_random docs, and GAME_INC to Makefile.teensy
-- feat: add pixels_to_units, overload pattern, body debug serial, and sections limit warnings
+- feat: add px_to_units, overload pattern, body debug serial, and sections limit warnings
 - feat: add set_sprite(name, path) overload for .bin files, since dimensions come from the file header
 
 - chore: v1.1.0 🚀
