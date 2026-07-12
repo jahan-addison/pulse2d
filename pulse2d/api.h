@@ -258,10 +258,10 @@ struct Runtime
         uint16_t color,
         float size = 1.0f)
     {
-        const int x = (pulse2d::Renderer::k_screen_w -
-                          static_cast<int>(
-                              static_cast<float>(text.size()) * 6.0f * size)) /
-                      2;
+        const int x =
+            (pulse2d::Renderer::k_screen_w -
+                static_cast<int>(text.size()) * static_cast<int>(6.0f * size)) /
+            2;
         engine->renderer().draw_text(text, x, y, color, size);
     }
 
@@ -283,12 +283,11 @@ struct Runtime
         const pulse2d::Renderer::Font_Def& font,
         float size = 1.0f)
     {
-        const int advance = font.cell_w + 1;
-        const int x =
-            (pulse2d::Renderer::k_screen_w -
-                static_cast<int>(static_cast<float>(text.size()) *
-                                 static_cast<float>(advance) * size)) /
-            2;
+        const int advance =
+            static_cast<int>(static_cast<float>(font.cell_w + 1) * size);
+        const int x = (pulse2d::Renderer::k_screen_w -
+                          static_cast<int>(text.size()) * advance) /
+                      2;
         engine->renderer().draw_text(text, x, y, color, font, size);
     }
 

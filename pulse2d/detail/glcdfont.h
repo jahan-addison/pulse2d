@@ -23,7 +23,7 @@
 namespace pulse2d::detail {
 
 inline constexpr uint8_t k_glcd_cell_w = 5;
-inline constexpr uint8_t k_glcd_cell_h = 7;
+inline constexpr uint8_t k_glcd_cell_h = 8;
 
 // clang-format off
 PULSE2D_FLASHMEM static const uint8_t k_glcd_font[] = {

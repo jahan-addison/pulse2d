@@ -504,9 +504,7 @@ Host dependencies are fetched automatically via [CPM](https://github.com/cpm-cma
 
 - [`ETLCPP`](https://www.etlcpp.com/) - Embedded Template Library
 - [`boost/sml`](https://boost-ext.github.io/sml/) - State Machine Library
-
 - `box2d-lite` - Heavily modified port of [box2d-lite](https://github.com/erincatto/box2d-lite) for embedded devices
-
 - `doctest` - Test framework
 - `stb` - Image loading for the host storage backend
 
