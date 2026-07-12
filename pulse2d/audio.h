@@ -9,29 +9,31 @@
 
 #include <pulse2d/util.h> // for PULSE2D_TEENSY
 
-#if defined(PULSE2D_TEENSY)
-#include <Audio.h> // for AudioMemory, AudioOutputI2S, AudioControlSGTL5000
-#include <SPI.h>   // for SPI
-#include <Wire.h>  // for Wire
-#endif
-
 /****************************************************************************
  * Audio
  * Teensy audio library memory blocks, SGTL5000 codec, and two-channel
- * playback: one looping music track and one one-shot SFX channel mixed
- * through a 4-channel mixer before I2S output.
+ * playback: one looping music track and two independent one-shot SFX
+ * channels mixed through a 4-channel mixer before I2S output.
  *
  * Audio data must be in the AudioPlayMemory format produced by wav2sketch.
  *
+ * All AudioStream and AudioConnection objects live at file scope in audio.cc.
+ * AudioConnection stores raw C++ references and registers them in the
+ * interrupt-driven audio update list on construction. Those objects must be
+ * at stable global addresses for the lifetime of the program; placing them
+ * inside a class that uses placement-new or any other relocating storage
+ * corrupts the linked list and causes an immediate hard fault.
+ *
  * Call tick() every game loop frame to restart looping music automatically.
+ * Call init() once after Serial.begin() and before any play_* call.
  ****************************************************************************/
 
 namespace pulse2d {
 
 /**
  * @brief
- * Teensy audio shield I2S output via SGTL5000 with looping music and
- * one-shot SFX playback.
+ * Teensy I2S output via SGTL5000 with looping music and two-channel SFX.
+ * Audio hardware objects are kept at global scope in audio.cc.
  */
 class Audio
 {
@@ -41,13 +43,18 @@ class Audio
     Audio& operator=(Audio const&) = delete;
 
   public:
+    /**
+     * @brief Allocate audio memory and enable the SGTL5000 codec.
+     * Must be the first audio call; call it from PULSE_ON_GAMESTART after
+     * Serial.begin(). Safe to skip if no audio hardware is attached.
+     */
     void init();
 
     /**
      * @brief Start playing a looping music track. Restarts automatically
      * when tick() is called each frame.
      */
-    void play_music(const unsigned int* data);
+    void play_music(unsigned int const* data);
 
     /**
      * @brief Stop the current music track.
@@ -58,14 +65,14 @@ class Audio
      * @brief Play a one-shot SFX clip on channel 1. Interrupts any clip
      * already playing on this channel.
      */
-    void play_sfx(const unsigned int* data);
+    void play_sfx(unsigned int const* data);
 
     /**
      * @brief Play a one-shot SFX clip on channel 2. Independent of channel 1,
      * so both can play simultaneously (e.g. laser fire while an explosion
      * plays).
      */
-    void play_sfx2(const unsigned int* data);
+    void play_sfx2(unsigned int const* data);
 
     /**
      * @brief Restart music if it has finished playing. Call once per frame.
@@ -82,22 +89,6 @@ class Audio
     static constexpr float k_default_volume = 0.5f;
 
 #if defined(PULSE2D_TEENSY)
-    AudioPlayMemory music_player_;
-    AudioPlayMemory sfx_player_;
-    AudioPlayMemory sfx_player2_;
-    AudioMixer4 mixer_;
-    AudioOutputI2S out_;
-    AudioControlSGTL5000 codec_;
-
-    // Members are initialized in declaration order - players and mixer are
-    // ready before AudioConnection constructors wire them.
-    // Mixer layout: 0=music, 1=sfx, 2=sfx2, 3=reserved
-    AudioConnection conn_music_{ music_player_, 0, mixer_, 0 };
-    AudioConnection conn_sfx_{ sfx_player_, 0, mixer_, 1 };
-    AudioConnection conn_sfx2_{ sfx_player2_, 0, mixer_, 2 };
-    AudioConnection conn_left_{ mixer_, 0, out_, 0 };
-    AudioConnection conn_right_{ mixer_, 0, out_, 1 };
-
     const unsigned int* music_data_{ nullptr };
 #endif
 };

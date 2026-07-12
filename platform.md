@@ -59,7 +59,7 @@ asterisk.set_dynamic_body("enemy",
     {
         .position = { 20.0f, 0.0f }, // off-screen
         .velocity = { 0.0f,  0.0f },
-        .width    = px_to_units(32.0f, 32.0f), // real width from the start
+        .width    = pixels_to_units(32.0f, 32.0f), // real width from the start
         .mass = 1.0f,
         .is_sensor = true
 });

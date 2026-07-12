@@ -756,11 +756,11 @@ my_game.play_vfx("laser_hit", to_int16(coords.x + 12), to_int16(coords.y - 8));
 
 ---
 
-#### px_to_units
+#### pixels_to_units
 
 ```cpp
-auto size = px_to_units(px_w, px_h);
-auto size = px_to_units(px_w, px_h, px_per_unit);
+auto size = pixels_to_units(px_w, px_h);
+auto size = pixels_to_units(px_w, px_h, px_per_unit);
 ```
 
 Converts pixel dimensions to physics world units. Returns a `pulse2d::graphics::math::Vec2`. The third argument defaults to `pulse2d::config::pixels_per_unit` (30.0).
@@ -772,7 +772,7 @@ asterisk.set_dynamic_body("meteor",
     {
         .position = { 6.0f, 1.5f },
         .velocity = { -7.5f, 0.0f },
-        .width    = px_to_units(65.0f, 65.0f),
+        .width    = pixels_to_units(65.0f, 65.0f),
         .mass     = 1.0f,
         .is_sensor = true
     });
@@ -1113,7 +1113,7 @@ auto& as = asterisk.get_body("meteor_object_2");
 as.set_position({ 6.0f, pulse2d_math::trng_random(-2.5f, 2.5f) });
 
 // shrink collision box to match the smaller sprite
-as.set_width(px_to_units(25.0f, 22.0f));
+as.set_width(pixels_to_units(25.0f, 22.0f));
 
 // chain both
 as.set_position({ 6.0f, 0.0f }).set_width({ 0.0f, 0.0f });
@@ -1787,6 +1787,8 @@ Applies linear drag to the body each frame. `drag_amount` is a multiplier (< 1.0
 
 ### Audio (Runtime)
 
+Call `enable_audio()` once in `PULSE_ON_GAMESTART` after `init()` to allocate audio memory and start the SGTL5000 codec. Only call it when an audio shield is physically attached to the board. All other audio functions require `enable_audio()` to have run first.
+
 Audio data must be in the `AudioPlayMemory` format produced by Teensy's `wav2sketch` tool. Run `wav2sketch` on your 8-bit WAV file to get a `.h` with a `const unsigned int` array. Then include that header and pass the array pointer directly to `play_music` or `play_sfx`.
 
 Music and SFX are mixed through a 4-channel `AudioMixer4` before I2S output. The mixer layout is fixed:
@@ -1801,6 +1803,10 @@ Music and SFX are mixed through a 4-channel `AudioMixer4` before I2S output. The
 Channels 1 and 2 are fully independent. Both can play simultaneously, so a laser fire on channel 1 won't interrupt an explosion on channel 2. Call `tick_audio()` once per frame to keep looping music going.
 
 ```cpp
+// PULSE_ON_GAMESTART
+game.init(0.0f, 0.0f, 10);
+game.enable_audio();   // only when audio shield is attached
+
 // PULSE_ON_GAMESCENE_START
 #include <audio/level1_music.h>
 game.play_music(AudioSampleLevel1_music);
@@ -1815,6 +1821,18 @@ if (SEESAW_BUTTON_INPUT(SEESAW_A)) {
 // explosion on a separate channel, won't cut the laser
 game.play_sfx2(AudioSampleExplosion);     // channel 2
 ```
+
+---
+
+#### enable_audio
+
+```cpp
+void enable_audio();
+```
+
+Allocate audio memory and start the SGTL5000 codec over I2C. This must be the first audio call. Call it once in `PULSE_ON_GAMESTART` after `init()`. Skip it if no audio shield is attached to the board.
+
+**Scope:** `PULSE_ON_GAMESTART` (after `init`)
 
 ---
 
@@ -1931,7 +1949,7 @@ PULSE_SCENE_FN void on_level_start(pulse2d_scene_runtime<Scenes...>& game)
     game.set_sprite("enemy_sprite", "enemy.bin")
         .set_dynamic_body("enemy_1",
             { .position = { 20.0f, 0.0f }, .velocity = { 0.0f, 0.0f },
-              .width    = px_to_units(32.0f, 32.0f), .mass = 1.0f });
+              .width    = pixels_to_units(32.0f, 32.0f), .mass = 1.0f });
 
     state.speed_ratio    = 1.0f;
     state.current_enemy  = 0;
@@ -2061,7 +2079,7 @@ PULSE_SCENE_FN void on_level_start(pulse2d_scene_runtime<Scenes...>& game,
     game.set_sprite("enemy_sprite", "enemy.bin")
         .set_dynamic_body("enemy_1",
             { .position = { 20.0f, 0.0f }, .velocity = { -8.0f * state.speed_ratio, 0.0f },
-              .width    = px_to_units(32.0f, 32.0f), .mass = 1.0f, .is_sensor = true });
+              .width    = pixels_to_units(32.0f, 32.0f), .mass = 1.0f, .is_sensor = true });
 }
 
 PULSE_SCENE_FN void on_level_tick(pulse2d_scene_runtime<Scenes...>& game,

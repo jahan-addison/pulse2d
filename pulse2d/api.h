@@ -132,6 +132,21 @@ struct Runtime
 
     /**
      * @brief
+     * Enable the audio subsystem. Allocates audio memory and starts the
+     * SGTL5000 codec over I2C. Call once from PULSE_ON_GAMESTART after
+     * init(), and only when an audio shield is physically attached to the
+     * board. Must be called before play_music, play_sfx, play_sfx2, or
+     * set_volume.
+     * @scope: PULSE_ON_GAMESTART (after init)
+     */
+    PULSE2D_INLINE void enable_audio()
+    {
+        engine->audio().init();
+        PULSE2D_DEBUG_SERIAL("Pulse2d: audio OK");
+    }
+
+    /**
+     * @brief
      * Rasterize renderer bodies with an axis-aligned bounding box.
      * Note: Background rendering must be turned off for visibility.
      * @scope: PULSE_ON_GAMESCENE

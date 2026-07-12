@@ -44,8 +44,6 @@ class Pulse2d
     {
         storage_.init();
         PULSE2D_DEBUG_SERIAL("Pulse2d: storage OK");
-        audio_.init();
-        PULSE2D_DEBUG_SERIAL("Pulse2d: audio OK");
         display_.init();
         PULSE2D_DEBUG_SERIAL("Pulse2d: display OK");
         renderer_.init();
@@ -68,8 +66,8 @@ class Pulse2d
   private:
     Display display_;
     Renderer renderer_;
-    Audio audio_;
     Storage storage_;
+    Audio audio_;
 };
 
 } // namespace pulse2d

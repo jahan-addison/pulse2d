@@ -196,6 +196,7 @@ PULSE_ON_GAMESTART()
     Serial.begin(115200);
     pulse_register_etl_error_handler();
     my_game.init(0.0f, 0.0f, 10);
+    my_game.enable_audio(); // audio shield is available
     PULSE_ENABLE_SEESAW_GAMEPAD();
     PULSE_SET_SCENE(my_game, Space_Shooter);
 }
@@ -413,7 +414,7 @@ Sprites are loaded via `Storage::load_sprite()`. On host, any format supported b
 
 ## Audio
 
-Targets the SGTL5000 codec over I2S. Three independent `AudioPlayMemory` channels (looping background music, SFX slot 1, and SFX slot 2) are mixed through a 4-channel `AudioMixer4` before output. Channel 3 is reserved. Both SFX channels play simultaneously without interrupting each other. Audio data must be in the `AudioPlayMemory` format produced by Teensy's `wav2sketch` tool. The runtime API exposes `play_music`, `stop_music`, `play_sfx`, `play_sfx2`, `tick_audio`, and `set_volume`. Call `tick_audio()` once per frame to keep looping music going.
+Targets the SGTL5000 codec over I2S. Three independent `AudioPlayMemory` channels (looping background music, SFX slot 1, and SFX slot 2) are mixed through a 4-channel `AudioMixer4` before output. Channel 3 is reserved. Both SFX channels play simultaneously without interrupting each other. Audio data must be in the `AudioPlayMemory` format produced by Teensy's `wav2sketch` tool. Call `enable_audio()` once in `PULSE_ON_GAMESTART` after `init()` to start the subsystem (only when an audio shield is attached). The runtime API then exposes `play_music`, `stop_music`, `play_sfx`, `play_sfx2`, `tick_audio`, and `set_volume`. Call `tick_audio()` once per frame to keep looping music going.
 
 ## Physics
 

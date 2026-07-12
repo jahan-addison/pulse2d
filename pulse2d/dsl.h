@@ -527,7 +527,7 @@ PULSE2D_INLINE pulse2d::Renderer::Screen units_to_pixels(float unit_w,
 // Renderer //
 //////////////
 
-constexpr pulse2d::graphics::math::Vec2 px_to_units(float px_w,
+constexpr pulse2d::graphics::math::Vec2 pixels_to_units(float px_w,
     float px_h,
     float px_per_unit = pulse2d::config::pixels_per_unit)
 {
