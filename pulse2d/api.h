@@ -244,6 +244,56 @@ struct Runtime
 
     /**
      * @brief
+     * Queue text to draw, horizontally centered on screen.
+     * Computes x from the built-in 5x7 font advance of 6 pixels per character.
+     *
+     * @scope: PULSE_ON_GAMESCENE
+     * @param text string to render
+     * @param y screen y position in pixels (top of the first glyph row)
+     * @param color RGB565 value
+     * @param size scale multiplier, default 1.0
+     */
+    PULSE2D_INLINE void draw_text_centered(std::string_view text,
+        int y,
+        uint16_t color,
+        float size = 1.0f)
+    {
+        const int x = (pulse2d::Renderer::k_screen_w -
+                          static_cast<int>(
+                              static_cast<float>(text.size()) * 6.0f * size)) /
+                      2;
+        engine->renderer().draw_text(text, x, y, color, size);
+    }
+
+    /**
+     * @brief
+     * Queue text to draw, horizontally centered on screen, using a custom
+     * Font_Def. Advance per character is font.cell_w + 1 pixels.
+     *
+     * @scope: PULSE_ON_GAMESCENE
+     * @param text string to render
+     * @param y screen y position in pixels
+     * @param color RGB565 color value
+     * @param font Font_Def descriptor
+     * @param size scale multiplier, default 1.0
+     */
+    PULSE2D_INLINE void draw_text_centered(std::string_view text,
+        int y,
+        uint16_t color,
+        const pulse2d::Renderer::Font_Def& font,
+        float size = 1.0f)
+    {
+        const int advance = font.cell_w + 1;
+        const int x =
+            (pulse2d::Renderer::k_screen_w -
+                static_cast<int>(static_cast<float>(text.size()) *
+                                 static_cast<float>(advance) * size)) /
+            2;
+        engine->renderer().draw_text(text, x, y, color, font, size);
+    }
+
+    /**
+     * @brief
      * Pack red, green, blue 8-bit components into an RGB565 value for
      * draw_text. Compute once at startup and reuse; not per-frame.
      *

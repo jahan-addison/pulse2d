@@ -54,7 +54,7 @@ class Linker_Script:
     """Teensy 4.x linker script parser and formatter.
 
     Reads imxrt1062_t41.ld and extracts MEMORY region declarations and
-    output section -> region mappings, then renders them as ANSI-coloured
+    output section -> region mappings, then renders them as ANSI-colored
     tables to stdout.
 
     Args:

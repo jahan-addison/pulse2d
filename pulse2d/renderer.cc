@@ -246,11 +246,13 @@ void Renderer::draw_glyph(uint8_t glyph_idx,
     const int out_h = static_cast<int>(cell_h * scale + 0.5f);
 
     for (int oy = 0; oy < out_h; ++oy) {
-        const auto src_row = static_cast<uint8_t>(oy / scale);
+        const auto src_row =
+            static_cast<uint8_t>(static_cast<float>(oy) / scale);
         if (src_row >= cell_h)
             continue;
         for (int ox = 0; ox < out_w; ++ox) {
-            const auto src_col = static_cast<uint8_t>(ox / scale);
+            const auto src_col =
+                static_cast<uint8_t>(static_cast<float>(ox) / scale);
             if (src_col >= cell_w)
                 continue;
             if (!(glyph[src_col] & (1u << src_row)))

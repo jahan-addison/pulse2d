@@ -492,6 +492,13 @@ sections: $(OUT)/$(GAME_NAME).elf
 	@python3 $(PULSE2D_ROOT)/tools/sections $(OUT)/$(GAME_NAME).elf \
 	  $(if $(SECTIONS_ALL),--all,)
 
+# Usage:
+#   bss_symbols <elf>  [--min-bytes N] [--top N]
+.PHONY: bss_symbols
+bss_symbols: $(OUT)/$(GAME_NAME).elf
+	$(call _step,Section map for $(GAME_NAME).elf)
+	@python3 $(PULSE2D_ROOT)/tools/bss_symbols $(OUT)/$(GAME_NAME).elf
+
 # Print the Teensy linker script memory regions and output section -> region map.
 # Usage:  make ldscript
 .PHONY: ldscript

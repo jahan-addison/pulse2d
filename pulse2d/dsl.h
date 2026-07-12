@@ -188,7 +188,7 @@ namespace sml = boost::sml;
  */
 #define PULSE_INIT_GAME(game_name, ...)       \
     using game_name_t = Runtime<__VA_ARGS__>; \
-    static game_name_t game_name {}
+    static PULSE2D_EXTMEM game_name_t game_name {}
 
 /**
  * @brief

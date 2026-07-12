@@ -121,7 +121,7 @@ class Section_Table:
     """ELF section table parser and formatter for Teensy 4.x binaries.
 
     Parses a 32-bit ARM ELF and maps each allocatable section to its Teensy
-    memory region, then renders a grouped, colour-coded table to stdout.
+    memory region, then renders a grouped, color-coded table to stdout.
 
     Args:
         path: Path to the compiled .elf file.

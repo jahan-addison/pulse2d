@@ -151,6 +151,8 @@ class Renderer
             ((r & 0xF8u) << 8) | ((g & 0xFCu) << 3) | (b >> 3));
     }
 
+    static constexpr int k_screen_w = config::width;
+
     /**
      * @brief
      * Draw text into the framebuffer using the built-in 5x7 font.

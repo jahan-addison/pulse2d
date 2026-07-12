@@ -29,7 +29,7 @@
 #include <Audio.h>
 #include <Wire.h>
 
-DMAMEM static audio_block_t g_audio_memory[12];
+static PULSE2D_EXTMEM audio_block_t g_audio_memory[12];
 
 static AudioPlayMemory g_music_player;
 static AudioPlayMemory g_sfx_player;

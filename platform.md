@@ -14,6 +14,20 @@ The i.MX RT1062 has five usable memory regions. The Teensyduino linker script as
 
 The DTCM budget for `.data` + `.bss` is about 380 KB. Below that, SdFat's FIFO_SDIO DMA needs at least 128 KB of call stack. The linker only errors when a region is fully exhausted - use the `sections` tool to know when you're close.
 
+### The 32 KB block trap
+
+ITCM and DTCM are not independently sized. They share a single 512 KB RAM1 pool, and the hardware allocates it in **32 KB blocks**. The Teensyduino linker adds their byte counts and checks whether the sum fits within 512 KB - it does not round. The result is a class of silent overflow the linker cannot see.
+
+Say the build produces 230 KB of ITCM code and 276 KB of DTCM data. The sum is 506 KB - well under the 512 KB limit, so the linker reports success and the binary flashes cleanly. The hardware then allocates memory in 32 KB blocks:
+
+- ITCM: ⌈230 / 32⌉ = **8 blocks = 256 KB**
+- DTCM: ⌈276 / 32⌉ = **9 blocks = 288 KB**
+- Total: **17 blocks = 544 KB > 512 KB**
+
+The hardware silently truncates the overflow. At boot, the startup code tries to zero-initialise `.bss` and copy `.data`, writing into addresses that are no longer mapped. The Teensy hard faults before `Serial.begin()` ever runs. The symptom is indistinguishable from a static initialisation crash: the USB device never enumerates and the serial port never appears.
+
+**The fix**: move large global objects from DTCM to OCRAM. `PULSE_INIT_GAME` places the game Runtime in `PULSE2D_EXTMEM` (OCRAM) for exactly this reason. If you add large scene state or pools and the Teensy stops booting, this is the first thing to check.
+
 ---
 
 ## Static allocation
@@ -109,6 +123,31 @@ make sections SECTIONS_ALL=1
 
 ---
 
+## The `bss_symbols` tool
+
+Runs `arm-none-eabi-nm` against the compiled ELF and prints every uninitialized variable sorted by size, with color-coded warnings for variables and totals that approach the DTCM limit. It is the fastest way to answer "what is actually eating my `.bss`?"
+
+```bash
+make bss_symbols
+# or directly:
+tools/bss_symbols build-teensy/my_game.elf
+tools/bss_symbols build-teensy/my_game.elf --min-bytes 1024   # hide small variables
+tools/bss_symbols build-teensy/my_game.elf --top 5            # show only the 5 largest
+```
+
+Warning thresholds:
+
+| Scope | Yellow | Red |
+|---|---|---|
+| Single variable | > 20 KB | > 100 KB |
+| Total BSS | > 200 KB | > 240 KB |
+
+**Reading the output**: the address column tells you which region a variable lives in. Variables at `0x200xxxxx` are in DTCM - those are the ones that count toward the 32 KB block budget. Variables at `0x202xxxxx` are in OCRAM (`PULSE2D_EXTMEM`) and do not affect the ITCM/DTCM balance. The tool counts all BSS symbols together, so the total shown in the header will be inflated by the OCRAM objects (`asterisk`, `s_framebuffer`) even when the DTCM footprint is healthy. Focus on the per-symbol list and the addresses, not the total alone.
+
+**Run this whenever the Teensy stops booting after adding new global state.** A variable appearing red in DTCM is the likely culprit. Move it to `PULSE2D_EXTMEM` or reduce its static size.
+
+---
+
 ## Stack usage
 
 `pulse2d::stack_used()` returns a runtime byte count of stack consumed since boot. The most useful call site is inside a debug scene tick or on a button press:
@@ -147,7 +186,9 @@ PULSE_POLL_SERIAL_CONNECTION();
 
 ### Serial output never appears
 
-Almost always a DTCM overflow: the stack has collided with `.bss` before `Serial.begin()` returns. Run `make sections` and look at the DTCM row. If `.data` + `.bss` is close to 380 KB or in red, reduce pool sizes or move large constants to `PULSE2D_FLASHMEM`.
+Almost always a DTCM overflow - but `.bss` overflow on Teensy is a **silent killer**. The linker sums ITCM and DTCM in bytes and reports success as long as the total is under 512 KB. The hardware then rounds each region up to the nearest 32 KB block boundary. If the rounded total exceeds 512 KB, the startup code writes into unmapped RAM during `.bss` zero-initialisation, the Teensy hard faults, and the USB device never enumerates. There is no linker error. There is no serial output. The board appears completely dead.
+
+Run `make bss_symbols` and look for large variables at DTCM addresses (`0x200xxxxx`). If any are unexpectedly large, move them to `PULSE2D_EXTMEM` or reduce their static size. Then run `make sections` to confirm the DTCM row is well under the limit. See the 32 KB block trap section above for the exact arithmetic.
 
 ### Crash or hang after a few frames
 

@@ -1,0 +1,221 @@
+#!/usr/bin/env python3
+##############################################################################
+# Copyright (c) 2026 Jahan Addison
+# Licensed under the MIT License (https://opensource.org/license/mit)
+##############################################################################
+
+##############################################################################
+# bss_symbols - print a sorted uninitialized variable table for a Teensy ELF
+#
+# Executes arm-none-eabi-nm to extract uninitialized variables (.bss),
+# sorts them by size, and renders a color-coded table. Variables exceeding
+# safe thresholds are highlighted.
+#
+# Usage:
+#   bss_symbols <elf>  [--min-bytes N] [--top N]
+##############################################################################
+
+import argparse
+import subprocess
+import sys
+from pathlib import Path
+
+# Single variable thresholds
+_VAR_WARNING = 20_000
+_VAR_DANGER  = 100_000
+
+# Total BSS limit threshold (leaving room for .data and stack in the 262KB DTCM)
+_TOTAL_WARNING = 200_000
+_TOTAL_DANGER  = 240_000
+
+_RESET  = "\033[0m"
+_BOLD   = "\033[1m"
+_DIM    = "\033[2m"
+_CYAN   = "\033[1;36m"
+_GREEN  = "\033[1;32m"
+_YELLOW = "\033[1;33m"
+_RED    = "\033[1;31m"
+
+
+class Parse_Error(Exception):
+    __module__ = "bss_symbols"
+
+
+class Symbol:
+    """A single uninitialized variable with address and size metadata.
+
+    Attributes:
+        address: Memory address in decimal.
+        size: Variable size in bytes.
+        type_flag: nm type character (e.g., b, B).
+        name: Demangled variable name.
+
+    """
+
+    def __init__(
+        self,
+        address:   int,
+        size:      int,
+        type_flag: str,
+        name:      str,
+    ) -> None:
+        self.address   = address
+        self.size      = size
+        self.type_flag = type_flag
+        self.name      = name
+
+
+class Symbol_Table:
+    """Symbol table parser and formatter for ARM ELF binaries.
+
+    Executes nm, filters for BSS variables, and renders a table to stdout.
+
+    Args:
+        path: Path to the compiled .elf file.
+
+    Attributes:
+        path: The ELF file path.
+        symbols: Parsed list of Symbol objects.
+
+    """
+
+    def __init__(self, path: Path) -> None:
+        self.path    = path
+        self.symbols = self._parse()
+
+    def _parse(self) -> list[Symbol]:
+        """Execute nm and parse the output.
+
+        Returns:
+            List of Symbol objects.
+
+        """
+        try:
+            result = subprocess.run(
+                [
+                    "arm-none-eabi-nm",
+                    "--print-size",
+                    "--size-sort",
+                    "--radix=d",
+                    "--demangle",
+                    str(self.path),
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+        except FileNotFoundError:
+            raise Parse_Error("arm-none-eabi-nm not found in system path")
+        except subprocess.CalledProcessError as e:
+            raise Parse_Error(f"nm execution failed: {e.stderr.strip()}")
+
+        symbols: list[Symbol] = []
+        for line in result.stdout.splitlines():
+            parts = line.split(maxsplit=3)
+            if len(parts) == 4:
+                addr_str, size_str, type_char, name = parts
+                if type_char.lower() == "b":
+                    symbols.append(Symbol(
+                        address   = int(addr_str),
+                        size      = int(size_str),
+                        type_flag = type_char,
+                        name      = name,
+                    ))
+
+        return symbols
+
+    def _fmt_size(self, n: int) -> str:
+        """Format a byte count with optional KB annotation.
+
+        Args:
+            n: Size in bytes.
+
+        Returns:
+            Formatted string.
+
+        """
+        if n >= 1024:
+            return f"{n:>10,}  ({n / 1024:.1f} KB)"
+        return f"{n:>10,}"
+
+    def print_table(self, min_bytes: int, top_n: int) -> None:
+        """Print the variable table.
+
+        Args:
+            min_bytes: Omit variables smaller than this many bytes.
+            top_n: Limit output to the largest N variables (0 for all).
+
+        Returns:
+            None
+
+        """
+        visible = [s for s in self.symbols if s.size >= min_bytes]
+        if not visible:
+            print("(no variables above threshold)")
+            return
+
+        if top_n > 0:
+            visible = visible[-top_n:]
+
+        total_size = sum(s.size for s in self.symbols)
+        total_color = _GREEN
+        if total_size > _TOTAL_DANGER:
+            total_color = _RED
+        elif total_size > _TOTAL_WARNING:
+            total_color = _YELLOW
+
+        cap = 512 * 1024
+        cap_str = f"{cap // 1024} KB"
+        kib_str = f"{total_size / 1024:.1f} KiB" if total_size < 1024 * 1024 else f"{total_size / (1024 * 1024):.1f} MiB"
+
+        print(f"\n{_BOLD}── BSS VARIABLES{_RESET}  "
+              f"{_DIM}(total: {cap_str}, {_RESET}{total_color}{total_size:,}{_RESET}{_DIM} bytes / {kib_str} in use){_RESET}")
+
+        col_name = max(max(len(s.name) for s in visible), 10)
+        if col_name > 80:
+            col_name = 80  # cap width for excessively long demangled names
+
+        print(f"  {_DIM}{'VARIABLE':<{col_name}}  {'ADDRESS':>10}  "
+              f"{'SIZE':>22}{_RESET}")
+        print(f"  {_DIM}{'-' * col_name}  {'----------':>10}  "
+              f"{'----------------------':>22}{_RESET}")
+
+        for s in visible:
+            color = ""
+            if s.size > _VAR_DANGER:
+                color = _RED
+            elif s.size > _VAR_WARNING:
+                color = _YELLOW
+
+            name_disp = s.name if len(s.name) <= col_name else s.name[:col_name-3] + "..."
+
+            print(f"  {color}{name_disp:<{col_name}}{_RESET}  "
+                  f"{s.address:>10}  "
+                  f"{self._fmt_size(s.size)}")
+
+
+def main() -> None:
+    sys.tracebacklimit = 0
+    try:
+        ap = argparse.ArgumentParser(
+            description="Print a sorted uninitialized variable table for a Teensy ELF."
+        )
+        ap.add_argument("elf",         help="path to the compiled .elf file")
+        ap.add_argument("--min-bytes", type=int, default=64, metavar="N",
+                        help="hide variables smaller than N bytes (default: 64)")
+        ap.add_argument("--top",       type=int, default=15, metavar="N",
+                        help="show only the top N largest variables (default: 15, 0 for all)")
+        args = ap.parse_args()
+
+        path = Path(args.elf)
+        if not path.exists():
+            raise Parse_Error(f"file not found: {path}")
+
+        Symbol_Table(path).print_table(args.min_bytes, args.top)
+
+    except Parse_Error as e:
+        sys.exit(f"error: {e}")
+
+
+if __name__ == "__main__":
+    main()
