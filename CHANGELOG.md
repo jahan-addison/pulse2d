@@ -1,3 +1,11 @@
+## [1.1.4] - 2026-07-12
+
+- fix(renderer): k_glcd_cell_h  -> 8 for full descender rows; fix draw_text_centered per-char advance truncation
+
+- chore: v1.1.4
+- chore: update CHANGELOG.md for v1.1.3
+
+- Merge pull request #5 from jahan-addison/chore/changelog-v1.1.3
 ## [1.1.3] - 2026-07-12
 
 - feat: draw_text_centered, bss_symbols tool, EXTMEM game runtime object, 32KB block trap docs
