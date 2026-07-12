@@ -12,12 +12,12 @@ endif()
 if(CMAKE_CROSSCOMPILING)
   project(
     pulse2d
-    VERSION 1.1.3
+    VERSION 1.1.4
     LANGUAGES C CXX ASM)
 else()
   project(
     pulse2d
-    VERSION 1.1.3
+    VERSION 1.1.4
     LANGUAGES CXX)
 endif()
 
