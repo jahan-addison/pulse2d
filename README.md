@@ -22,7 +22,7 @@ Check out the [blog series](https://soliloq.uy/tag/pulse2d/)!
 
 ## Hardware
 
-The recommended hardware for game development with **no soldering required**:
+The supported hardware for game development with **no soldering required**:
 
 - [Solderless breadboard](https://www.amazon.com/dp/B08Y59P6D1?ref_=ppx_hzsearch_conn_dt_b_fed_asin_title_5): Holds all components
 - [Teensy 4.1](https://www.pjrc.com/store/teensy41.html): Primary microcontroller
@@ -212,16 +212,21 @@ PULSE_ON_GAMELOOP()
 - Scene management - organize game states as scenes with isolated body and sprite pools
 - Physics management - static, controlled, and dynamic objects with collision detection
 - Audio - looping background music and two independent SFX channels via the SGTL5000 codec
+- Text - Text writing API via `glcdfont.h` with extensive color selection
 - Animations - spritesheet animations for VFX and persistent looping with automatic frame advancement
 - Kinematic pools - pre-allocated object pools for bullets, particles, powerups
 - Parallax backgrounds - multi-layer scrolling backgrounds from flash memory
 - Gamepad profiles - arcade (instant), momentum (acceleration), and friction movement
 - Entity state machines - `Entity_Controller<SM, Data, Config>` wraps `boost/sml` for enemies, pickups, and any object with lifecycle behaviour
-- Debug tools - stack usage tracking and ETL error reporting
+- [Debug tools](/platform.md) - stack usage tracking and ETL error reporting
 
 See [api.md](api.md) for the complete reference with detailed examples.
 
 ---
+
+### Physics Engine
+
+A port of [box2d-lite](https://github.com/erincatto/box2d-lite) adapted for fixed-size allocation, single-precision float, and a two-stage AABB broad phase. See the [physics readme](pulse2d/graphics/readme.md) for details.
 
 ### State Machines
 
@@ -306,7 +311,7 @@ namespace level_one = scenes::levels::level_one;
 
 PULSE_ON_GAMESCENE_START(Level_One) {
     level_one::on_start(my_game,
-        [](pulse2d_body* b, const char* s) { my_game.draw_body(b, s); });
+        [](pulse2d_body* body, const char* sprite) { my_game.draw_body(body, sprite); });
 }
 ```
 
@@ -395,41 +400,6 @@ make ldscript
 
 ---
 
-# Engine
-
-* [Display](#display): `pulse2d::Display`
-* [Storage](#storage): `pulse2d::Storage`
-* [Physics](#physics): `pulse2d::graphics::`
-* [Renderer](#renderer): `pulse2d::Renderer`
-* [Audio](#audio): `pulse2d::Audio`
-* [Gamepad](#gamepad): `pulse2d::gamepad::`
-
-## Display
-
-Targets the [PJRC ILI9341 TFT](https://www.pjrc.com/store/display_ili9341_touch.html) on hardware. On host, the same logical resolution is used for the test suite scaled by `pulse2d::config::scale` - no code changes needed between environments.
-
-## Storage
-
-Sprites are loaded via `Storage::load_sprite()`. On host, any format supported by stb_image works. On Teensy, `set_sprite` reads `.bin` files (raw RGB565 pixels with a two-byte width/height header) from the SD card. The `png2bin` tool converts PNGs to this format.
-
-## Audio
-
-Targets the SGTL5000 codec over I2S. Three independent `AudioPlayMemory` channels (looping background music, SFX slot 1, and SFX slot 2) are mixed through a 4-channel `AudioMixer4` before output. Channel 3 is reserved. Both SFX channels play simultaneously without interrupting each other. Audio data must be in the `AudioPlayMemory` format produced by Teensy's `wav2sketch` tool. Call `enable_audio()` once in `PULSE_ON_GAMESTART` after `init()` to start the subsystem (only when an audio shield is attached). The runtime API then exposes `play_music`, `stop_music`, `play_sfx`, `play_sfx2`, `tick_audio`, and `set_volume`. Call `tick_audio()` once per frame to keep looping music going.
-
-## Physics
-
-A port of [box2d-lite](https://github.com/erincatto/box2d-lite) adapted for fixed-size allocation, single-precision float, and a two-stage AABB broad phase. See the [physics readme](pulse2d/graphics/readme.md) for details.
-
-## Renderer
-
-Owns the full-screen RGB565 framebuffer. Each frame: clear -> draw -> `render()`.
-
-## Gamepad
-
-Targets the [Adafruit Seesaw Gamepad QT](https://www.adafruit.com/product/5743) over I2C. The DSL (`PULSE_POLL_SEESAW_GAMEPAD`, `SEESAW_BUTTON_INPUT`, etc.) wraps polling and input into single-line calls.
-
----
-
 # Tools
 
 ## Assets
@@ -467,7 +437,7 @@ Python tools for converting PNG assets are in `tools/`. The first three require 
 
 ## Debug
 
-Debugging tools (no dependencies):
+Debugging tools:
 
 - `sections` - parses a compiled ELF and prints every allocatable section grouped by memory region (FLASH, DTCM, RAM, ERAM, ITCM), with VMA, LMA, size in bytes, and load type (FLASH-ONLY, LOAD, or NOLOAD). Each region header shows total capacity and bytes / KiB in use. Regions that exceed their recommended static limit are printed in red with a warning line at the top.
 

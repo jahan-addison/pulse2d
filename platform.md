@@ -237,3 +237,31 @@ make ldscript
 - `USE_SANITIZER` - host-only; passes `-fsanitize=...` to the CMake build
 - `SECTIONS_ALL=1` - include sections under 64 bytes in `make sections` output
 - `GAME_INC` - extra `-I` paths appended to the compiler include search
+
+---
+
+# Hardware Support
+
+## Display
+
+Targets the [PJRC ILI9341 TFT](https://www.pjrc.com/store/display_ili9341_touch.html) on hardware. On host, the same logical resolution is used for the test suite scaled by `pulse2d::config::scale` - no code changes needed between environments.
+
+## Storage
+
+Sprites are loaded via `Storage::load_sprite()`. On host, any format supported by stb_image works. On Teensy, `set_sprite` reads `.bin` files (raw RGB565 pixels with a two-byte width/height header) from the SD card. The `png2bin` tool converts PNGs to this format.
+
+## Audio
+
+Targets the SGTL5000 codec over I2S. Three independent `AudioPlayMemory` channels (looping background music, SFX slot 1, and SFX slot 2) are mixed through a 4-channel `AudioMixer4` before output. Channel 3 is reserved. Both SFX channels play simultaneously without interrupting each other. Audio data must be in the `AudioPlayMemory` format produced by Teensy's `wav2sketch` tool. Call `enable_audio()` once in `PULSE_ON_GAMESTART` after `init()` to start the subsystem (only when an audio shield is attached). The runtime API then exposes `play_music`, `stop_music`, `play_sfx`, `play_sfx2`, `tick_audio`, and `set_volume`. Call `tick_audio()` once per frame to keep looping music going.
+
+## Physics
+
+A port of [box2d-lite](https://github.com/erincatto/box2d-lite) adapted for fixed-size allocation, single-precision float, and a two-stage AABB broad phase. See the [physics readme](pulse2d/graphics/readme.md) for details.
+
+## Renderer
+
+The rendering pipeline on the full-screen RGB565 framebuffer
+
+## Gamepad
+
+Targets the [Adafruit Seesaw Gamepad QT](https://www.adafruit.com/product/5743) over I2C. The DSL (`PULSE_POLL_SEESAW_GAMEPAD`, `SEESAW_BUTTON_INPUT`, etc.) wraps polling and input into single-line calls.
