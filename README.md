@@ -18,7 +18,10 @@ Check out the [blog series](https://soliloq.uy/tag/pulse2d/)!
 
 ### Demo:
 
-![gif](/images/demo/Asterisk%20Game%20Demo%20V1-GIF.gif)
+
+<div align="center">
+  <img src="images/demo/Asterisk Game Demo V5.gif" width="800" alt="pulse2d"> </img>
+</div>
 
 ## Hardware
 
