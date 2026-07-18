@@ -1,0 +1,53 @@
+site_name: Pulse2D
+site_description: A 2D game engine for the Teensy 4.1
+
+docs_dir: src
+site_dir: site
+
+hooks:
+  - split_api.py
+
+
+theme:
+  name: material
+  custom_dir: overrides
+  logo: assets/logo.svg
+  palette:
+    scheme: default
+    primary: white
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - navigation.expand
+    - toc.integrate
+    - content.code.copy
+  font: false
+
+extra:
+  generator: false
+
+copyright: Powered by <a href="https://www.mkdocs.org">MkDocs</a>
+
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      use_pygments: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+  - tables
+  - admonition
+
+nav:
+  - Overview: index.md
+  - Debugging: platform.md
+  - Physics: physics.md
+  - API Reference:
+    - Internal DSL: dsl.md
+    - Core API: runtime.md
+    - Levels: levels.md

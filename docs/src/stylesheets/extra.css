@@ -1,0 +1,131 @@
+@import url("https://use.typekit.net/bcl5gwj.css");
+
+[data-md-color-scheme="default"] {
+  --md-accent-fg-color: rgb(3, 102, 214);
+  --md-accent-fg-color--transparent: rgba(3, 102, 214, 0.15);
+  --md-typeset-a-color: rgb(3, 102, 214);
+}
+
+.md-typeset a,
+.md-nav__link--active,
+.md-nav__link:hover {
+  color: rgb(3, 102, 214);
+}
+
+/* White header with a subtle bottom border */
+.md-header {
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
+  padding: 0.15rem 0;
+}
+
+/* Hide the site name text — logo is sufficient */
+.md-header__title {
+  display: none;
+}
+
+/* Scale the SVG logo to a readable height */
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg {
+  height: 1.1rem;
+  width: auto;
+}
+
+/* Custom header nav links */
+.pulse-header-nav {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  margin-left: auto;
+  padding: 0 0.5rem;
+}
+
+.pulse-header-nav a {
+  color: rgba(0, 0, 0, 0.55);
+  font-family: acumin-pro, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 400;
+  text-decoration: none;
+}
+
+.pulse-header-nav a:hover {
+  color: rgba(0, 0, 0, 0.85);
+}
+
+
+/* Hide the "Pulse2D" label at the top of the sidebar nav */
+.md-nav--primary>.md-nav__title {
+  display: none;
+}
+
+/* Bold top-level nav items */
+.md-nav--primary>.md-nav__list>.md-nav__item>.md-nav__link,
+.md-nav--primary>.md-nav__list>.md-nav__item>.md-nav__item--section>.md-nav__link {
+  font-weight: 700;
+}
+
+/* Intro section: text left, video right */
+.md-typeset .pulse-intro {
+  display: flex !important;
+  gap: 2.5rem;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.md-typeset .pulse-intro p {
+  flex: 1;
+  margin: 0;
+}
+
+.md-typeset .pulse-intro video {
+  width: 55%;
+  border-radius: 6px;
+}
+
+@media screen and (max-width: 720px) {
+  .md-typeset .pulse-intro {
+    flex-direction: column;
+  }
+
+  .md-typeset .pulse-intro video {
+    width: 100%;
+  }
+}
+
+/* Hide the page H1 — it duplicates the sidebar nav label */
+.md-typeset h1 {
+  display: none;
+}
+
+/* Headings */
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4,
+.md-typeset h5,
+.md-typeset h6 {
+  font-family: proxima-nova, sans-serif;
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* Body text and UI elements */
+body,
+.md-typeset,
+.md-nav,
+.md-header,
+.md-search__form,
+.md-footer {
+  font-family: acumin-pro, sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* Code blocks and inline code */
+.md-typeset code,
+.md-typeset pre>code,
+.md-typeset kbd {
+  font-family: input-mono, monospace;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 0.78em;
+}

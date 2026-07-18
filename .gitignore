@@ -3,3 +3,12 @@
 build*
 cpm_modules
 *.profraw
+site/
+docs/site/
+docs/src/dsl.md
+docs/src/runtime.md
+docs/src/levels.md
+docs/src/platform.md
+docs/src/physics.md
+docs/src/assets/demo.gif
+docs/src/assets/*.mp4

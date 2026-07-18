@@ -1,0 +1,69 @@
+name: Docs
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+    paths:
+      - 'docs/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Build and deploy documentation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+      S3_BUCKET: ${{ secrets.S3_BUCKET }}
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: source content to latest tag outside of a release
+        if: github.ref_type != 'tag'
+        run: |
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          if [ -n "$latest_tag" ]; then
+            git checkout "$latest_tag" -- api.md platform.md pulse2d/graphics/readme.md
+          fi
+
+      - name: setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: install dependencies
+        working-directory: docs
+        run: pip install -r requirements.txt
+
+      - name: build
+        working-directory: docs
+        run: mkdocs build
+
+      - name: deploy hashed assets (long cache)
+        run: |
+          aws s3 cp docs/site/ s3://$S3_BUCKET/ --recursive \
+            --cache-control "public, max-age=31536000, immutable" \
+            --exclude "*" \
+            --include "stylesheets/extra.css" \
+            --include "assets/logo.svg" \
+            --include "assets/stylesheets/*" \
+            --include "assets/javascripts/*"
+
+      - name: deploy site (short cache)
+        run: |
+          aws s3 sync docs/site/ s3://$S3_BUCKET/ --delete \
+            --cache-control "public, max-age=300, must-revalidate" \
+            --exclude "stylesheets/extra.css" \
+            --exclude "assets/logo.svg" \
+            --exclude "assets/stylesheets/*" \
+            --exclude "assets/javascripts/*"

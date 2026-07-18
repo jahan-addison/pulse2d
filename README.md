@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="images/logo/pulse2d-sleek-final-final-final.png" width="800" alt="pulse2d"> </img>
+  <img src="images/logo/pulse2d-logo.png" width="800" alt="pulse2d"> </img>
 </div>
 
 

@@ -11,41 +11,6 @@ Include both headers:
 
 ---
 
-## Table of Contents
-
-- [Internal DSL](#internal-dsl)
-  - [Type Aliases](#type-aliases)
-  - [Math](#math)
-  - [State Machines](#state-machines)
-  - [Game State, Setup](#game-state-setup)
-  - [Scenes](#scenes)
-    - [PULSE_SCENE_FN](#pulse_scene_fn)
-  - [Gamepad Input (DSL)](#gamepad-input-dsl)
-  - [Animation (DSL)](#animation-dsl)
-  - [Coordinates](#coordinates)
-  - [Debug, Utilities](#debug-utilities)
-- [Core API - Runtime](#core-api---runtime)
-  - [Initialization](#initialization)
-  - [Engine](#engine)
-  - [Bodies](#bodies)
-  - [Sprites, Rendering](#sprites-rendering)
-  - [Backgrounds](#backgrounds)
-  - [Text](#text)
-  - [Animations (Runtime)](#animations-runtime)
-  - [Kinematic Pools](#kinematic-pools)
-  - [Collision](#collision)
-  - [Gamepad Controls (Runtime)](#gamepad-controls-runtime)
-  - [Audio (Runtime)](#audio-runtime)
-- [Levels](#levels)
-  - [State](#state-1)
-  - [Functions](#functions)
-  - [draw\_fn pass-through](#draw_fn-pass-through)
-  - [on\_reset callback](#on_reset-callback)
-  - [Wiring it up](#wiring-it-up)
-- [Complete Example](#complete-example)
-- [See Also](#see-also)
-
----
 
 ## Internal DSL
 
@@ -665,7 +630,7 @@ if (SEESAW_DIRECTION_IS_LEFT() || SEESAW_DIRECTION_IS_RIGHT()) {
 
 ### Animation (DSL)
 
-The DSL provides compile-time animation blueprints and persistent animator instances. These are the _definition_ side; the _playback_ side is on the Runtime (see [Animations (Runtime)](#animations-runtime)).
+The DSL provides compile-time animation blueprints and persistent animator instances. These are the _definition_ side; the _playback_ side is on the Runtime (see [Animations (Runtime)](runtime.md#animations-runtime)).
 
 
 Note that you can use the [animation2header](/tools/animation2header) tool to build an animation sheet.
@@ -2308,5 +2273,5 @@ PULSE_ON_GAMELOOP()
 
 ## See Also
 
-- [Physics README](pulse2d/graphics/readme.md) - Physics engine, bodies, sensors
+- [Physics README](https://github.com/jahan-addison/pulse2d/blob/master/pulse2d/graphics/readme.md) - Physics engine, bodies, sensors
 - [Blog series](https://soliloq.uy/tag/pulse2d/) - Embedded development blog

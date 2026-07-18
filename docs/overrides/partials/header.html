@@ -1,0 +1,37 @@
+<header class="md-header" data-md-component="header" data-md-state="shadow">
+  <nav class="md-header__inner md-grid" aria-label="{{ lang.t('header') }}">
+    <a href="/" title="{{ config.site_name | e }}" class="md-header__button md-logo"
+      aria-label="{{ config.site_name }}">
+      {% include "partials/logo.html" %}
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      {% include ".icons/material/menu.svg" %}
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">{{ config.site_name }}</span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            {% if page.meta and page.meta.title %}
+            {{ page.meta.title }}
+            {% else %}
+            {{ page.title }}
+            {% endif %}
+          </span>
+        </div>
+      </div>
+    </div>
+    <nav class="pulse-header-nav">
+      <a href="https://github.com/jahan-addison/pulse2d">Github</a>
+      <a href="https://www.pjrc.com/store/teensy41.html">Teensy</a>
+      <a href="https://jahan.engineer">About</a>
+    </nav>
+    {% if config.repo_url %}
+    <div class="md-header__source">
+      {% include "partials/source.html" %}
+    </div>
+    {% endif %}
+  </nav>
+</header>
