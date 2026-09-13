@@ -14,7 +14,7 @@ Pulse2D is a 2D game engine for the Teensy 4.1. Games are organized into scenes 
 
 The pilot game, [asterisk](https://github.com/jahan-addison/asterisk), is a feature-complete space shooter built with Pulse2D. It is **recommended as a starting point for development of new games**.
 
-Check out the [blog series](https://soliloq.uy/tag/pulse2d/)!
+Check out the [blog series](https://hellojahan.blog/tag/pulse2d/)!
 
 ### Demo:
 
