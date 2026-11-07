@@ -2274,4 +2274,4 @@ PULSE_ON_GAMELOOP()
 ## See Also
 
 - [Physics README](https://github.com/jahan-addison/pulse2d/blob/master/pulse2d/graphics/readme.md) - Physics engine, bodies, sensors
-- [Blog series](https://hellojahan.blog/tag/pulse2d/) - Embedded development blog
+- [Blog series](https://jahans.blog/tag/pulse2d/) - Embedded development blog
