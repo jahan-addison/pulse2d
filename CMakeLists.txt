@@ -46,7 +46,7 @@ cpmaddpackage("gh:ETLCPP/etl#20.47.1")
 cpmaddpackage("gh:boost-ext/sml#v1.2.0")
 
 if(NOT CMAKE_CROSSCOMPILING)
-  cpmaddpackage("gh:StableCoder/cmake-scripts#24.04")
+  cpmaddpackage("gh:StableCoder/cmake-scripts#24.04.1")
   cpmaddpackage("gh:TheLartians/PackageProject.cmake@1.8.0")
   cpmaddpackage("gh:doctest/doctest@2.4.12")
 
